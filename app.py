@@ -2442,14 +2442,31 @@ def get_quarterly_estimates_from_finviz(ticker):
             'Accept-Language': 'en-US,en;q=0.9',
         }
         
+        # Try using cloudscraper first (for Cloudflare protection on Render)
         try:
-            response = requests.get(url, headers=headers, timeout=10)  # Reduced timeout for Render
-        except requests.exceptions.Timeout:
-            print(f"[WARNING] Finviz request timeout for {ticker}")
-            return {'estimates': estimates, 'actuals': actuals}
-        except requests.exceptions.RequestException as e:
-            print(f"[WARNING] Finviz request failed for {ticker}: {str(e)}")
-            return {'estimates': estimates, 'actuals': actuals}
+            import cloudscraper
+            scraper = cloudscraper.create_scraper()
+            response = scraper.get(url, headers=headers, timeout=10)
+        except ImportError:
+            # Fallback to requests if cloudscraper not available
+            try:
+                response = requests.get(url, headers=headers, timeout=10)
+            except requests.exceptions.Timeout:
+                print(f"[WARNING] Finviz request timeout for {ticker}")
+                return {'estimates': estimates, 'actuals': actuals}
+            except requests.exceptions.RequestException as e:
+                print(f"[WARNING] Finviz request failed for {ticker}: {str(e)}")
+                return {'estimates': estimates, 'actuals': actuals}
+        except Exception as e:
+            # If cloudscraper fails, try regular requests
+            try:
+                response = requests.get(url, headers=headers, timeout=10)
+            except requests.exceptions.Timeout:
+                print(f"[WARNING] Finviz request timeout for {ticker}")
+                return {'estimates': estimates, 'actuals': actuals}
+            except requests.exceptions.RequestException as req_e:
+                print(f"[WARNING] Finviz request failed for {ticker}: {str(req_e)}")
+                return {'estimates': estimates, 'actuals': actuals}
         
         if response.status_code != 200:
             print(f"[WARNING] Finviz returned status {response.status_code} for {ticker}")
