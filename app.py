@@ -10130,7 +10130,7 @@ def search_stocks(query):
                 try:
                     if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
                         with open(log_path, 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4380","message":"Query processed","data":{"query":query,"query_lower":query_lower},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4380","message":"Query processed","data":{"query":query,"query_lower":query_lower},"timestamp":int(__import__('time').time()*1000)}) + '\n')
         except:
             pass  # Ignore debug log errors
         except:
@@ -10187,7 +10187,7 @@ def search_stocks(query):
                             try:
                                 if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
                                     with open(log_path, 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"app.py:4430","message":"Info missing","data":{"ticker":ticker},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"app.py:4430","message":"Info missing","data":{"ticker":ticker},"timestamp":int(__import__('time').time()*1000)}) + '\n')
                     except:
                         pass  # Ignore debug log errors
                     except:
@@ -10211,7 +10211,7 @@ def search_stocks(query):
                             try:
                                 if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
                                     with open(log_path, 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"app.py:4444","message":"Company name missing","data":{"ticker":ticker,"ticker_symbol":ticker_symbol},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"app.py:4444","message":"Company name missing","data":{"ticker":ticker,"ticker_symbol":ticker_symbol},"timestamp":int(__import__('time').time()*1000)}) + '\n')
                     except:
                         pass  # Ignore debug log errors
                     except:
@@ -10250,7 +10250,7 @@ def search_stocks(query):
                             try:
                                 if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
                                     with open(log_path, 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4468","message":"Company name contains query","data":{"ticker":ticker,"company_name":company_name[:50],"company_name_lower":company_name_lower[:50],"query_lower":query_lower},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4468","message":"Company name contains query","data":{"ticker":ticker,"company_name":company_name[:50],"company_name_lower":company_name_lower[:50],"query_lower":query_lower},"timestamp":int(__import__('time').time()*1000)}) + '\n')
                     except:
                         pass  # Ignore debug log errors
                     except:
@@ -10272,7 +10272,7 @@ def search_stocks(query):
                             try:
                                 if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
                                     with open(log_path, 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4480","message":"Name match score calculated","data":{"ticker":ticker,"score":score,"match_type":match_type},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4480","message":"Name match score calculated","data":{"ticker":ticker,"score":score,"match_type":match_type},"timestamp":int(__import__('time').time()*1000)}) + '\n')
                     except:
                         pass  # Ignore debug log errors
                     except:
@@ -10298,7 +10298,7 @@ def search_stocks(query):
                             try:
                                 if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
                                     with open(log_path, 'a') as f:
-                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4497","message":"Match added to results","data":{"ticker":ticker,"ticker_symbol":ticker_symbol,"company_name":company_name[:50],"score":score,"match_type":match_type},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4497","message":"Match added to results","data":{"ticker":ticker,"ticker_symbol":ticker_symbol,"company_name":company_name[:50],"score":score,"match_type":match_type},"timestamp":int(__import__('time').time()*1000)}) + '\n')
                     except:
                         pass  # Ignore debug log errors
                     except:
@@ -10330,7 +10330,7 @@ def search_stocks(query):
                 try:
                     if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
                         with open(log_path, 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"D","location":"app.py:4548","message":"Before sorting and deduplication","data":{"results_count":len(results)},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"D","location":"app.py:4548","message":"Before sorting and deduplication","data":{"results_count":len(results)},"timestamp":int(__import__('time').time()*1000)}) + '\n')
         except:
             pass  # Ignore debug log errors
         except:
@@ -10355,7 +10355,7 @@ def search_stocks(query):
                 try:
                     if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
                         with open(log_path, 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4490","message":"After deduplication","data":{"unique_results_count":len(unique_results)},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4490","message":"After deduplication","data":{"unique_results_count":len(unique_results)},"timestamp":int(__import__('time').time()*1000)}) + '\n')
         except:
             pass  # Ignore debug log errors
         except:
@@ -10393,7 +10393,7 @@ def search_stocks(query):
                 try:
                     if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
                         with open(log_path, 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:4604","message":"Exception in search_stocks","data":{"error":str(e)[:200]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:4604","message":"Exception in search_stocks","data":{"error":str(e)[:200]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
         except:
             pass  # Ignore debug log errors
         print(f"Error in search_stocks: {str(e)}")
@@ -14159,7 +14159,7 @@ def analyze_earnings_call():
         try:
             if (hasattr(log_path, 'parent') and log_path.parent.exists()) or (hasattr(log_path, '__str__') and os.path.exists(os.path.dirname(str(log_path)))):
                 with open(log_path, 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:4569","message":"Exception in search_stocks","data":{"error":str(e)[:200]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:4569","message":"Exception in search_stocks","data":{"error":str(e)[:200]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
         except:
             pass  # Ignore debug log errors
         print(f"Error in search_stocks endpoint: {str(e)}")
