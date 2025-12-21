@@ -10493,30 +10493,41 @@ def get_alerts_dashboard():
 @app.route('/api/financials/<ticker>')
 def get_financials(ticker):
     """Get comprehensive financial data for Financials tab"""
+    import time as time_module
+    start_time = time_module.time()
     print(f"[DEBUG] /api/financials/{ticker} called")
+    
     try:
         ticker_upper = ticker.upper()
+        print(f"[DEBUG] Processing ticker: {ticker_upper}")
         
         # Try to get financials data with better error handling
         try:
+            print(f"[DEBUG] Calling get_financials_data for {ticker_upper}")
             financials = get_financials_data(ticker_upper)
+            elapsed = time_module.time() - start_time
+            print(f"[DEBUG] get_financials_data completed in {elapsed:.2f}s for {ticker_upper}")
         except Exception as fetch_error:
-            print(f"[ERROR] Failed to fetch financials data for {ticker_upper}: {str(fetch_error)}")
+            elapsed = time_module.time() - start_time
+            print(f"[ERROR] Failed to fetch financials data for {ticker_upper} after {elapsed:.2f}s: {str(fetch_error)}")
             import traceback
             traceback.print_exc()
             # Return a more informative error
             return jsonify({
                 'error': 'Financial data not available',
                 'details': str(fetch_error),
-                'ticker': ticker_upper
+                'ticker': ticker_upper,
+                'elapsed_seconds': round(elapsed, 2)
             }), 500
         
         if financials is None:
-            print(f"[WARNING] get_financials_data returned None for {ticker_upper}")
+            elapsed = time_module.time() - start_time
+            print(f"[WARNING] get_financials_data returned None for {ticker_upper} after {elapsed:.2f}s")
             return jsonify({
                 'error': 'Financial data not available',
                 'ticker': ticker_upper,
-                'message': 'Unable to fetch financial data. The ticker may not exist or data may be temporarily unavailable.'
+                'message': 'Unable to fetch financial data. The ticker may not exist or data may be temporarily unavailable.',
+                'elapsed_seconds': round(elapsed, 2)
             }), 404
         
         # Add peer comparison data (optional, don't fail if it doesn't work)
