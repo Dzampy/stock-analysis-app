@@ -931,14 +931,14 @@ def get_earnings_qoq(ticker):
         # #endregion
         
         for search_term in eps_search_terms:
-        for idx in income_stmt.index:
-            idx_str = str(idx).lower()
+            for idx in income_stmt.index:
+                idx_str = str(idx).lower()
                 if search_term in idx_str:
-                eps_row = income_stmt.loc[idx]
+                    eps_row = income_stmt.loc[idx]
                     # #region agent log
                     print(f"[DEBUG] Found EPS row: '{idx}' (matched '{search_term}')")
                     # #endregion
-                break
+                    break
             if eps_row is not None:
                 break
         
@@ -2442,9 +2442,17 @@ def get_quarterly_estimates_from_finviz(ticker):
             'Accept-Language': 'en-US,en;q=0.9',
         }
         
-        response = requests.get(url, headers=headers, timeout=15)
+        try:
+            response = requests.get(url, headers=headers, timeout=10)  # Reduced timeout for Render
+        except requests.exceptions.Timeout:
+            print(f"[WARNING] Finviz request timeout for {ticker}")
+            return {'estimates': estimates, 'actuals': actuals}
+        except requests.exceptions.RequestException as e:
+            print(f"[WARNING] Finviz request failed for {ticker}: {str(e)}")
+            return {'estimates': estimates, 'actuals': actuals}
+        
         if response.status_code != 200:
-            print(f"Finviz returned status {response.status_code} for {ticker}")
+            print(f"[WARNING] Finviz returned status {response.status_code} for {ticker}")
             return {'estimates': estimates, 'actuals': actuals}
         
         # Finviz stores estimates in JSON data embedded in HTML
@@ -2579,9 +2587,9 @@ def get_quarterly_estimates_from_finviz(ticker):
                                         try:
                                             val = float(event[key])
                                             # Accept any value (including 0 and negative) from priority keys - SAME AS EPS
-                                                revenue_actual = val
-                                                revenue_actual_key = key
-                                                # Finviz returns revenue in millions, always convert to dollars
+                                            revenue_actual = val
+                                            revenue_actual_key = key
+                                            # Finviz returns revenue in millions, always convert to dollars
                                             # Priority keys are always in millions
                                             revenue_actual = revenue_actual * 1_000_000
                                             break
@@ -2599,12 +2607,12 @@ def get_quarterly_estimates_from_finviz(ticker):
                                                     revenue_actual = val
                                                     revenue_actual_key = key
                                                     # Finviz values in fallback keys are typically in millions
-                                                # If value is less than 1 trillion, assume it's in millions and convert
-                                                if revenue_actual < 1e12:
-                                                    revenue_actual = revenue_actual * 1_000_000
-                                                break
-                                        except (ValueError, TypeError):
-                                            continue
+                                                    # If value is less than 1 trillion, assume it's in millions and convert
+                                                    if revenue_actual < 1e12:
+                                                        revenue_actual = revenue_actual * 1_000_000
+                                                    break
+                                            except (ValueError, TypeError):
+                                                continue
                                 
                                 # Comprehensive fallback: try all keys containing relevant words
                                 if revenue_actual is None:
@@ -3875,7 +3883,15 @@ def get_financials_data(ticker):
         
         # Get quarterly estimates and actuals from Finviz
         # Format: {'estimates': {'revenue': {}, 'eps': {}}, 'actuals': {'revenue': {}, 'eps': {}}}
-        finviz_data = get_quarterly_estimates_from_finviz(ticker)
+        # Wrap in try-except to prevent Finviz failures from breaking the whole request
+        finviz_data = None
+        try:
+            finviz_data = get_quarterly_estimates_from_finviz(ticker)
+        except Exception as finviz_error:
+            print(f"[WARNING] Finviz scraping failed for {ticker}: {str(finviz_error)}")
+            # Continue without Finviz data - not critical
+            finviz_data = {'estimates': {}, 'actuals': {}}
+        
         quarterly_estimates = finviz_data.get('estimates', {}) if isinstance(finviz_data, dict) else {}
         quarterly_actuals = finviz_data.get('actuals', {}) if isinstance(finviz_data, dict) else {}
         
@@ -4361,24 +4377,24 @@ def get_financials_data(ticker):
                             min_date_diff = 0
                         else:
                             # SECOND: Find closest Finviz revenue by date (fallback for fiscal vs calendar quarter differences)
-                        for finviz_q, finviz_rev in quarterly_actuals['revenue'].items():
-                            try:
-                                if '-Q' in finviz_q:
-                                    fv_year, fv_num = finviz_q.split('-Q')
-                                    fv_num = int(fv_num)
-                                    fv_year = int(fv_year)
-                                    fv_month = (fv_num - 1) * 3 + 1  # Q1=Jan, Q2=Apr, Q3=Jul, Q4=Oct
-                                    fv_date = pd.Timestamp(year=fv_year, month=fv_month, day=1)
-                                    date_diff = abs((quarter_date - fv_date).days)
+                            for finviz_q, finviz_rev in quarterly_actuals['revenue'].items():
+                                try:
+                                    if '-Q' in finviz_q:
+                                        fv_year, fv_num = finviz_q.split('-Q')
+                                        fv_num = int(fv_num)
+                                        fv_year = int(fv_year)
+                                        fv_month = (fv_num - 1) * 3 + 1  # Q1=Jan, Q2=Apr, Q3=Jul, Q4=Oct
+                                        fv_date = pd.Timestamp(year=fv_year, month=fv_month, day=1)
+                                        date_diff = abs((quarter_date - fv_date).days)
                                         
-                                    
-                                    # Accept match within 120 days (allows for fiscal vs calendar quarter differences)
-                                    if date_diff < min_date_diff and date_diff <= 120:
-                                        min_date_diff = date_diff
-                                        best_match_rev = finviz_rev
-                                        best_match_q = finviz_q
-                            except Exception as e:
-                                pass
+                                        
+                                        # Accept match within 120 days (allows for fiscal vs calendar quarter differences)
+                                        if date_diff < min_date_diff and date_diff <= 120:
+                                            min_date_diff = date_diff
+                                            best_match_rev = finviz_rev
+                                            best_match_q = finviz_q
+                                except Exception as e:
+                                    pass
                         
                         if best_match_rev is not None:
                             revenue_val = best_match_rev
@@ -4393,9 +4409,9 @@ def get_financials_data(ticker):
                     
                     # Fallback to yfinance if Finviz not available
                     if revenue_val is None:
-                    revenue_val = float(revenue_row_q.iloc[i]) if i < len(revenue_row_q) else None
-                    if revenue_val is not None and not pd.isna(revenue_val):
-                        revenue_source = 'yfinance'
+                        revenue_val = float(revenue_row_q.iloc[i]) if i < len(revenue_row_q) else None
+                        if revenue_val is not None and not pd.isna(revenue_val):
+                            revenue_source = 'yfinance'
                             print(f"[DEBUG] Using yfinance revenue for {ticker} {quarter_str}: {revenue_val}")
                     
                     net_income_val = float(net_income_row_q.iloc[i]) if net_income_row_q is not None and i < len(net_income_row_q) else None
@@ -4432,17 +4448,17 @@ def get_financials_data(ticker):
                         
                         # Fallback to yfinance if Finviz not available
                         if eps_val is None:
-                        try:
-                            eps_row = find_row(quarterly_income, ['diluted eps', 'basic eps', 'earnings per share', 'eps'])
-                            if eps_row is not None and i < len(eps_row):
-                                eps_val = float(eps_row.iloc[i]) if hasattr(eps_row, 'iloc') else float(list(eps_row.values())[i])
-                                if pd.isna(eps_val):
-                                    eps_val = None
+                            try:
+                                eps_row = find_row(quarterly_income, ['diluted eps', 'basic eps', 'earnings per share', 'eps'])
+                                if eps_row is not None and i < len(eps_row):
+                                    eps_val = float(eps_row.iloc[i]) if hasattr(eps_row, 'iloc') else float(list(eps_row.values())[i])
+                                    if pd.isna(eps_val):
+                                        eps_val = None
                                     else:
-                                            eps_source = 'yfinance'
-                                            # #region agent log
-                                            print(f"[DEBUG] Using yfinance EPS for {ticker} {quarter_str}: {eps_val}")
-                                            # #endregion
+                                        eps_source = 'yfinance'
+                                        # #region agent log
+                                        print(f"[DEBUG] Using yfinance EPS for {ticker} {quarter_str}: {eps_val}")
+                                        # #endregion
                             except Exception:
                                 pass
                             pass
@@ -4461,7 +4477,7 @@ def get_financials_data(ticker):
                             if 'revenue' in quarterly_estimates:
                                 # Try exact match first
                                 if quarter_str in quarterly_estimates['revenue']:
-                                revenue_estimate = quarterly_estimates['revenue'][quarter_str]
+                                    revenue_estimate = quarterly_estimates['revenue'][quarter_str]
                                     print(f"[DEBUG] Using Finviz revenue estimate (exact match) for {ticker} {quarter_str}: {revenue_estimate}")
                                 else:
                                     # Try to find closest match by date (similar to actuals matching)
@@ -4497,7 +4513,7 @@ def get_financials_data(ticker):
                             if 'eps' in quarterly_estimates:
                                 # Try exact match first
                                 if quarter_str in quarterly_estimates['eps']:
-                                eps_estimate = quarterly_estimates['eps'][quarter_str]
+                                    eps_estimate = quarterly_estimates['eps'][quarter_str]
                                 else:
                                     # Try to find closest match by date
                                     best_match_eps_est = None
@@ -4814,28 +4830,6 @@ def get_financials_data(ticker):
         import traceback
         tb_str = traceback.format_exc()
         print(tb_str)
-        
-        # Try to return at least basic data even if some parts failed
-        try:
-            stock = yf.Ticker(ticker)
-            time.sleep(0.2)
-            info = stock.info
-            
-            # Return minimal financials data
-            basic_financials = {
-                'ticker': ticker.upper(),
-                'company_name': info.get('longName', ticker.upper()),
-                'sector': info.get('sector', 'N/A'),
-                'industry': info.get('industry', 'N/A'),
-                'market_cap': info.get('marketCap'),
-                'error': f'Partial data only - some sources failed: {str(e)}',
-                'quarterly_data': {'revenue': [], 'eps': []},
-                'executive_snapshot': {}
-            }
-            print(f"[FALLBACK] Returning basic financials for {ticker}")
-            return clean_for_json(basic_financials)
-        except Exception as e2:
-            print(f"[ERROR] Even fallback failed for {ticker}: {str(e2)}")
         return None
 
 def generate_news_summary(news_list, ticker):
@@ -5831,32 +5825,32 @@ def _save_prediction_history(ticker, current_price, prediction_result, score=Non
             # Use the provided final score (already in 0-100 scale)
             final_score = max(0, min(100, round(score, 0)))
         else:
-        # Calculate score: average expected return weighted by confidence
-        expected_returns = prediction_result.get('expected_returns', {})
-        confidence_intervals = prediction_result.get('confidence_intervals', {})
-        
-        # Calculate score as weighted average of expected returns
-        # Weight by confidence (tighter intervals = higher confidence)
-        total_weight = 0
-        weighted_sum = 0
-        
-        for period in ['1m', '3m', '6m', '12m']:
-            if period in expected_returns and period in confidence_intervals:
-                ret = expected_returns[period]
-                ci = confidence_intervals[period]
-                
-                # Calculate confidence from interval width (narrower = higher confidence)
-                if 'lower' in ci and 'upper' in ci:
-                    pred_price = prediction_result.get('predictions', {}).get(period, current_price)
-                    if pred_price > 0:
-                        ci_width = (ci['upper'] - ci['lower']) / pred_price
-                        # Confidence: 1 - normalized width (max width = 0.5 = 50%)
-                        confidence = max(0, 1 - (ci_width / 0.5))
-                        weight = confidence
-                        weighted_sum += ret * weight
-                        total_weight += weight
-        
-        # Calculate average score
+            # Calculate score: average expected return weighted by confidence
+            expected_returns = prediction_result.get('expected_returns', {})
+            confidence_intervals = prediction_result.get('confidence_intervals', {})
+            
+            # Calculate score as weighted average of expected returns
+            # Weight by confidence (tighter intervals = higher confidence)
+            total_weight = 0
+            weighted_sum = 0
+            
+            for period in ['1m', '3m', '6m', '12m']:
+                if period in expected_returns and period in confidence_intervals:
+                    ret = expected_returns[period]
+                    ci = confidence_intervals[period]
+                    
+                    # Calculate confidence from interval width (narrower = higher confidence)
+                    if 'lower' in ci and 'upper' in ci:
+                        pred_price = prediction_result.get('predictions', {}).get(period, current_price)
+                        if pred_price > 0:
+                            ci_width = (ci['upper'] - ci['lower']) / pred_price
+                            # Confidence: 1 - normalized width (max width = 0.5 = 50%)
+                            confidence = max(0, 1 - (ci_width / 0.5))
+                            weight = confidence
+                            weighted_sum += ret * weight
+                            total_weight += weight
+            
+            # Calculate average score
             # expected_returns are already in percentage, so don't multiply by 100
             score_percentage = (weighted_sum / total_weight) if total_weight > 0 else 0.0
             
@@ -6424,7 +6418,7 @@ def predict_price(features, current_price, df=None):
         # Calculate predictions with safety bounds
         predictions = {}
         if momentum_6m_capped >= 0:
-        predictions = {
+            predictions = {
                 '1m': current_price * (1 + momentum_6m_capped / 6 / 100),
                 '3m': current_price * (1 + momentum_6m_capped / 2 / 100),
                 '6m': current_price * (1 + momentum_6m_capped / 100),
@@ -6684,7 +6678,7 @@ def predict_price(features, current_price, df=None):
             else:
                 # Fallback to momentum-based if model not available
                 print(f"[ML PRED] {period}: WARNING - Using fallback (model not available)")
-        momentum_6m = features.get('momentum_6m', 0)
+                momentum_6m = features.get('momentum_6m', 0)
                 momentum_6m_capped = max(-40, min(200, momentum_6m))
                 
                 # For 12M, ensure it's different from 6M even in fallback
@@ -6698,11 +6692,11 @@ def predict_price(features, current_price, df=None):
                     )
                     print(f"[ML FALLBACK] 12m: Ensuring separation from 6M (6M={pred_6m_fallback:.2f}, min_12M={min_12m_fallback:.2f}, final={pred_price:.2f})")
                 else:
-                if momentum_6m_capped >= 0:
-                    pred_price = current_price * (1 + momentum_6m_capped * {'1m': 1/6, '3m': 1/2, '6m': 1, '12m': 2}[period] / 100)
-                else:
-                    decay_factor = max(1 + momentum_6m_capped * {'1m': 1/6, '3m': 1/2, '6m': 1, '12m': 2}[period] / 100, 0.20)
-                    pred_price = current_price * decay_factor
+                    if momentum_6m_capped >= 0:
+                        pred_price = current_price * (1 + momentum_6m_capped * {'1m': 1/6, '3m': 1/2, '6m': 1, '12m': 2}[period] / 100)
+                    else:
+                        decay_factor = max(1 + momentum_6m_capped * {'1m': 1/6, '3m': 1/2, '6m': 1, '12m': 2}[period] / 100, 0.20)
+                        pred_price = current_price * decay_factor
                 
                 predictions[period] = pred_price
                 # Use same tighter relative widths for fallback as for model
@@ -6998,7 +6992,7 @@ def predict_price(features, current_price, df=None):
         # Calculate predictions with safety bounds
         predictions = {}
         if momentum_6m_capped >= 0:
-        predictions = {
+            predictions = {
                 '1m': current_price * (1 + momentum_6m_capped / 6 / 100),
                 '3m': current_price * (1 + momentum_6m_capped / 2 / 100),
                 '6m': current_price * (1 + momentum_6m_capped / 100),
@@ -8332,7 +8326,7 @@ def calculate_position_sizing(risk_analysis, price_prediction, trend_classificat
             'ml_confidence': 50,
             'volatility_pct': 2.0,
             'adjustments': {'risk': 1.0, 'confidence': 1.0, 'volatility': 1.0, 'risk_reward': 1.0}
-    }
+        }
 
 def generate_ai_recommendations(ticker):
     """Generate AI-powered stock recommendations based on technical and fundamental analysis"""
@@ -10179,8 +10173,8 @@ def search_stocks(query):
         if query in popular_tickers:
             try:
                 stock = yf.Ticker(query)
-        info = stock.info
-        if info and 'symbol' in info:
+                info = stock.info
+                if info and 'symbol' in info:
                     results.append({
                         'ticker': info['symbol'],
                         'name': info.get('longName', info.get('shortName', query)),
@@ -10633,48 +10627,52 @@ def get_financials(ticker):
     """Get comprehensive financial data for Financials tab"""
     print(f"[DEBUG] /api/financials/{ticker} called")
     try:
-        financials = get_financials_data(ticker.upper())
+        ticker_upper = ticker.upper()
+        
+        # Try to get financials data with better error handling
+        try:
+            financials = get_financials_data(ticker_upper)
+        except Exception as fetch_error:
+            print(f"[ERROR] Failed to fetch financials data for {ticker_upper}: {str(fetch_error)}")
+            import traceback
+            traceback.print_exc()
+            # Return a more informative error
+            return jsonify({
+                'error': 'Financial data not available',
+                'details': str(fetch_error),
+                'ticker': ticker_upper
+            }), 500
         
         if financials is None:
-            # Try to get at least basic data from yfinance
-            try:
-                print(f"[FALLBACK] Trying to get basic data for {ticker}")
-                stock = yf.Ticker(ticker.upper())
-                time.sleep(0.2)
-                info = stock.info
-                basic_financials = {
-                    'ticker': ticker.upper(),
-                    'company_name': info.get('longName', ticker.upper()),
-                    'sector': info.get('sector', 'N/A'),
-                    'industry': info.get('industry', 'N/A'),
-                    'market_cap': info.get('marketCap'),
-                    'error': 'Limited data - some sources unavailable. Please try again.',
-                    'quarterly_data': {'revenue': [], 'eps': []},
-                    'executive_snapshot': {}
-                }
-                return jsonify(clean_for_json(basic_financials))
-            except Exception as e2:
-                print(f"[ERROR] Fallback also failed for {ticker}: {str(e2)}")
-                return jsonify({'error': 'Financial data not available. Please try again later.'}), 404
+            print(f"[WARNING] get_financials_data returned None for {ticker_upper}")
+            return jsonify({
+                'error': 'Financial data not available',
+                'ticker': ticker_upper,
+                'message': 'Unable to fetch financial data. The ticker may not exist or data may be temporarily unavailable.'
+            }), 404
         
-        # Add peer comparison data (skip if it might cause timeout)
+        # Add peer comparison data (optional, don't fail if it doesn't work)
         try:
             industry_category = financials.get('industry_category', 'Other')
             sector = financials.get('sector', 'N/A')
-            peer_comparison = get_peer_comparison_data(ticker.upper(), industry_category, sector, limit=4)
+            peer_comparison = get_peer_comparison_data(ticker_upper, industry_category, sector, limit=4)
             if peer_comparison:
                 financials['peer_comparison'] = peer_comparison
-        except Exception as e:
-            print(f"[WARNING] Peer comparison failed for {ticker}: {str(e)}")
-            # Continue without peer comparison - not critical
+        except Exception as peer_error:
+            print(f"[WARNING] Failed to get peer comparison for {ticker_upper}: {str(peer_error)}")
+            # Don't fail the whole request if peer comparison fails
         
         return jsonify(clean_for_json(financials))
         
     except Exception as e:
-        print(f"Error in financials endpoint: {str(e)}")
+        print(f"[ERROR] Error in financials endpoint for {ticker}: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': f'Failed to fetch financials: {str(e)}'}), 500
+        return jsonify({
+            'error': 'Failed to get financials',
+            'details': str(e),
+            'ticker': ticker.upper() if ticker else 'unknown'
+        }), 500
 
 def get_finviz_analyst_ratings(ticker):
     """Scrape individual analyst ratings from Finviz"""
@@ -11894,8 +11892,8 @@ def get_economic_calendar():
             
             # Alternative: Use Investing.com with better headers and session management
             investing_url = "https://www.investing.com/economic-calendar/"
-        
-        headers = {
+            
+            headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
@@ -11908,9 +11906,9 @@ def get_economic_calendar():
                 'Cache-Control': 'max-age=0',
             }
             
-        session = requests.Session()
-        session.headers.update(headers)
-        
+            session = requests.Session()
+            session.headers.update(headers)
+            
             # First, get the main page to establish session
             try:
                 session.get(investing_url, timeout=10)
@@ -11958,71 +11956,71 @@ def get_economic_calendar():
                         print(f"[ECONOMIC] HTML data length: {len(html_data)}")
                         
                         if html_data and len(html_data) > 100:
-                        soup = BeautifulSoup(html_data, 'html.parser')
-                        events = []
-                        
+                            soup = BeautifulSoup(html_data, 'html.parser')
+                            events = []
+                            
                             # Investing.com uses tr elements with data-event-datetime attribute
-                        event_rows = soup.find_all('tr', {'data-event-datetime': True})
+                            event_rows = soup.find_all('tr', {'data-event-datetime': True})
                             
                             if not event_rows:
                                 # Try alternative selectors
                                 event_rows = soup.find_all('tr', class_=lambda x: x and ('js-event-item' in str(x) or 'eventRow' in str(x)) if x else False)
                             
                             print(f"[ECONOMIC] Found {len(event_rows)} event rows")
-                        
-                        for row in event_rows:
-                            try:
-                                # Investing.com structure: tr with data-event-datetime
-                                # Get datetime from attribute
-                                date_attr = row.get('data-event-datetime', '')
-                                if not date_attr:
-                                    continue
-                                
-                                # Parse timestamp or date string
+                            
+                            for row in event_rows:
                                 try:
-                                    if date_attr.isdigit():
-                                        # Timestamp (milliseconds or seconds)
-                                        timestamp_ms = int(date_attr)
-                                        if timestamp_ms > 1e12:
-                                            timestamp = timestamp_ms / 1000
-                                        else:
-                                            timestamp = timestamp_ms
-                                        event_datetime = datetime.fromtimestamp(timestamp)
-                                    else:
-                                        # Try different date formats
-                                        import re
-                                        # Format: '2025/12/18 08:30:00' or '2025-12-18 08:30:00'
-                                        if '/' in date_attr:
-                                            event_datetime = datetime.strptime(date_attr, '%Y/%m/%d %H:%M:%S')
-                                        elif '-' in date_attr:
-                                            try:
-                                                event_datetime = datetime.fromisoformat(date_attr.replace('Z', '+00:00'))
-                                            except Exception:
-                                                event_datetime = datetime.strptime(date_attr, '%Y-%m-%d %H:%M:%S')
-                                        else:
-                                        event_datetime = datetime.fromisoformat(date_attr.replace('Z', '+00:00'))
+                                    # Investing.com structure: tr with data-event-datetime
+                                    # Get datetime from attribute
+                                    date_attr = row.get('data-event-datetime', '')
+                                    if not date_attr:
+                                        continue
                                     
-                                    event_date = event_datetime.date()
-                                    time_str = event_datetime.strftime('%H:%M')
-                                except Exception as e:
-                                    print(f"[ECONOMIC] Date parse error: {e}, date_attr: {date_attr[:50]}")
-                                    continue
-                                
-                                cells = row.find_all('td')
-                                if len(cells) < 4:
-                                    continue
-                                
-                                # Investing.com structure:
-                                # cells[0] = time (already extracted from data-event-datetime)
-                                # cells[1] = currency/flag
-                                # cells[2] = impact (stars)
-                                # cells[3] = event name
-                                # cells[4] = actual
-                                # cells[5] = forecast/consensus
-                                # cells[6] = previous
-                                
-                                # Extract currency
-                                currency = 'USD'
+                                    # Parse timestamp or date string
+                                    try:
+                                        if date_attr.isdigit():
+                                            # Timestamp (milliseconds or seconds)
+                                            timestamp_ms = int(date_attr)
+                                            if timestamp_ms > 1e12:
+                                                timestamp = timestamp_ms / 1000
+                                            else:
+                                                timestamp = timestamp_ms
+                                            event_datetime = datetime.fromtimestamp(timestamp)
+                                        else:
+                                            # Try different date formats
+                                            import re
+                                            # Format: '2025/12/18 08:30:00' or '2025-12-18 08:30:00'
+                                            if '/' in date_attr:
+                                                event_datetime = datetime.strptime(date_attr, '%Y/%m/%d %H:%M:%S')
+                                            elif '-' in date_attr:
+                                                try:
+                                                    event_datetime = datetime.fromisoformat(date_attr.replace('Z', '+00:00'))
+                                                except Exception:
+                                                    event_datetime = datetime.strptime(date_attr, '%Y-%m-%d %H:%M:%S')
+                                            else:
+                                                event_datetime = datetime.fromisoformat(date_attr.replace('Z', '+00:00'))
+                                        
+                                        event_date = event_datetime.date()
+                                        time_str = event_datetime.strftime('%H:%M')
+                                    except Exception as e:
+                                        print(f"[ECONOMIC] Date parse error: {e}, date_attr: {date_attr[:50]}")
+                                        continue
+                                    
+                                    cells = row.find_all('td')
+                                    if len(cells) < 4:
+                                        continue
+                                    
+                                    # Investing.com structure:
+                                    # cells[0] = time (already extracted from data-event-datetime)
+                                    # cells[1] = currency/flag
+                                    # cells[2] = impact (stars)
+                                    # cells[3] = event name
+                                    # cells[4] = actual
+                                    # cells[5] = forecast/consensus
+                                    # cells[6] = previous
+                                    
+                                    # Extract currency
+                                    currency = 'USD'
                                     if len(cells) > 1:
                                         currency_cell = cells[1]
                                         # Check for flag image or country indicator
@@ -12043,74 +12041,74 @@ def get_economic_calendar():
                                             if len(events) < 3:  # Only log first few non-USD events
                                                 print(f"[ECONOMIC DEBUG] Skipping non-USD event: currency={currency}")
                                             continue
-                                    
-                                    # Extract impact
-                                impact = 0
-                                    if len(cells) > 2:
-                                        impact_cell = cells[2]
-                                        stars = impact_cell.find_all('i', class_=lambda x: x and ('grayIcon' not in str(x) and 'gray' not in str(x).lower()) if x else True)
-                                    impact = len(stars)
                                         
-                                    if impact == 0:
-                                            # Try counting filled stars (not gray)
-                                            all_stars = impact_cell.find_all('i')
-                                            impact = len([s for s in all_stars if 'gray' not in str(s.get('class', [])).lower()])
+                                        # Extract impact
+                                        impact = 0
+                                        if len(cells) > 2:
+                                            impact_cell = cells[2]
+                                            stars = impact_cell.find_all('i', class_=lambda x: x and ('grayIcon' not in str(x) and 'gray' not in str(x).lower()) if x else True)
+                                            impact = len(stars)
                                             
                                             if impact == 0:
-                                                importance_attr = impact_cell.get('data-importance', '')
-                                                if importance_attr.isdigit():
-                                                    impact = int(importance_attr)
-                                            
-                                            # If still 0, default to 2 (medium impact) for USA events
-                                            if impact == 0:
-                                                impact = 2
+                                                # Try counting filled stars (not gray)
+                                                all_stars = impact_cell.find_all('i')
+                                                impact = len([s for s in all_stars if 'gray' not in str(s.get('class', [])).lower()])
+                                                
+                                                if impact == 0:
+                                                    importance_attr = impact_cell.get('data-importance', '')
+                                                    if importance_attr.isdigit():
+                                                        impact = int(importance_attr)
+                                                
+                                                # If still 0, default to 2 (medium impact) for USA events
+                                                if impact == 0:
+                                                    impact = 2
+                                        
+                                        # Filter: only high/medium impact (>= 2) - but log for debugging
+                                        if impact < 2:
+                                            if len(events) < 3:
+                                                print(f"[ECONOMIC DEBUG] Skipping low impact event: {event_name}, impact={impact}")
+                                            continue
                                     
-                                    # Filter: only high/medium impact (>= 2) - but log for debugging
-                                    if impact < 2:
-                                        if len(events) < 3:
-                                            print(f"[ECONOMIC DEBUG] Skipping low impact event: {event_name}, impact={impact}")
+                                    # Extract event name
+                                    event_name = 'N/A'
+                                    if len(cells) > 3:
+                                        event_cell = cells[3]
+                                        event_link = event_cell.find('a')
+                                        if event_link:
+                                            event_name = event_link.get_text(strip=True)
+                                        else:
+                                            event_name = event_cell.get_text(strip=True)
+                                    
+                                    if not event_name or event_name == 'N/A' or event_name in ['Event', '']:
                                         continue
-                                
-                                # Extract event name
-                                event_name = 'N/A'
-                                if len(cells) > 3:
-                                    event_cell = cells[3]
-                                    event_link = event_cell.find('a')
-                                    if event_link:
-                                        event_name = event_link.get_text(strip=True)
-                                    else:
-                                        event_name = event_cell.get_text(strip=True)
-                                
-                                if not event_name or event_name == 'N/A' or event_name in ['Event', '']:
-                                    continue
-                                
-                                # Extract actual, consensus, previous
-                                actual = ''
-                                consensus = ''
-                                previous = ''
-                                
-                                if len(cells) >= 7:
-                                    # Previous (last cell)
-                                    prev_text = cells[6].get_text(strip=True)
-                                    if prev_text and prev_text not in ['-', '', 'N/A', 'TBA', 'TBD']:
-                                        if any(c.isdigit() for c in prev_text) or any(marker in prev_text for marker in ['%', 'M', 'B', 'K', '.']):
-                                            previous = prev_text
                                     
-                                    # Forecast/Consensus (second to last)
-                                    cons_text = cells[5].get_text(strip=True)
-                                    if cons_text and cons_text not in ['-', '', 'N/A', 'TBA', 'TBD']:
-                                        if any(c.isdigit() for c in cons_text) or any(marker in cons_text for marker in ['%', 'M', 'B', 'K', '.']):
-                                            consensus = cons_text
+                                    # Extract actual, consensus, previous
+                                    actual = ''
+                                    consensus = ''
+                                    previous = ''
                                     
-                                    # Actual (third to last)
-                                    act_text = cells[4].get_text(strip=True)
-                                    if act_text and act_text not in ['-', '', 'N/A', 'TBA', 'TBD']:
-                                        if any(c.isdigit() for c in act_text) or any(marker in act_text for marker in ['%', 'M', 'B', 'K', '.']):
-                                            actual = act_text
-                                
-                                # Filter by date range
+                                    if len(cells) >= 7:
+                                        # Previous (last cell)
+                                        prev_text = cells[6].get_text(strip=True)
+                                        if prev_text and prev_text not in ['-', '', 'N/A', 'TBA', 'TBD']:
+                                            if any(c.isdigit() for c in prev_text) or any(marker in prev_text for marker in ['%', 'M', 'B', 'K', '.']):
+                                                previous = prev_text
+                                        
+                                        # Forecast/Consensus (second to last)
+                                        cons_text = cells[5].get_text(strip=True)
+                                        if cons_text and cons_text not in ['-', '', 'N/A', 'TBA', 'TBD']:
+                                            if any(c.isdigit() for c in cons_text) or any(marker in cons_text for marker in ['%', 'M', 'B', 'K', '.']):
+                                                consensus = cons_text
+                                        
+                                        # Actual (third to last)
+                                        act_text = cells[4].get_text(strip=True)
+                                        if act_text and act_text not in ['-', '', 'N/A', 'TBA', 'TBD']:
+                                            if any(c.isdigit() for c in act_text) or any(marker in act_text for marker in ['%', 'M', 'B', 'K', '.']):
+                                                actual = act_text
+                                    
+                                    # Filter by date range
                                     days_diff = (event_date - today).days
-                                if -7 <= days_diff <= 30:
+                                    if -7 <= days_diff <= 30:
                                         events.append({
                                             'date': event_date.strftime('%Y-%m-%d'),
                                             'time': time_str,
@@ -12118,25 +12116,25 @@ def get_economic_calendar():
                                             'impact': impact,
                                             'country': 'USA',
                                             'event': event_name,
-                                        'actual': actual,
-                                        'consensus': consensus,
-                                        'previous': previous
-                                    })
-                                    print(f"[ECONOMIC] Added: {event_date} {time_str} - {event_name} (impact: {impact})")
+                                            'actual': actual,
+                                            'consensus': consensus,
+                                            'previous': previous
+                                        })
+                                        print(f"[ECONOMIC] Added: {event_date} {time_str} - {event_name} (impact: {impact})")
                             
-                            except Exception as e:
-                                print(f"[ECONOMIC] Error parsing row: {str(e)}")
-                                continue
-                        
-                        if events:
-                            events.sort(key=lambda x: (x['date'], x['time']))
+                                except Exception as e:
+                                    print(f"[ECONOMIC] Error parsing row: {str(e)}")
+                                    continue
+                            
+                            if events:
+                                events.sort(key=lambda x: (x['date'], x['time']))
                                 print(f"[ECONOMIC] Successfully parsed {len(events)} events from Investing.com")
-                            return events
-        else:
-                                print("[ECONOMIC] No events found after parsing")
-        else:
-                            print("[ECONOMIC] HTML data too short or empty")
+                                return events
                             else:
+                                print("[ECONOMIC] No events found after parsing")
+                        else:
+                            print("[ECONOMIC] HTML data too short or empty")
+                    else:
                         print("[ECONOMIC] No 'data' key in response")
                 except json.JSONDecodeError:
                     print("[ECONOMIC] Response is not JSON")
@@ -12144,9 +12142,9 @@ def get_economic_calendar():
                     print(f"[ECONOMIC] Parsing error: {e}")
                     import traceback
                     traceback.print_exc()
-                    else:
+            else:
                 print(f"[ECONOMIC] Investing.com returned status {response.status_code}")
-                except Exception as e:
+        except Exception as e:
             print(f"[ECONOMIC] Investing.com request failed: {e}")
             import traceback
             traceback.print_exc()
@@ -12592,7 +12590,7 @@ def get_economic_calendar_endpoint():
             events = generate_economic_calendar_sample_data()
             return jsonify(clean_for_json({'events': events}))
         except Exception as e:
-        return jsonify({'error': f'Failed to fetch economic calendar: {str(e)}'}), 500
+            return jsonify({'error': f'Failed to fetch economic calendar: {str(e)}'}), 500
 
 def generate_economic_event_explanation(event_name):
     """Generate AI explanation for an economic event - what it is, when bullish, when bearish"""
