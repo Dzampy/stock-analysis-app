@@ -5906,15 +5906,17 @@ def get_prediction_history(ticker, days=30):
                 try:
                     if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
                         with open(log_path, 'a') as f:
-                    f.write(json.dumps({
-                        'timestamp': int(time.time() * 1000),
-                        'location': 'app.py:get_prediction_history',
-                        'message': 'Prediction history retrieved',
-                        'data': {'ticker': ticker, 'entries_count': len(history)},
-                        'sessionId': 'debug-session',
-                        'runId': 'get-history',
-                'hypothesisId': 'B'
-            }) + '\n')
+                            f.write(json.dumps({
+                                'timestamp': int(time.time() * 1000),
+                                'location': 'app.py:get_prediction_history',
+                                'message': 'Prediction history retrieved',
+                                'data': {'ticker': ticker, 'entries_count': len(history)},
+                                'sessionId': 'debug-session',
+                                'runId': 'get-history',
+                                'hypothesisId': 'B'
+                            }) + '\n')
+                except:
+                    pass
         except:
             pass
         # #endregion
