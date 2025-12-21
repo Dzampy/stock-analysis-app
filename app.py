@@ -5779,27 +5779,6 @@ def _save_prediction_history(ticker, current_price, prediction_result, score=Non
     try:
         # #region agent log (disabled for production)
         # Debug logging removed - causes FileNotFoundError on Render
-        try:
-            log_path = Path('/Users/davidlangr/untitled folder/.cursor/debug.log')
-            if log_path.parent.exists():
-                try:
-                    if (hasattr(log_path, 'parent') and log_path.parent.exists()) or (hasattr(log_path, '__str__') and os.path.exists(os.path.dirname(str(log_path)))):
-                        try:
-                            if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
-                                with open(log_path, 'a') as f:
-                    f.write(json.dumps({
-                except:
-                    pass  # Ignore debug log errors
-                        'timestamp': int(time.time() * 1000),
-                        'location': 'app.py:_save_prediction_history',
-                        'message': 'Saving prediction history',
-                        'data': {'ticker': ticker, 'has_predictions': 'predictions' in prediction_result, 'score_provided': score is not None},
-                        'sessionId': 'debug-session',
-                        'runId': 'save-history',
-                'hypothesisId': 'A'
-            }) + '\n')
-        except:
-            pass
         # #endregion
         
         today = datetime.now().strftime('%Y-%m-%d')
@@ -5903,28 +5882,8 @@ def _save_prediction_history(ticker, current_price, prediction_result, score=Non
 def get_prediction_history(ticker, days=30):
     """Get ML prediction history for a ticker"""
     try:
-        # #region agent log (wrapped in try-except for production)
-        try:
-            log_path = Path('/Users/davidlangr/untitled folder/.cursor/debug.log')
-            if log_path.parent.exists():
-                try:
-                    if (hasattr(log_path, 'parent') and log_path.parent.exists()) or (hasattr(log_path, '__str__') and os.path.exists(os.path.dirname(str(log_path)))):
-                        try:
-                            if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
-                                with open(log_path, 'a') as f:
-                    f.write(json.dumps({
-                except:
-                    pass  # Ignore debug log errors
-                        'timestamp': int(time.time() * 1000),
-                        'location': 'app.py:get_prediction_history',
-                        'message': 'Getting prediction history',
-                        'data': {'ticker': ticker, 'days': days},
-                        'sessionId': 'debug-session',
-                        'runId': 'get-history',
-                'hypothesisId': 'B'
-            }) + '\n')
-        except:
-            pass
+        # #region agent log (disabled for production)
+        # Debug logging removed - causes FileNotFoundError on Render
         # #endregion
         
         history_file = _PREDICTION_HISTORY_DIR / f"{ticker.upper()}.json"
@@ -10148,17 +10107,9 @@ def search_stocks(query):
     import json
     import os
     import time
-    # #region agent log (wrapped in try-except for production)
-    try:
-        log_path = os.path.join(os.path.dirname(__file__), '.cursor', 'debug.log')
-        if os.path.exists(os.path.dirname(log_path)):
-    try:
-        if (hasattr(log_path, 'parent') and log_path.parent.exists()) or (hasattr(log_path, '__str__') and os.path.exists(os.path.dirname(str(log_path)))):
-            with open(log_path, 'a') as f:
-                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4371","message":"FUNCTION ENTRY HTTP","data":{"query":query,"raw_query":str(query)},"timestamp":int(time.time()*1000)}) + '\n')
-    except:
-        pass  # Ignore debug log errors on production
-    # #endregion
+        # #region agent log (disabled for production)
+        # Debug logging removed - causes FileNotFoundError on Render
+        # #endregion
     print(f"[SEARCH HTTP] search_stocks called with query: {query}")
     try:
         query = query.strip().upper()
@@ -10503,17 +10454,8 @@ def search_stocks(query):
             result.pop('matchType', None)
             result.pop('score', None)
         
-        # #region agent log
-        try:
-            if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
-                try:
-                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
-                        with open(log_path, 'a') as f:
-            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:4496","message":"Before clean_for_json","data":{"unique_results_count":len(unique_results),"results":unique_results[:2]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-        except:
-            pass  # Ignore debug log errors
-        except:
-            pass
+        # #region agent log (disabled for production)
+        # Debug logging removed - causes FileNotFoundError on Render
         # #endregion
         cleaned = clean_for_json({'results': unique_results})
         # #region agent log
