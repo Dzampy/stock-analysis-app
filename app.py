@@ -10220,16 +10220,7 @@ def search_stocks(query):
         
     except Exception as e:
         import json
-        import os
-        log_path = os.path.join(os.path.dirname(__file__), '.cursor', 'debug.log')
-        try:
-            if (hasattr(log_path, 'parent') and log_path.parent.exists()) or (hasattr(log_path, '__str__') and os.path.exists(os.path.dirname(str(log_path)))):
-                try:
-                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
-                        with open(log_path, 'a') as f:
-                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:4604","message":"Exception in search_stocks","data":{"error":str(e)[:200]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-        except:
-            pass  # Ignore debug log errors
+        # Debug logging removed for production
         print(f"Error in search_stocks: {str(e)}")
         import traceback
         traceback.print_exc()
