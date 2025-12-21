@@ -5777,9 +5777,6 @@ def _save_prediction_history(ticker, current_price, prediction_result, score=Non
         score: Optional final score (0-100). If provided, uses this instead of calculating from expected_returns
     """
     try:
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
         
         today = datetime.now().strftime('%Y-%m-%d')
         history_file = _PREDICTION_HISTORY_DIR / f"{ticker.upper()}.json"
@@ -5882,9 +5879,6 @@ def _save_prediction_history(ticker, current_price, prediction_result, score=Non
 def get_prediction_history(ticker, days=30):
     """Get ML prediction history for a ticker"""
     try:
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
         
         history_file = _PREDICTION_HISTORY_DIR / f"{ticker.upper()}.json"
         
@@ -5900,9 +5894,6 @@ def get_prediction_history(ticker, days=30):
         if days > 0:
             history = history[:days]
         
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
         
         return history
     except Exception as e:
@@ -10092,24 +10083,15 @@ def search_stocks(query):
     import json
     import os
     import time
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
     print(f"[SEARCH HTTP] search_stocks called with query: {query}")
     try:
         query = query.strip().upper()
         print(f"[SEARCH] Query after processing: {query}")
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
         if not query or len(query) < 1:
             return jsonify({'results': [], '_version': 'v3_empty'})
         
         results = []
         query_lower = query.lower()
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
         
         # Popular tickers database (can be expanded or loaded from file)
         popular_tickers = [
@@ -10140,24 +10122,15 @@ def search_stocks(query):
                 pass
     
         # Search through popular tickers for name matches
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
         for ticker in popular_tickers:
             if len(results) >= 15:  # Limit results
                 break
             
             try:
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
                 stock = yf.Ticker(ticker)
                 info = stock.info
                 
                 if not info or 'symbol' not in info:
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
                     continue
                 
                 ticker_symbol = info['symbol']
@@ -10165,14 +10138,8 @@ def search_stocks(query):
                 short_name = info.get('shortName', '')
                 company_name = long_name or short_name or ''
                 
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
                 
                 if not company_name:
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
                     continue
                 
                 company_name_lower = company_name.lower()
@@ -10181,28 +10148,16 @@ def search_stocks(query):
                 
                 # Exact ticker match (already handled above)
                 if ticker_symbol.upper() == query:
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
                     continue
                 
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
                 
                 # Check if query matches ticker
                 if query_lower in ticker_symbol.lower():
                     score = 80
                     match_type = 'ticker_partial'
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
                 
                 # Check if query matches company name (exact or partial)
                 elif query_lower in company_name_lower:
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
                     # Exact match gets higher score
                     if company_name_lower == query_lower:
                         score = 95
@@ -10213,9 +10168,6 @@ def search_stocks(query):
                     else:
                         score = 70
                         match_type = 'name_contains'
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
                 
                 # Fuzzy matching - check if words match
                 elif len(query) >= 3:
@@ -10225,14 +10177,8 @@ def search_stocks(query):
                     if matching_words > 0:
                         score = 50 + (matching_words * 10)
                         match_type = 'fuzzy'
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
                 
                 if score > 0:
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
                     results.append({
                         'ticker': ticker_symbol,
                         'name': company_name,
@@ -10248,9 +10194,6 @@ def search_stocks(query):
                 # Skip tickers that fail to load
                 continue
         
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
         # Sort by score (highest first)
         results.sort(key=lambda x: x['score'], reverse=True)
         
@@ -10264,30 +10207,15 @@ def search_stocks(query):
                 if len(unique_results) >= 15:
                     break
         
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
         # Clean up response (remove internal fields)
         for result in unique_results:
             result.pop('matchType', None)
             result.pop('score', None)
         
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
         cleaned = clean_for_json({'results': unique_results})
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
         # Add debug marker to verify new code is running  
         cleaned['_debug'] = 'v2_new_code_verified'
         cleaned['_timestamp'] = int(__import__('time').time()*1000)
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
         return jsonify(cleaned)
         
     except Exception as e:
