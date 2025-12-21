@@ -5900,25 +5900,8 @@ def get_prediction_history(ticker, days=30):
         if days > 0:
             history = history[:days]
         
-        # #region agent log (wrapped in try-except)
-        try:
-            if log_path.parent.exists():
-                try:
-                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
-                        with open(log_path, 'a') as f:
-                            f.write(json.dumps({
-                                'timestamp': int(time.time() * 1000),
-                                'location': 'app.py:get_prediction_history',
-                                'message': 'Prediction history retrieved',
-                                'data': {'ticker': ticker, 'entries_count': len(history)},
-                                'sessionId': 'debug-session',
-                                'runId': 'get-history',
-                                'hypothesisId': 'B'
-                            }) + '\n')
-                except:
-                    pass
-        except:
-            pass
+        # #region agent log (disabled for production)
+        # Debug logging removed - causes FileNotFoundError on Render
         # #endregion
         
         return history
@@ -10125,12 +10108,7 @@ def search_stocks(query):
         results = []
         query_lower = query.lower()
         # #region agent log (disabled for production)
-        try:
-            if (hasattr(log_path, 'parent') and log_path.parent.exists()) or (hasattr(log_path, '__str__') and os.path.exists(os.path.dirname(str(log_path)))):
-                with open(log_path, 'a') as f:
-                    f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4380","message":"Query processed","data":{"query":query,"query_lower":query_lower},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-        except:
-            pass  # Ignore debug log errors
+        # Debug logging removed - causes FileNotFoundError on Render
         # #endregion
         
         # Popular tickers database (can be expanded or loaded from file)
