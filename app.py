@@ -10152,18 +10152,12 @@ def search_stocks(query):
     try:
         log_path = os.path.join(os.path.dirname(__file__), '.cursor', 'debug.log')
         if os.path.exists(os.path.dirname(log_path)):
-            try:
-                if (hasattr(log_path, 'parent') and log_path.parent.exists()) or (hasattr(log_path, '__str__') and os.path.exists(os.path.dirname(str(log_path)))):
-                    try:
-                        if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
-                            with open(log_path, 'a') as f:
+    try:
+        if (hasattr(log_path, 'parent') and log_path.parent.exists()) or (hasattr(log_path, '__str__') and os.path.exists(os.path.dirname(str(log_path)))):
+            with open(log_path, 'a') as f:
                 f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4371","message":"FUNCTION ENTRY HTTP","data":{"query":query,"raw_query":str(query)},"timestamp":int(time.time()*1000)}) + '\n')
-            except:
-                pass  # Ignore debug log errors
     except:
         pass  # Ignore debug log errors on production
-    except:
-        pass
     # #endregion
     print(f"[SEARCH HTTP] search_stocks called with query: {query}")
     try:
