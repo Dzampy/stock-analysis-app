@@ -10177,18 +10177,9 @@ def search_stocks(query):
                 info = stock.info
                 
                 if not info or 'symbol' not in info:
-                    # #region agent log
-                    try:
-                        if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
-                            try:
-                                if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
-                                    with open(log_path, 'a') as f:
-                                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"app.py:4430","message":"Info missing","data":{"ticker":ticker},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-                    except:
-                        pass  # Ignore debug log errors
-                    except:
-                        pass
-                    # #endregion
+        # #region agent log (disabled for production)
+        # Debug logging removed - causes FileNotFoundError on Render
+        # #endregion
                     continue
                 
                 ticker_symbol = info['symbol']
@@ -10201,18 +10192,9 @@ def search_stocks(query):
         # #endregion
                 
                 if not company_name:
-                    # #region agent log
-                    try:
-                        if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
-                            try:
-                                if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
-                                    with open(log_path, 'a') as f:
-                                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"app.py:4444","message":"Company name missing","data":{"ticker":ticker,"ticker_symbol":ticker_symbol},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-                    except:
-                        pass  # Ignore debug log errors
-                    except:
-                        pass
-                    # #endregion
+        # #region agent log (disabled for production)
+        # Debug logging removed - causes FileNotFoundError on Render
+        # #endregion
                     continue
                 
                 company_name_lower = company_name.lower()
@@ -10240,18 +10222,9 @@ def search_stocks(query):
                 
                 # Check if query matches company name (exact or partial)
                 elif query_lower in company_name_lower:
-                    # #region agent log
-                    try:
-                        if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
-                            try:
-                                if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
-                                    with open(log_path, 'a') as f:
-                                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4468","message":"Company name contains query","data":{"ticker":ticker,"company_name":company_name[:50],"company_name_lower":company_name_lower[:50],"query_lower":query_lower},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-                    except:
-                        pass  # Ignore debug log errors
-                    except:
-                        pass
-                    # #endregion
+        # #region agent log (disabled for production)
+        # Debug logging removed - causes FileNotFoundError on Render
+        # #endregion
                     # Exact match gets higher score
                     if company_name_lower == query_lower:
                         score = 95
@@ -10262,18 +10235,9 @@ def search_stocks(query):
                     else:
                         score = 70
                         match_type = 'name_contains'
-                    # #region agent log
-                    try:
-                        if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
-                            try:
-                                if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
-                                    with open(log_path, 'a') as f:
-                                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4480","message":"Name match score calculated","data":{"ticker":ticker,"score":score,"match_type":match_type},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-                    except:
-                        pass  # Ignore debug log errors
-                    except:
-                        pass
-                    # #endregion
+        # #region agent log (disabled for production)
+        # Debug logging removed - causes FileNotFoundError on Render
+        # #endregion
                 
                 # Fuzzy matching - check if words match
                 elif len(query) >= 3:
@@ -10288,18 +10252,9 @@ def search_stocks(query):
         # #endregion
                 
                 if score > 0:
-                    # #region agent log
-                    try:
-                        if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
-                            try:
-                                if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
-                                    with open(log_path, 'a') as f:
-                                        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4497","message":"Match added to results","data":{"ticker":ticker,"ticker_symbol":ticker_symbol,"company_name":company_name[:50],"score":score,"match_type":match_type},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-                    except:
-                        pass  # Ignore debug log errors
-                    except:
-                        pass
-                    # #endregion
+        # #region agent log (disabled for production)
+        # Debug logging removed - causes FileNotFoundError on Render
+        # #endregion
                     results.append({
                         'ticker': ticker_symbol,
                         'name': company_name,
@@ -10320,17 +10275,8 @@ def search_stocks(query):
         # #endregion
                 continue
         
-        # #region agent log
-        try:
-            if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
-                try:
-                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
-                        with open(log_path, 'a') as f:
-                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"D","location":"app.py:4548","message":"Before sorting and deduplication","data":{"results_count":len(results)},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-        except:
-            pass  # Ignore debug log errors
-        except:
-            pass
+        # #region agent log (disabled for production)
+        # Debug logging removed - causes FileNotFoundError on Render
         # #endregion
         # Sort by score (highest first)
         results.sort(key=lambda x: x['score'], reverse=True)
@@ -10345,17 +10291,8 @@ def search_stocks(query):
                 if len(unique_results) >= 15:
                     break
         
-        # #region agent log
-        try:
-            if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
-                try:
-                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
-                        with open(log_path, 'a') as f:
-                            f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4490","message":"After deduplication","data":{"unique_results_count":len(unique_results)},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-        except:
-            pass  # Ignore debug log errors
-        except:
-            pass
+        # #region agent log (disabled for production)
+        # Debug logging removed - causes FileNotFoundError on Render
         # #endregion
         # Clean up response (remove internal fields)
         for result in unique_results:
