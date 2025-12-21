@@ -10131,10 +10131,10 @@ def search_stocks(query):
                     if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
                         with open(log_path, 'a') as f:
                             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4380","message":"Query processed","data":{"query":query,"query_lower":query_lower},"timestamp":int(__import__('time').time()*1000)}) + '\n')
-        except:
-            pass  # Ignore debug log errors
-        except:
-            pass
+                except:
+                    pass  # Ignore debug log errors
+            except:
+                pass  # Ignore debug log errors
         # #endregion
         
         # Popular tickers database (can be expanded or loaded from file)
