@@ -10242,15 +10242,10 @@ def search_stocks(query):
                         'score': score
                     })
                 else:
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
+                    pass  # No match found
             
             except Exception as e:
                 # Skip tickers that fail to load
-        # #region agent log (disabled for production)
-        # Debug logging removed - causes FileNotFoundError on Render
-        # #endregion
                 continue
         
         # #region agent log (disabled for production)
