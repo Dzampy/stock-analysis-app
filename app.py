@@ -4143,25 +4143,15 @@ def get_financials_data(ticker):
         }
         
         
-        # #region agent log
-        import json
-        log_path = Path('/Users/davidlangr/untitled folder/.cursor/debug.log')
-        with open(log_path, 'a') as f:
-            f.write(json.dumps({
-                'timestamp': int(time.time() * 1000),
-                'location': 'app.py:get_financials_data',
-                'message': 'Forward estimates data',
-                'data': {
-                    'ticker': ticker,
-                    'revenue_quarters': list(forward_revenue_estimates.keys()),
-                    'eps_quarters': list(forward_eps_estimates.keys()),
-                    'revenue_count': len(forward_revenue_estimates),
-                    'eps_count': len(forward_eps_estimates)
-                },
-                'sessionId': 'debug-session',
-                'runId': 'run1',
-                'hypothesisId': 'A'
-            }) + '\n')
+        # #region agent log (disabled for production)
+        _safe_debug_log('Forward estimates data', {
+            'location': 'app.py:get_financials_data',
+            'ticker': ticker,
+            'revenue_quarters': list(forward_revenue_estimates.keys()),
+            'eps_quarters': list(forward_eps_estimates.keys()),
+            'revenue_count': len(forward_revenue_estimates),
+            'eps_count': len(forward_eps_estimates)
+        })
         # #endregion
         
         # NOTE: quarterly_estimates were already fetched above (Finviz ONLY)
@@ -5787,18 +5777,29 @@ def _save_prediction_history(ticker, current_price, prediction_result, score=Non
         score: Optional final score (0-100). If provided, uses this instead of calculating from expected_returns
     """
     try:
-        # #region agent log
-        log_path = Path('/Users/davidlangr/untitled folder/.cursor/debug.log')
-        with open(log_path, 'a') as f:
-            f.write(json.dumps({
-                'timestamp': int(time.time() * 1000),
-                'location': 'app.py:_save_prediction_history',
-                'message': 'Saving prediction history',
-                'data': {'ticker': ticker, 'has_predictions': 'predictions' in prediction_result, 'score_provided': score is not None},
-                'sessionId': 'debug-session',
-                'runId': 'save-history',
+        # #region agent log (disabled for production)
+        # Debug logging removed - causes FileNotFoundError on Render
+        try:
+            log_path = Path('/Users/davidlangr/untitled folder/.cursor/debug.log')
+            if log_path.parent.exists():
+                try:
+                    if (hasattr(log_path, 'parent') and log_path.parent.exists()) or (hasattr(log_path, '__str__') and os.path.exists(os.path.dirname(str(log_path)))):
+                        try:
+                            if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                with open(log_path, 'a') as f:
+                    f.write(json.dumps({
+                except:
+                    pass  # Ignore debug log errors
+                        'timestamp': int(time.time() * 1000),
+                        'location': 'app.py:_save_prediction_history',
+                        'message': 'Saving prediction history',
+                        'data': {'ticker': ticker, 'has_predictions': 'predictions' in prediction_result, 'score_provided': score is not None},
+                        'sessionId': 'debug-session',
+                        'runId': 'save-history',
                 'hypothesisId': 'A'
             }) + '\n')
+        except:
+            pass
         # #endregion
         
         today = datetime.now().strftime('%Y-%m-%d')
@@ -5886,17 +5887,13 @@ def _save_prediction_history(ticker, current_price, prediction_result, score=Non
         with open(history_file, 'w') as f:
             json.dump(history, f, indent=2)
         
-        # #region agent log
-        with open(log_path, 'a') as f:
-            f.write(json.dumps({
-                'timestamp': int(time.time() * 1000),
-                'location': 'app.py:_save_prediction_history',
-                'message': 'Prediction history saved',
-                'data': {'ticker': ticker, 'date': today, 'history_length': len(history)},
-                'sessionId': 'debug-session',
-                'runId': 'save-history',
-                'hypothesisId': 'A'
-            }) + '\n')
+        # #region agent log (wrapped for production)
+        _safe_debug_log('Prediction history saved', {
+            'location': 'app.py:_save_prediction_history',
+            'ticker': ticker,
+            'date': today,
+            'history_length': len(history)
+        })
         # #endregion
     except Exception as e:
         print(f"[ML HISTORY] Error saving prediction history: {e}")
@@ -5906,18 +5903,28 @@ def _save_prediction_history(ticker, current_price, prediction_result, score=Non
 def get_prediction_history(ticker, days=30):
     """Get ML prediction history for a ticker"""
     try:
-        # #region agent log
-        log_path = Path('/Users/davidlangr/untitled folder/.cursor/debug.log')
-        with open(log_path, 'a') as f:
-            f.write(json.dumps({
-                'timestamp': int(time.time() * 1000),
-                'location': 'app.py:get_prediction_history',
-                'message': 'Getting prediction history',
-                'data': {'ticker': ticker, 'days': days},
-                'sessionId': 'debug-session',
-                'runId': 'get-history',
+        # #region agent log (wrapped in try-except for production)
+        try:
+            log_path = Path('/Users/davidlangr/untitled folder/.cursor/debug.log')
+            if log_path.parent.exists():
+                try:
+                    if (hasattr(log_path, 'parent') and log_path.parent.exists()) or (hasattr(log_path, '__str__') and os.path.exists(os.path.dirname(str(log_path)))):
+                        try:
+                            if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                with open(log_path, 'a') as f:
+                    f.write(json.dumps({
+                except:
+                    pass  # Ignore debug log errors
+                        'timestamp': int(time.time() * 1000),
+                        'location': 'app.py:get_prediction_history',
+                        'message': 'Getting prediction history',
+                        'data': {'ticker': ticker, 'days': days},
+                        'sessionId': 'debug-session',
+                        'runId': 'get-history',
                 'hypothesisId': 'B'
             }) + '\n')
+        except:
+            pass
         # #endregion
         
         history_file = _PREDICTION_HISTORY_DIR / f"{ticker.upper()}.json"
@@ -5934,17 +5941,23 @@ def get_prediction_history(ticker, days=30):
         if days > 0:
             history = history[:days]
         
-        # #region agent log
-        with open(log_path, 'a') as f:
-            f.write(json.dumps({
-                'timestamp': int(time.time() * 1000),
-                'location': 'app.py:get_prediction_history',
-                'message': 'Prediction history retrieved',
-                'data': {'ticker': ticker, 'entries_count': len(history)},
-                'sessionId': 'debug-session',
-                'runId': 'get-history',
+        # #region agent log (wrapped in try-except)
+        try:
+            if log_path.parent.exists():
+                try:
+                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                        with open(log_path, 'a') as f:
+                    f.write(json.dumps({
+                        'timestamp': int(time.time() * 1000),
+                        'location': 'app.py:get_prediction_history',
+                        'message': 'Prediction history retrieved',
+                        'data': {'ticker': ticker, 'entries_count': len(history)},
+                        'sessionId': 'debug-session',
+                        'runId': 'get-history',
                 'hypothesisId': 'B'
             }) + '\n')
+        except:
+            pass
         # #endregion
         
         return history
@@ -10135,18 +10148,38 @@ def search_stocks(query):
     import json
     import os
     import time
-    log_path = os.path.join(os.path.dirname(__file__), '.cursor', 'debug.log')
-    # #region agent log
-    with open(log_path, 'a') as f:
-        f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4371","message":"FUNCTION ENTRY HTTP","data":{"query":query,"raw_query":str(query)},"timestamp":int(time.time()*1000)}) + '\n')
+    # #region agent log (wrapped in try-except for production)
+    try:
+        log_path = os.path.join(os.path.dirname(__file__), '.cursor', 'debug.log')
+        if os.path.exists(os.path.dirname(log_path)):
+            try:
+                if (hasattr(log_path, 'parent') and log_path.parent.exists()) or (hasattr(log_path, '__str__') and os.path.exists(os.path.dirname(str(log_path)))):
+                    try:
+                        if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                            with open(log_path, 'a') as f:
+                f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4371","message":"FUNCTION ENTRY HTTP","data":{"query":query,"raw_query":str(query)},"timestamp":int(time.time()*1000)}) + '\n')
+            except:
+                pass  # Ignore debug log errors
+    except:
+        pass  # Ignore debug log errors on production
+    except:
+        pass
     # #endregion
     print(f"[SEARCH HTTP] search_stocks called with query: {query}")
     try:
         query = query.strip().upper()
         print(f"[SEARCH] Query after processing: {query}")
         # #region agent log
-        with open(log_path, 'a') as f:
+        try:
+            if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                try:
+                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                        with open(log_path, 'a') as f:
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4380","message":"Query received","data":{"query":query},"timestamp":int(time.time()*1000)}) + '\n')
+        except:
+            pass  # Ignore debug log errors
+        except:
+            pass
         # #endregion
         if not query or len(query) < 1:
             return jsonify({'results': [], '_version': 'v3_empty'})
@@ -10154,8 +10187,16 @@ def search_stocks(query):
         results = []
         query_lower = query.lower()
         # #region agent log
-        with open(log_path, 'a') as f:
+        try:
+            if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                try:
+                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                        with open(log_path, 'a') as f:
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4380","message":"Query processed","data":{"query":query,"query_lower":query_lower},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except:
+            pass  # Ignore debug log errors
+        except:
+            pass
         # #endregion
         
         # Popular tickers database (can be expanded or loaded from file)
@@ -10188,8 +10229,16 @@ def search_stocks(query):
     
         # Search through popular tickers for name matches
         # #region agent log
-        with open(log_path, 'a') as f:
+        try:
+            if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                try:
+                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                        with open(log_path, 'a') as f:
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4420","message":"Starting ticker loop","data":{"query":query,"query_lower":query_lower,"popular_tickers_count":len(popular_tickers)},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except:
+            pass  # Ignore debug log errors
+        except:
+            pass
         # #endregion
         for ticker in popular_tickers:
             if len(results) >= 15:  # Limit results
@@ -10197,16 +10246,32 @@ def search_stocks(query):
             
             try:
                 # #region agent log
-                with open(log_path, 'a') as f:
+                try:
+                    if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                        try:
+                            if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                with open(log_path, 'a') as f:
                     f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4426","message":"Processing ticker","data":{"ticker":ticker,"query":query},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                except:
+                    pass  # Ignore debug log errors
+                except:
+                    pass
                 # #endregion
                 stock = yf.Ticker(ticker)
                 info = stock.info
                 
                 if not info or 'symbol' not in info:
                     # #region agent log
-                    with open(log_path, 'a') as f:
+                    try:
+                        if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                            try:
+                                if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                    with open(log_path, 'a') as f:
                         f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"app.py:4430","message":"Info missing","data":{"ticker":ticker},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                    except:
+                        pass  # Ignore debug log errors
+                    except:
+                        pass
                     # #endregion
                     continue
                 
@@ -10216,14 +10281,30 @@ def search_stocks(query):
                 company_name = long_name or short_name or ''
                 
                 # #region agent log
-                with open(log_path, 'a') as f:
+                try:
+                    if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                        try:
+                            if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                with open(log_path, 'a') as f:
                     f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4440","message":"Ticker info loaded","data":{"ticker":ticker,"ticker_symbol":ticker_symbol,"long_name":long_name[:50] if long_name else "","short_name":short_name[:50] if short_name else "","company_name":company_name[:50] if company_name else ""},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                except:
+                    pass  # Ignore debug log errors
+                except:
+                    pass
                 # #endregion
                 
                 if not company_name:
                     # #region agent log
-                    with open(log_path, 'a') as f:
+                    try:
+                        if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                            try:
+                                if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                    with open(log_path, 'a') as f:
                         f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"app.py:4444","message":"Company name missing","data":{"ticker":ticker,"ticker_symbol":ticker_symbol},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                    except:
+                        pass  # Ignore debug log errors
+                    except:
+                        pass
                     # #endregion
                     continue
                 
@@ -10234,14 +10315,30 @@ def search_stocks(query):
                 # Exact ticker match (already handled above)
                 if ticker_symbol.upper() == query:
                     # #region agent log
-                    with open(log_path, 'a') as f:
+                    try:
+                        if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                            try:
+                                if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                    with open(log_path, 'a') as f:
                         f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4453","message":"Exact ticker match, skipping","data":{"ticker":ticker,"ticker_symbol":ticker_symbol,"query":query},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                    except:
+                        pass  # Ignore debug log errors
+                    except:
+                        pass
                     # #endregion
                     continue
                 
                 # #region agent log
-                with open(log_path, 'a') as f:
+                try:
+                    if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                        try:
+                            if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                with open(log_path, 'a') as f:
                     f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4456","message":"Checking matches","data":{"ticker":ticker,"query_lower":query_lower,"ticker_symbol_lower":ticker_symbol.lower(),"company_name_lower":company_name_lower[:50]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                except:
+                    pass  # Ignore debug log errors
+                except:
+                    pass
                 # #endregion
                 
                 # Check if query matches ticker
@@ -10249,15 +10346,31 @@ def search_stocks(query):
                     score = 80
                     match_type = 'ticker_partial'
                     # #region agent log
-                    with open(log_path, 'a') as f:
+                    try:
+                        if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                            try:
+                                if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                    with open(log_path, 'a') as f:
                         f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4462","message":"Ticker partial match","data":{"ticker":ticker,"ticker_symbol":ticker_symbol,"query_lower":query_lower,"score":score},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                    except:
+                        pass  # Ignore debug log errors
+                    except:
+                        pass
                     # #endregion
                 
                 # Check if query matches company name (exact or partial)
                 elif query_lower in company_name_lower:
                     # #region agent log
-                    with open(log_path, 'a') as f:
+                    try:
+                        if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                            try:
+                                if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                    with open(log_path, 'a') as f:
                         f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4468","message":"Company name contains query","data":{"ticker":ticker,"company_name":company_name[:50],"company_name_lower":company_name_lower[:50],"query_lower":query_lower},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                    except:
+                        pass  # Ignore debug log errors
+                    except:
+                        pass
                     # #endregion
                     # Exact match gets higher score
                     if company_name_lower == query_lower:
@@ -10270,8 +10383,16 @@ def search_stocks(query):
                         score = 70
                         match_type = 'name_contains'
                     # #region agent log
-                    with open(log_path, 'a') as f:
+                    try:
+                        if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                            try:
+                                if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                    with open(log_path, 'a') as f:
                         f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4480","message":"Name match score calculated","data":{"ticker":ticker,"score":score,"match_type":match_type},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                    except:
+                        pass  # Ignore debug log errors
+                    except:
+                        pass
                     # #endregion
                 
                 # Fuzzy matching - check if words match
@@ -10283,14 +10404,30 @@ def search_stocks(query):
                         score = 50 + (matching_words * 10)
                         match_type = 'fuzzy'
                         # #region agent log
-                        with open(log_path, 'a') as f:
+                        try:
+                            if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                                try:
+                                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                        with open(log_path, 'a') as f:
                             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4490","message":"Fuzzy match found","data":{"ticker":ticker,"matching_words":matching_words,"score":score},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                        except:
+                            pass  # Ignore debug log errors
+                        except:
+                            pass
                         # #endregion
                 
                 if score > 0:
                     # #region agent log
-                    with open(log_path, 'a') as f:
+                    try:
+                        if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                            try:
+                                if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                    with open(log_path, 'a') as f:
                         f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4497","message":"Match added to results","data":{"ticker":ticker,"ticker_symbol":ticker_symbol,"company_name":company_name[:50],"score":score,"match_type":match_type},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                    except:
+                        pass  # Ignore debug log errors
+                    except:
+                        pass
                     # #endregion
                     results.append({
                         'ticker': ticker_symbol,
@@ -10302,21 +10439,45 @@ def search_stocks(query):
                     })
                 else:
                     # #region agent log
-                    with open(log_path, 'a') as f:
+                    try:
+                        if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                            try:
+                                if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                    with open(log_path, 'a') as f:
                         f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"B","location":"app.py:4509","message":"No match found","data":{"ticker":ticker,"query_lower":query_lower,"company_name_lower":company_name_lower[:50]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                    except:
+                        pass  # Ignore debug log errors
+                    except:
+                        pass
                     # #endregion
             
             except Exception as e:
                 # Skip tickers that fail to load
                 # #region agent log
-                with open(log_path, 'a') as f:
+                try:
+                    if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                        try:
+                            if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                                with open(log_path, 'a') as f:
                     f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"C","location":"app.py:4515","message":"Error loading ticker","data":{"ticker":ticker,"error":str(e)[:200]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+                except:
+                    pass  # Ignore debug log errors
+                except:
+                    pass
                 # #endregion
                 continue
         
         # #region agent log
-        with open(log_path, 'a') as f:
+        try:
+            if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                try:
+                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                        with open(log_path, 'a') as f:
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"D","location":"app.py:4548","message":"Before sorting and deduplication","data":{"results_count":len(results)},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except:
+            pass  # Ignore debug log errors
+        except:
+            pass
         # #endregion
         # Sort by score (highest first)
         results.sort(key=lambda x: x['score'], reverse=True)
@@ -10332,8 +10493,16 @@ def search_stocks(query):
                     break
         
         # #region agent log
-        with open(log_path, 'a') as f:
+        try:
+            if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                try:
+                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                        with open(log_path, 'a') as f:
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"A","location":"app.py:4490","message":"After deduplication","data":{"unique_results_count":len(unique_results)},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except:
+            pass  # Ignore debug log errors
+        except:
+            pass
         # #endregion
         # Clean up response (remove internal fields)
         for result in unique_results:
@@ -10341,26 +10510,58 @@ def search_stocks(query):
             result.pop('score', None)
         
         # #region agent log
-        with open(log_path, 'a') as f:
+        try:
+            if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                try:
+                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                        with open(log_path, 'a') as f:
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:4496","message":"Before clean_for_json","data":{"unique_results_count":len(unique_results),"results":unique_results[:2]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except:
+            pass  # Ignore debug log errors
+        except:
+            pass
         # #endregion
         cleaned = clean_for_json({'results': unique_results})
         # #region agent log
-        with open(log_path, 'a') as f:
+        try:
+            if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                try:
+                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                        with open(log_path, 'a') as f:
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:4564","message":"After clean_for_json","data":{"cleaned_results_count":len(cleaned.get('results',[])),"first_result":cleaned.get('results',[{}])[0] if cleaned.get('results') else None},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except:
+            pass  # Ignore debug log errors
+        except:
+            pass
         # #endregion
         # #region agent log
         import json as json_module
         response_json = json_module.dumps(cleaned)
-        with open(log_path, 'a') as f:
+        try:
+            if (hasattr(log_path, 'parent') and log_path.parent.exists()) or (hasattr(log_path, '__str__') and os.path.exists(os.path.dirname(str(log_path)))):
+                try:
+                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                        with open(log_path, 'a') as f:
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:4569","message":"Final response JSON","data":{"response_length":len(response_json),"response_preview":response_json[:500]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except:
+            pass  # Ignore debug log errors
+        except:
+            pass
         # #endregion
         # Add debug marker to verify new code is running  
         cleaned['_debug'] = 'v2_new_code_verified'
         cleaned['_timestamp'] = int(__import__('time').time()*1000)
         # #region agent log
-        with open(log_path, 'a') as f:
+        try:
+            if log_path.parent.exists() if hasattr(log_path, 'parent') else os.path.exists(os.path.dirname(log_path)):
+                try:
+                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                        with open(log_path, 'a') as f:
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:4598","message":"RETURNING RESPONSE","data":{"results_count":len(cleaned.get('results',[])),"has_debug":'_debug' in cleaned},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except:
+            pass  # Ignore debug log errors
+        except:
+            pass
         # #endregion
         return jsonify(cleaned)
         
@@ -10368,8 +10569,14 @@ def search_stocks(query):
         import json
         import os
         log_path = os.path.join(os.path.dirname(__file__), '.cursor', 'debug.log')
-        with open(log_path, 'a') as f:
+        try:
+            if (hasattr(log_path, 'parent') and log_path.parent.exists()) or (hasattr(log_path, '__str__') and os.path.exists(os.path.dirname(str(log_path)))):
+                try:
+                    if os.path.exists(os.path.dirname(str(log_path))) if hasattr(log_path, '__str__') else (hasattr(log_path, 'parent') and log_path.parent.exists()):
+                        with open(log_path, 'a') as f:
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:4604","message":"Exception in search_stocks","data":{"error":str(e)[:200]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except:
+            pass  # Ignore debug log errors
         print(f"Error in search_stocks: {str(e)}")
         import traceback
         traceback.print_exc()
@@ -14130,8 +14337,12 @@ def analyze_earnings_call():
         import json
         import os
         log_path = os.path.join(os.path.dirname(__file__), '.cursor', 'debug.log')
-        with open(log_path, 'a') as f:
+        try:
+            if (hasattr(log_path, 'parent') and log_path.parent.exists()) or (hasattr(log_path, '__str__') and os.path.exists(os.path.dirname(str(log_path)))):
+                with open(log_path, 'a') as f:
             f.write(json.dumps({"sessionId":"debug-session","runId":"run1","hypothesisId":"E","location":"app.py:4569","message":"Exception in search_stocks","data":{"error":str(e)[:200]},"timestamp":int(__import__('time').time()*1000)}) + '\n')
+        except:
+            pass  # Ignore debug log errors
         print(f"Error in search_stocks endpoint: {str(e)}")
         import traceback
         traceback.print_exc()
