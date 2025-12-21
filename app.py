@@ -4161,14 +4161,7 @@ def get_financials_data(ticker):
         
         
         # #region agent log (disabled for production)
-        _safe_debug_log('Forward estimates data', {
-            'location': 'app.py:get_financials_data',
-            'ticker': ticker,
-            'revenue_quarters': list(forward_revenue_estimates.keys()),
-            'eps_quarters': list(forward_eps_estimates.keys()),
-            'revenue_count': len(forward_revenue_estimates),
-            'eps_count': len(forward_eps_estimates)
-        })
+        # Debug logging removed - causes FileNotFoundError on Render
         # #endregion
         
         # NOTE: quarterly_estimates were already fetched above (Finviz ONLY)
@@ -5880,13 +5873,8 @@ def _save_prediction_history(ticker, current_price, prediction_result, score=Non
         with open(history_file, 'w') as f:
             json.dump(history, f, indent=2)
         
-        # #region agent log (wrapped for production)
-        _safe_debug_log('Prediction history saved', {
-            'location': 'app.py:_save_prediction_history',
-            'ticker': ticker,
-            'date': today,
-            'history_length': len(history)
-        })
+        # #region agent log (disabled for production)
+        # Debug logging removed - causes FileNotFoundError on Render
         # #endregion
     except Exception as e:
         print(f"[ML HISTORY] Error saving prediction history: {e}")
