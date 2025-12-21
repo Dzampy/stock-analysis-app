@@ -10636,14 +10636,37 @@ def get_financials(ticker):
         financials = get_financials_data(ticker.upper())
         
         if financials is None:
-            return jsonify({'error': 'Financial data not available'}), 404
+            # Try to get at least basic data from yfinance
+            try:
+                print(f"[FALLBACK] Trying to get basic data for {ticker}")
+                stock = yf.Ticker(ticker.upper())
+                time.sleep(0.2)
+                info = stock.info
+                basic_financials = {
+                    'ticker': ticker.upper(),
+                    'company_name': info.get('longName', ticker.upper()),
+                    'sector': info.get('sector', 'N/A'),
+                    'industry': info.get('industry', 'N/A'),
+                    'market_cap': info.get('marketCap'),
+                    'error': 'Limited data - some sources unavailable. Please try again.',
+                    'quarterly_data': {'revenue': [], 'eps': []},
+                    'executive_snapshot': {}
+                }
+                return jsonify(clean_for_json(basic_financials))
+            except Exception as e2:
+                print(f"[ERROR] Fallback also failed for {ticker}: {str(e2)}")
+                return jsonify({'error': 'Financial data not available. Please try again later.'}), 404
         
-        # Add peer comparison data
-        industry_category = financials.get('industry_category', 'Other')
-        sector = financials.get('sector', 'N/A')
-        peer_comparison = get_peer_comparison_data(ticker.upper(), industry_category, sector, limit=4)
-        if peer_comparison:
-            financials['peer_comparison'] = peer_comparison
+        # Add peer comparison data (skip if it might cause timeout)
+        try:
+            industry_category = financials.get('industry_category', 'Other')
+            sector = financials.get('sector', 'N/A')
+            peer_comparison = get_peer_comparison_data(ticker.upper(), industry_category, sector, limit=4)
+            if peer_comparison:
+                financials['peer_comparison'] = peer_comparison
+        except Exception as e:
+            print(f"[WARNING] Peer comparison failed for {ticker}: {str(e)}")
+            # Continue without peer comparison - not critical
         
         return jsonify(clean_for_json(financials))
         
