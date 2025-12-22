@@ -16695,7 +16695,7 @@
                         </div>
                 `;
                 
-                if (cfData.length > 0) {
+                if (cfData.length > 0 || (data.cash_flow_analysis && data.cash_flow_analysis.quarterly_breakdown && data.cash_flow_analysis.quarterly_breakdown.length > 0)) {
                     html += `
                         <div style="margin-bottom: 15px; padding: 12px; background: rgba(102, 126, 234, 0.05); border-radius: 8px;">
                             <div style="font-size: 0.9em; color: var(--text-secondary);">
@@ -16704,7 +16704,7 @@
                                 <strong>FCF:</strong> Volný cash flow (Operating CF - CapEx)
                             </div>
                         </div>
-                        <canvas id="cashFlowChart" style="max-height: 400px; margin-top: 10px;"></canvas>
+                        <canvas id="cashFlowBreakdownChart-${ticker}" style="max-height: 400px; margin-top: 10px;"></canvas>
                     `;
                 }
                 
@@ -16714,19 +16714,51 @@
                 let fcfQualityEmoji = '🟡';
                 let fcfQualityDesc = '';
                 
-                if (snapshot.fcf_ttm && snapshot.net_income_ttm) {
-                    if (snapshot.fcf_ttm >= snapshot.net_income_ttm) {
+                if (snapshot.fcf_ttm !== null && snapshot.fcf_ttm !== undefined && snapshot.net_income_ttm !== null && snapshot.net_income_ttm !== undefined) {
+                    // Both positive: FCF should be >= Net Income
+                    if (snapshot.net_income_ttm > 0 && snapshot.fcf_ttm > 0) {
+                        if (snapshot.fcf_ttm >= snapshot.net_income_ttm) {
+                            fcfQualityStatus = 'Strong';
+                            fcfQualityColor = '#10b981';
+                            fcfQualityEmoji = '🟢';
+                            fcfQualityDesc = 'Firma generuje více skutečných peněz než je zisk - výborné!';
+                        } else if (snapshot.fcf_ttm >= snapshot.net_income_ttm * 0.7) {
+                            fcfQualityDesc = 'FCF je blízko zisku - většina zisku je skutečný cash';
+                        } else {
+                            fcfQualityStatus = 'Weak';
+                            fcfQualityColor = '#ef4444';
+                            fcfQualityEmoji = '🔴';
+                            fcfQualityDesc = 'FCF je výrazně nižší než zisk - část zisku může být "papírová" (pozor na accounting tricks)';
+                        }
+                    }
+                    // Both negative: FCF should be less negative (closer to zero) than Net Income
+                    else if (snapshot.net_income_ttm < 0 && snapshot.fcf_ttm < 0) {
+                        if (snapshot.fcf_ttm > snapshot.net_income_ttm) {
+                            // FCF is less negative, which is better
+                            fcfQualityStatus = 'Strong';
+                            fcfQualityColor = '#10b981';
+                            fcfQualityEmoji = '🟢';
+                            fcfQualityDesc = 'Firma generuje více skutečných peněz než je ztráta - cash flow je lepší než účetní zisk';
+                        } else if (snapshot.fcf_ttm >= snapshot.net_income_ttm * 0.7) {
+                            fcfQualityDesc = 'FCF je blízko ztráty - většina ztráty je skutečný cash outflow';
+                        } else {
+                            fcfQualityStatus = 'Weak';
+                            fcfQualityColor = '#ef4444';
+                            fcfQualityEmoji = '🔴';
+                            fcfQualityDesc = 'FCF je výrazně horší než ztráta - firma spaluje více cash než ukazuje účetnictví';
+                        }
+                    }
+                    // Mixed: one positive, one negative
+                    else if (snapshot.fcf_ttm > 0 && snapshot.net_income_ttm < 0) {
                         fcfQualityStatus = 'Strong';
                         fcfQualityColor = '#10b981';
                         fcfQualityEmoji = '🟢';
-                        fcfQualityDesc = 'Firma generuje více skutečných peněz než je zisk - výborné!';
-                    } else if (snapshot.fcf_ttm >= snapshot.net_income_ttm * 0.7) {
-                        fcfQualityDesc = 'FCF je blízko zisku - většina zisku je skutečný cash';
-                    } else {
+                        fcfQualityDesc = 'Firma generuje pozitivní cash flow navzdory účetní ztrátě - výborné!';
+                    } else if (snapshot.fcf_ttm < 0 && snapshot.net_income_ttm > 0) {
                         fcfQualityStatus = 'Weak';
                         fcfQualityColor = '#ef4444';
                         fcfQualityEmoji = '🔴';
-                        fcfQualityDesc = 'FCF je výrazně nižší než zisk - část zisku může být "papírová" (pozor na accounting tricks)';
+                        fcfQualityDesc = 'Firma má negativní cash flow navzdory účetnímu zisku - pozor na accounting tricks!';
                     }
                 }
                 
@@ -16749,7 +16781,11 @@
 
             // Balance Sheet (in same section)
             const bs = data.balance_sheet || {};
-            if (bs.cash !== null || bs.total_debt !== null) {
+            // Show Balance Sheet section if we have at least one value
+            if (bs.cash !== null && bs.cash !== undefined || 
+                bs.total_debt !== null && bs.total_debt !== undefined || 
+                bs.equity !== null && bs.equity !== undefined || 
+                bs.current_ratio !== null && bs.current_ratio !== undefined) {
                 html += `
                         <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid var(--border-color);">
                             <h4 style="margin: 0 0 15px 0; font-size: 1.1em; color: var(--text-primary);">Balance Sheet – jen to důležité</h4>

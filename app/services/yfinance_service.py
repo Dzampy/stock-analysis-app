@@ -857,6 +857,16 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
         current_assets_row = find_row(quarterly_bs, ['total current assets'])
         current_liabilities_row = find_row(quarterly_bs, ['total current liabilities'])
         
+        # Get total_debt if not already defined (it should be from earlier, but ensure it's available)
+        if 'total_debt' not in locals() or total_debt is None:
+            total_debt_row = find_row(quarterly_bs, ['total debt', 'total liabilities', 'long term debt', 'total long term debt'])
+            total_debt = None
+            if total_debt_row is not None and len(total_debt_row) > 0:
+                try:
+                    total_debt = float(total_debt_row.iloc[0] if hasattr(total_debt_row, 'iloc') else list(total_debt_row.values())[0])
+                except:
+                    pass
+        
         cash = None
         equity = None
         current_ratio = None
