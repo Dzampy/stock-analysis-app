@@ -16,22 +16,47 @@ bp = Blueprint('stock', __name__)
 @bp.route('/')
 def index():
     """Main page - render index.html"""
+    from flask import current_app
+    import os
+    
+    # Check if template exists
+    template_path = None
+    if current_app.template_folder:
+        template_path = os.path.join(current_app.template_folder, 'index.html')
+        logger.info(f"Looking for template at: {template_path}")
+        logger.info(f"Template exists: {os.path.exists(template_path) if template_path else False}")
+    
     try:
         return render_template('index.html')
     except Exception as e:
         logger.exception(f"Error rendering index.html: {e}")
+        logger.info(f"Template folder: {current_app.template_folder}")
+        logger.info(f"Root path: {current_app.root_path}")
         # Fallback: return simple HTML if template not found
-        return """
+        return f"""
         <!DOCTYPE html>
         <html>
-        <head><title>Stock Analysis Platform</title></head>
+        <head>
+            <title>Stock Analysis Platform</title>
+            <meta charset="UTF-8">
+            <style>
+                body {{ font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: #fff; }}
+                .container {{ max-width: 800px; margin: 0 auto; }}
+                h1 {{ color: #4CAF50; }}
+                .error {{ color: #f44336; }}
+            </style>
+        </head>
         <body>
-            <h1>Stock Analysis Platform</h1>
-            <p>Application is running. Please check the logs for template issues.</p>
-            <p>Error: {}</p>
+            <div class="container">
+                <h1>Stock Analysis Platform</h1>
+                <p>Application is running successfully! 🎉</p>
+                <p class="error">Note: Template file not found. This is a fallback page.</p>
+                <p>Template path: {template_path or 'Not set'}</p>
+                <p>Error: {str(e)}</p>
+            </div>
         </body>
         </html>
-        """.format(str(e)), 200
+        """, 200
 
 
 @bp.route('/api/stock/<ticker>')
