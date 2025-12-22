@@ -6660,64 +6660,84 @@
                 // Quarter
                 tableHTML += `<td><strong>${quarter}</strong></td>`;
                 
+                // Helper function to safely format numbers
+                const safeToFixed = (value, decimals = 2) => {
+                    if (value === null || value === undefined || isNaN(value) || typeof value !== 'number') {
+                        return null;
+                    }
+                    return value.toFixed(decimals);
+                };
+                
                 // Revenue
-                tableHTML += `<td>${revenue !== null && revenue !== undefined ? '$' + revenue.toFixed(2) : 'N/A'}</td>`;
-                if (revenueQoq !== null && revenueQoq !== undefined) {
+                const revenueFormatted = safeToFixed(revenue);
+                tableHTML += `<td>${revenueFormatted !== null ? '$' + revenueFormatted : 'N/A'}</td>`;
+                const revenueQoqFormatted = safeToFixed(revenueQoq);
+                if (revenueQoqFormatted !== null) {
                     const changeClass = revenueQoq >= 0 ? 'qoq-positive' : 'qoq-negative';
                     const changeSign = revenueQoq >= 0 ? '+' : '';
-                    tableHTML += `<td class="${changeClass}">${changeSign}$${revenueQoq.toFixed(2)}B</td>`;
+                    tableHTML += `<td class="${changeClass}">${changeSign}$${revenueQoqFormatted}B</td>`;
                 } else {
                     tableHTML += '<td>-</td>';
                 }
-                if (revenueQoqPct !== null && revenueQoqPct !== undefined) {
+                const revenueQoqPctFormatted = safeToFixed(revenueQoqPct);
+                if (revenueQoqPctFormatted !== null) {
                     const pctClass = revenueQoqPct >= 0 ? 'qoq-positive' : 'qoq-negative';
                     const pctSign = revenueQoqPct >= 0 ? '+' : '';
-                    tableHTML += `<td class="${pctClass}">${pctSign}${revenueQoqPct.toFixed(2)}%</td>`;
+                    tableHTML += `<td class="${pctClass}">${pctSign}${revenueQoqPctFormatted}%</td>`;
                 } else {
                     tableHTML += '<td>-</td>';
                 }
                 
                 // EPS
-                tableHTML += `<td>${eps !== null && eps !== undefined ? eps.toFixed(2) : 'N/A'}</td>`;
-                if (epsQoq !== null && epsQoq !== undefined) {
+                const epsFormatted = safeToFixed(eps);
+                tableHTML += `<td>${epsFormatted !== null ? epsFormatted : 'N/A'}</td>`;
+                const epsQoqFormatted = safeToFixed(epsQoq);
+                if (epsQoqFormatted !== null) {
                     const changeClass = epsQoq >= 0 ? 'qoq-positive' : 'qoq-negative';
                     const changeSign = epsQoq >= 0 ? '+' : '';
-                    tableHTML += `<td class="${changeClass}">${changeSign}${epsQoq.toFixed(2)}</td>`;
+                    tableHTML += `<td class="${changeClass}">${changeSign}${epsQoqFormatted}</td>`;
                 } else {
                     tableHTML += '<td>-</td>';
                 }
-                if (epsQoqPct !== null && epsQoqPct !== undefined) {
+                const epsQoqPctFormatted = safeToFixed(epsQoqPct);
+                if (epsQoqPctFormatted !== null) {
                     const pctClass = epsQoqPct >= 0 ? 'qoq-positive' : 'qoq-negative';
                     const pctSign = epsQoqPct >= 0 ? '+' : '';
-                    tableHTML += `<td class="${pctClass}">${pctSign}${epsQoqPct.toFixed(2)}%</td>`;
+                    tableHTML += `<td class="${pctClass}">${pctSign}${epsQoqPctFormatted}%</td>`;
                 } else {
                     tableHTML += '<td>-</td>';
                 }
                 
                 // EPS Estimates
-                tableHTML += `<td>${epsEst !== null && epsEst !== undefined ? epsEst.toFixed(2) : '-'}</td>`;
-                tableHTML += `<td>${epsRep !== null && epsRep !== undefined ? epsRep.toFixed(2) : '-'}</td>`;
-                if (epsSurprise !== null && epsSurprise !== undefined) {
+                const epsEstFormatted = safeToFixed(epsEst);
+                tableHTML += `<td>${epsEstFormatted !== null ? epsEstFormatted : '-'}</td>`;
+                const epsRepFormatted = safeToFixed(epsRep);
+                tableHTML += `<td>${epsRepFormatted !== null ? epsRepFormatted : '-'}</td>`;
+                const epsSurpriseFormatted = safeToFixed(epsSurprise);
+                if (epsSurpriseFormatted !== null) {
                     const surpriseClass = epsSurprise >= 0 ? 'surprise-positive' : 'surprise-negative';
                     const surpriseSign = epsSurprise >= 0 ? '+' : '';
-                    tableHTML += `<td class="${surpriseClass}">${surpriseSign}${epsSurprise.toFixed(2)}%</td>`;
+                    tableHTML += `<td class="${surpriseClass}">${surpriseSign}${epsSurpriseFormatted}%</td>`;
                 } else {
                     tableHTML += '<td>-</td>';
                 }
                 
                 // Earnings
-                tableHTML += `<td>${earnings !== null && earnings !== undefined ? '$' + earnings.toFixed(2) : 'N/A'}</td>`;
-                if (earningsQoq !== null && earningsQoq !== undefined) {
+                const earningsFormatted = safeToFixed(earnings);
+                tableHTML += `<td>${earningsFormatted !== null ? '$' + earningsFormatted : 'N/A'}</td>`;
+                const earningsQoqFormatted = safeToFixed(earningsQoq);
+                if (earningsQoqFormatted !== null) {
                     const changeClass = earningsQoq >= 0 ? 'qoq-positive' : 'qoq-negative';
                     const changeSign = earningsQoq >= 0 ? '+' : '';
-                    tableHTML += `<td class="${changeClass}">${changeSign}$${earningsQoq.toFixed(2)}B</td>`;
+                    tableHTML += `<td class="${changeClass}">${changeSign}$${earningsQoqFormatted}B</td>`;
                 } else {
                     tableHTML += '<td>-</td>';
                 }
-                if (earningsQoqPct !== null && earningsQoqPct !== undefined) {
+                const earningsQoqPctFormatted = safeToFixed(earningsQoqPct);
+                if (earningsQoqPctFormatted !== null) {
                     const pctClass = earningsQoqPct >= 0 ? 'qoq-positive' : 'qoq-negative';
                     const pctSign = earningsQoqPct >= 0 ? '+' : '';
-                    tableHTML += `<td class="${pctClass}">${pctSign}${earningsQoqPct.toFixed(2)}%</td>`;
+                    tableHTML += `<td class="${pctClass}">${pctSign}${earningsQoqPctFormatted}%</td>`;
                 } else {
                     tableHTML += '<td>-</td>';
                 }
