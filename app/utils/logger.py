@@ -30,10 +30,6 @@ def setup_logger(name: str = 'stock_analysis', log_level: str = None) -> logging
     if logger.handlers:
         return logger
     
-    # Create logs directory if it doesn't exist
-    log_dir = Path('logs')
-    log_dir.mkdir(exist_ok=True)
-    
     # Formatters
     detailed_formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
@@ -45,31 +41,44 @@ def setup_logger(name: str = 'stock_analysis', log_level: str = None) -> logging
         datefmt='%Y-%m-%d %H:%M:%S'
     )
     
-    # Console handler (stdout)
+    # Console handler (stdout) - always available
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(simple_formatter)
     logger.addHandler(console_handler)
     
-    # File handler (rotating)
-    file_handler = RotatingFileHandler(
-        log_dir / 'app.log',
-        maxBytes=10 * 1024 * 1024,  # 10MB
-        backupCount=5
-    )
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(detailed_formatter)
-    logger.addHandler(file_handler)
+    # File handlers - only if we can write to disk (not on Render/Heroku)
+    # Check if we're in a cloud environment
+    is_cloud = os.getenv('RENDER') or os.getenv('HEROKU') or os.getenv('RAILWAY') or os.getenv('FLY')
     
-    # Error file handler (errors only)
-    error_handler = RotatingFileHandler(
-        log_dir / 'errors.log',
-        maxBytes=10 * 1024 * 1024,  # 10MB
-        backupCount=5
-    )
-    error_handler.setLevel(logging.ERROR)
-    error_handler.setFormatter(detailed_formatter)
-    logger.addHandler(error_handler)
+    if not is_cloud:
+        try:
+            # Create logs directory if it doesn't exist
+            log_dir = Path('logs')
+            log_dir.mkdir(exist_ok=True)
+            
+            # File handler (rotating)
+            file_handler = RotatingFileHandler(
+                log_dir / 'app.log',
+                maxBytes=10 * 1024 * 1024,  # 10MB
+                backupCount=5
+            )
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(detailed_formatter)
+            logger.addHandler(file_handler)
+            
+            # Error file handler (errors only)
+            error_handler = RotatingFileHandler(
+                log_dir / 'errors.log',
+                maxBytes=10 * 1024 * 1024,  # 10MB
+                backupCount=5
+            )
+            error_handler.setLevel(logging.ERROR)
+            error_handler.setFormatter(detailed_formatter)
+            logger.addHandler(error_handler)
+        except (OSError, PermissionError) as e:
+            # If we can't create log files, just use console logging
+            logger.warning(f"Could not create log files: {e}. Using console logging only.")
     
     return logger
 

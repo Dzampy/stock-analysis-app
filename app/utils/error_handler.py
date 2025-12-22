@@ -154,20 +154,30 @@ def register_error_handlers(app):
     
     @app.errorhandler(404)
     def handle_not_found(error):
+        try:
+            path = request.path if request else 'unknown'
+        except:
+            path = 'unknown'
         return create_error_response(
-            f"Endpoint not found: {request.path}",
+            f"Endpoint not found: {path}",
             404,
             "NOT_FOUND",
-            {'path': request.path}
+            {'path': path}
         )
     
     @app.errorhandler(405)
     def handle_method_not_allowed(error):
+        try:
+            method = request.method if request else 'unknown'
+            path = request.path if request else 'unknown'
+        except:
+            method = 'unknown'
+            path = 'unknown'
         return create_error_response(
-            f"Method not allowed: {request.method}",
+            f"Method not allowed: {method}",
             405,
             "METHOD_NOT_ALLOWED",
-            {'method': request.method, 'path': request.path}
+            {'method': method, 'path': path}
         )
     
     @app.errorhandler(500)
