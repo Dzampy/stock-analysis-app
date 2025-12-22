@@ -16944,7 +16944,15 @@
                     </div>
                 `;
             } else {
-                html += `</div>`;
+                // Show placeholder if no balance sheet data
+                html += `
+                    <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid var(--border-color);">
+                        <h4 style="margin: 0 0 15px 0; font-size: 1.1em; color: var(--text-primary);">Balance Sheet – jen to důležité</h4>
+                        <div style="padding: 20px; background: var(--metric-bg); border-radius: 10px; text-align: center; color: var(--text-secondary);">
+                            Balance Sheet data není k dispozici pro tento ticker.
+                        </div>
+                    </div>
+                `;
             }
 
             // 5. ⚠️ Risks Section
