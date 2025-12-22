@@ -16801,7 +16801,9 @@
             });
             
             // Always show Balance Sheet section (even if no data)
+            console.log('[Financials] About to create Balance Sheet HTML, hasBalanceSheetData:', hasBalanceSheetData);
             if (true) {
+                console.log('[Financials] Creating Balance Sheet HTML section');
                 html += `
                         <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid var(--border-color);">
                             <h4 style="margin: 0 0 15px 0; font-size: 1.1em; color: var(--text-primary);">Balance Sheet – jen to důležité</h4>
@@ -16819,7 +16821,9 @@
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
                 `;
                 
+                console.log('[Financials] Checking cash:', bs.cash, 'is not null:', bs.cash !== null, 'is not undefined:', bs.cash !== undefined);
                 if (bs.cash !== null && bs.cash !== undefined) {
+                    console.log('[Financials] Adding Cash card to HTML');
                     html += `
                         <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px;">
                             <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Cash & Equivalents</div>
@@ -16827,6 +16831,8 @@
                             <div style="font-size: 0.75em; color: var(--text-tertiary); margin-top: 5px;">Hotovost a ekvivalenty</div>
                         </div>
                     `;
+                } else {
+                    console.log('[Financials] Cash is null/undefined, skipping');
                 }
                 
                 if (bs.total_debt !== null && bs.total_debt !== undefined) {
@@ -16946,6 +16952,7 @@
                         </div>
                     </div>
                 `;
+                console.log('[Financials] Balance Sheet HTML created, length:', html.length);
             } else {
                 // Show placeholder if no balance sheet data
                 html += `
