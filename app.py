@@ -9,14 +9,24 @@ from app.utils.error_handler import register_error_handlers
 load_dotenv()
 
 # Get absolute path to templates folder (relative to app.py location)
+# app.py is in root, so templates are in root/templates
 base_dir = Path(__file__).parent.absolute()
 template_dir = base_dir / 'templates'
 static_dir = base_dir / 'static'
 
-# Ensure directories exist
-template_dir.mkdir(exist_ok=True)
-static_dir.mkdir(exist_ok=True)
+# Log for debugging
+logger.info(f"Base directory: {base_dir}")
+logger.info(f"Template directory: {template_dir}")
+logger.info(f"Template exists: {template_dir.exists()}")
 
+# Ensure directories exist (but don't fail if we can't create them)
+try:
+    template_dir.mkdir(exist_ok=True)
+    static_dir.mkdir(exist_ok=True)
+except Exception as e:
+    logger.warning(f"Could not create directories: {e}")
+
+# Use absolute path to templates - Flask will look here
 app = Flask(__name__, template_folder=str(template_dir), static_folder=str(static_dir))
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
