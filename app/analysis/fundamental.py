@@ -715,3 +715,418 @@ def get_peer_comparison_data(ticker: str, industry_category: str, sector: str, l
         traceback.print_exc()
         return []
 
+
+def get_industry_ranking(ticker, industry_category, sector, market_cap):
+    """Get industry ranking for a stock based on market cap"""
+    if not market_cap or market_cap <= 0:
+        logger.debug(f"get_industry_ranking: Invalid market_cap for {ticker}: {market_cap}")
+        return None
+    
+    # Define peer companies by industry category
+    peer_tickers = {
+        'data centers': ['EQIX', 'DLR', 'AMT', 'CCI', 'SBAC', 'IREN', 'CIFR', 'NBIS', 'GDS', 'VNET', 'PD', 'CONE', 'QTS', 'COR', 'LAND'],
+        'technology': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 'NFLX', 'ADBE', 'CRM', 'ORCL', 'INTC', 'AMD', 'QCOM', 'AVGO'],
+        'healthcare': ['JNJ', 'UNH', 'PFE', 'ABT', 'TMO', 'ABBV', 'MRK', 'BMY', 'AMGN', 'GILD', 'BIIB', 'REGN', 'VRTX', 'ILMN', 'MRNA'],
+        'finance': ['JPM', 'BAC', 'WFC', 'C', 'GS', 'MS', 'BLK', 'SCHW', 'AXP', 'MA', 'V', 'PYPL', 'COF', 'USB', 'TFC'],
+        'energy': ['XOM', 'CVX', 'COP', 'SLB', 'EOG', 'MPC', 'VLO', 'PSX', 'HAL', 'NOV', 'FANG', 'MRO', 'OVV', 'CTRA', 'MTDR'],
+        'consumer': ['WMT', 'HD', 'MCD', 'NKE', 'SBUX', 'TGT', 'LOW', 'TJX', 'DG', 'COST', 'AMZN', 'TSCO', 'BBY', 'FIVE', 'DKS'],
+        'industrial': ['BA', 'CAT', 'GE', 'HON', 'EMR', 'ETN', 'ITW', 'PH', 'ROK', 'SWK', 'TXT', 'AME', 'CMI', 'DE', 'FTV'],
+        'real estate': ['AMT', 'PLD', 'PSA', 'EQIX', 'WELL', 'SPG', 'O', 'DLR', 'EXPI', 'CBRE', 'JLL', 'CWK', 'MMC', 'BAM', 'BXP']
+    }
+    
+    # Map sector to category if industry_category is "Other"
+    sector_to_category = {
+        'Technology': 'technology',
+        'Healthcare': 'healthcare',
+        'Financial Services': 'finance',
+        'Energy': 'energy',
+        'Consumer Cyclical': 'consumer',
+        'Consumer Defensive': 'consumer',
+        'Industrials': 'industrial',
+        'Real Estate': 'real estate'
+    }
+    
+    # Get peers for this category
+    peers = peer_tickers.get(industry_category, [])
+    
+    # If category is "Other", try to use sector-based peers
+    if not peers and industry_category == 'Other' and sector and sector != 'N/A':
+        category_from_sector = sector_to_category.get(sector)
+        if category_from_sector:
+            peers = peer_tickers.get(category_from_sector, [])
+            industry_category = category_from_sector
+            logger.debug(f"get_industry_ranking: Using sector '{sector}' to map to category '{category_from_sector}' for {ticker}")
+    
+    if not peers:
+        logger.debug(f"get_industry_ranking: No peers found for category '{industry_category}' (ticker: {ticker}, sector: {sector})")
+        return None
+    
+    # Fetch market caps for peers (limit to avoid too many API calls)
+    peer_data = []
+    for peer_ticker in peers[:20]:  # Limit to 20 peers
+        if peer_ticker == ticker:
+            continue
+        try:
+            peer_stock = yf.Ticker(peer_ticker)
+            time.sleep(0.1)  # Rate limiting
+            peer_info = peer_stock.info
+            peer_market_cap = peer_info.get('marketCap', 0)
+            if peer_market_cap and peer_market_cap > 0:
+                peer_data.append({
+                    'ticker': peer_ticker,
+                    'market_cap': peer_market_cap
+                })
+        except Exception as e:
+            logger.debug(f"Error fetching market cap for peer {peer_ticker}: {str(e)}")
+            continue
+    
+    # Add current ticker
+    peer_data.append({
+        'ticker': ticker,
+        'market_cap': market_cap
+    })
+    
+    # Sort by market cap (descending)
+    peer_data.sort(key=lambda x: x['market_cap'], reverse=True)
+    
+    # Find position
+    position = next((i + 1 for i, p in enumerate(peer_data) if p['ticker'] == ticker), None)
+    total = len(peer_data)
+    
+    if position and total > 1:
+        return {
+            'position': position,
+            'total': total,
+            'category': industry_category.title()
+        }
+    
+    return None
+
+
+def get_cash_flow_analysis(ticker):
+    """Get comprehensive cash flow statement analysis"""
+    try:
+        stock = yf.Ticker(ticker)
+        time.sleep(0.2)
+        
+        # Get cash flow statements
+        cf_quarterly = stock.quarterly_cashflow
+        cf_annual = stock.cashflow
+        
+        if cf_quarterly is None or cf_quarterly.empty:
+            logger.debug(f"[CASH FLOW] No quarterly cashflow data for {ticker}")
+            return None
+        
+        logger.debug(f"[CASH FLOW] Found quarterly cashflow data for {ticker}: {len(cf_quarterly.columns)} quarters")
+        
+        # Extract key cash flow components
+        def find_cf_row(df, keywords):
+            for idx in df.index:
+                idx_lower = str(idx).lower()
+                if any(kw.lower() in idx_lower for kw in keywords):
+                    return df.loc[idx]
+            return None
+        
+        # Operating Cash Flow
+        ocf_row = find_cf_row(cf_quarterly, ['operating cash flow', 'operating activities', 'cash from operations', 'net cash provided by operating activities'])
+        # Investing Cash Flow
+        icf_row = find_cf_row(cf_quarterly, ['investing cash flow', 'investing activities', 'cash from investing', 'net cash used in investing activities'])
+        # Financing Cash Flow
+        fcf_row = find_cf_row(cf_quarterly, ['financing cash flow', 'financing activities', 'cash from financing', 'net cash used in financing activities'])
+        # Capital Expenditures
+        capex_row = find_cf_row(cf_quarterly, ['capital expenditure', 'capex', 'purchase of property', 'capital expenditures'])
+        
+        # Build quarterly cash flow breakdown
+        quarterly_breakdown = []
+        fcf_trend = []
+        
+        # Get last 8 quarters
+        for i, col in enumerate(cf_quarterly.columns[:8]):
+            try:
+                quarter_date = pd.Timestamp(col)
+                quarter_str = f"{quarter_date.year}-Q{(quarter_date.month - 1) // 3 + 1}"
+                
+                ocf = float(ocf_row.iloc[i]) if ocf_row is not None and i < len(ocf_row) else None
+                icf = float(icf_row.iloc[i]) if icf_row is not None and i < len(icf_row) else None
+                fcf_val = float(fcf_row.iloc[i]) if fcf_row is not None and i < len(fcf_row) else None
+                capex = float(capex_row.iloc[i]) if capex_row is not None and i < len(capex_row) else None
+                
+                # Calculate FCF if not directly available
+                if ocf is not None and capex is not None:
+                    calculated_fcf = ocf - abs(capex) if capex < 0 else ocf + capex
+                else:
+                    calculated_fcf = None
+                
+                fcf_final = calculated_fcf if fcf_val is None else fcf_val
+                
+                quarterly_breakdown.append({
+                    'quarter': quarter_str,
+                    'date': quarter_date.strftime('%Y-%m-%d'),
+                    'operating_cf': ocf,
+                    'investing_cf': icf,
+                    'financing_cf': fcf_val,
+                    'capex': abs(capex) if capex is not None and capex < 0 else (capex if capex is not None else None),
+                    'fcf': fcf_final
+                })
+                
+                if fcf_final is not None:
+                    fcf_trend.append({
+                        'quarter': quarter_str,
+                        'date': quarter_date.strftime('%Y-%m-%d'),
+                        'fcf': fcf_final
+                    })
+            except (IndexError, ValueError, TypeError) as e:
+                continue
+        
+        # Calculate Cash Conversion Cycle (requires income statement and balance sheet)
+        try:
+            income_stmt = stock.income_stmt
+            balance_sheet = stock.balance_sheet
+            
+            # Get latest quarter data
+            if income_stmt is not None and not income_stmt.empty and balance_sheet is not None and not balance_sheet.empty:
+                # Accounts Receivable
+                ar_row = find_cf_row(balance_sheet, ['accounts receivable', 'receivables', 'trade receivables'])
+                # Inventory
+                inv_row = find_cf_row(balance_sheet, ['inventory', 'inventories'])
+                # Accounts Payable
+                ap_row = find_cf_row(balance_sheet, ['accounts payable', 'payables', 'trade payables'])
+                # Revenue
+                rev_row = find_cf_row(income_stmt, ['total revenue', 'revenue', 'net sales', 'sales'])
+                # COGS
+                cogs_row = find_cf_row(income_stmt, ['cost of revenue', 'cost of goods sold', 'cogs', 'cost of sales'])
+                
+                if ar_row is not None and rev_row is not None and len(ar_row) > 0 and len(rev_row) > 0:
+                    ar = float(ar_row.iloc[0])
+                    revenue = float(rev_row.iloc[0])
+                    
+                    # Days Sales Outstanding
+                    dso = (ar / revenue * 365) if revenue > 0 else None
+                else:
+                    dso = None
+                
+                if inv_row is not None and cogs_row is not None and len(inv_row) > 0 and len(cogs_row) > 0:
+                    inventory = float(inv_row.iloc[0])
+                    cogs = float(cogs_row.iloc[0])
+                    
+                    # Days Inventory Outstanding
+                    dio = (inventory / cogs * 365) if cogs > 0 else None
+                else:
+                    dio = None
+                
+                if ap_row is not None and cogs_row is not None and len(ap_row) > 0 and len(cogs_row) > 0:
+                    ap = float(ap_row.iloc[0])
+                    cogs = float(cogs_row.iloc[0])
+                    
+                    # Days Payable Outstanding
+                    dpo = (ap / cogs * 365) if cogs > 0 else None
+                else:
+                    dpo = None
+                
+                # Cash Conversion Cycle
+                if dso is not None and dio is not None and dpo is not None:
+                    ccc = dso + dio - dpo
+                else:
+                    ccc = None
+            else:
+                ccc = None
+                dso = None
+                dio = None
+                dpo = None
+        except Exception as e:
+            logger.debug(f"Error calculating CCC for {ticker}: {e}")
+            ccc = None
+            dso = None
+            dio = None
+            dpo = None
+        
+        # Calculate Cash Runway for growth companies (if negative FCF)
+        cash_runway = None
+        if fcf_trend and len(fcf_trend) > 0:
+            latest_fcf = fcf_trend[0]['fcf']
+            if latest_fcf is not None and latest_fcf < 0:
+                # Get cash from balance sheet
+                try:
+                    bs = stock.balance_sheet
+                    if bs is not None and not bs.empty:
+                        cash_row = find_cf_row(bs, ['cash and cash equivalents', 'cash', 'cash and short term investments'])
+                        if cash_row is not None and len(cash_row) > 0:
+                            cash = float(cash_row.iloc[0])
+                            monthly_burn = abs(latest_fcf) / 3  # Quarterly to monthly
+                            if monthly_burn > 0:
+                                cash_runway = cash / monthly_burn  # Months
+                except:
+                    pass
+        
+        # FCF Trend Projection (simple linear trend)
+        fcf_projection = None
+        if len(fcf_trend) >= 4:
+            try:
+                # Use last 4 quarters for trend
+                recent_fcf = [q['fcf'] for q in fcf_trend[:4] if q['fcf'] is not None]
+                if len(recent_fcf) >= 3:
+                    # Simple average growth rate
+                    growth_rates = []
+                    for i in range(len(recent_fcf) - 1):
+                        if recent_fcf[i+1] != 0:
+                            growth = (recent_fcf[i] - recent_fcf[i+1]) / abs(recent_fcf[i+1])
+                            growth_rates.append(growth)
+                    
+                    if growth_rates:
+                        avg_growth = sum(growth_rates) / len(growth_rates)
+                        next_fcf = recent_fcf[0] * (1 + avg_growth)
+                        fcf_projection = {
+                            'next_quarter': next_fcf,
+                            'growth_rate': avg_growth * 100,
+                            'method': 'linear_trend'
+                        }
+            except:
+                pass
+        
+        return {
+            'quarterly_breakdown': quarterly_breakdown,
+            'fcf_trend': fcf_trend,
+            'fcf_projection': fcf_projection,
+            'cash_conversion_cycle': {
+                'ccc': round(ccc, 1) if ccc is not None else None,
+                'dso': round(dso, 1) if dso is not None else None,
+                'dio': round(dio, 1) if dio is not None else None,
+                'dpo': round(dpo, 1) if dpo is not None else None
+            },
+            'cash_runway': {
+                'months': round(cash_runway, 1) if cash_runway is not None else None,
+                'status': 'critical' if cash_runway is not None and cash_runway < 6 else 'warning' if cash_runway is not None and cash_runway < 12 else 'ok' if cash_runway is not None else None
+            }
+        }
+    except Exception as e:
+        logger.exception(f"Error in cash flow analysis for {ticker}: {str(e)}")
+        return None
+
+
+def get_profitability_analysis(ticker, financials_data):
+    """Get deep dive profitability analysis"""
+    try:
+        stock = yf.Ticker(ticker)
+        time.sleep(0.2)
+        
+        income_stmt = stock.income_stmt
+        if income_stmt is None or income_stmt.empty:
+            return None
+        
+        def find_row(df, keywords):
+            for idx in df.index:
+                idx_lower = str(idx).lower()
+                if any(kw.lower() in idx_lower for kw in keywords):
+                    return df.loc[idx]
+            return None
+        
+        # Get revenue and margin rows
+        revenue_row = find_row(income_stmt, ['total revenue', 'revenue', 'net sales'])
+        gross_profit_row = find_row(income_stmt, ['gross profit'])
+        operating_income_row = find_row(income_stmt, ['operating income', 'income from operations'])
+        net_income_row = find_row(income_stmt, ['net income', 'net earnings'])
+        
+        # Build margin trends
+        margin_trends = []
+        for i, col in enumerate(income_stmt.columns[:8]):
+            try:
+                quarter_date = pd.Timestamp(col)
+                quarter_str = f"{quarter_date.year}-Q{(quarter_date.month - 1) // 3 + 1}"
+                
+                revenue = float(revenue_row.iloc[i]) if revenue_row is not None and i < len(revenue_row) else None
+                gross_profit = float(gross_profit_row.iloc[i]) if gross_profit_row is not None and i < len(gross_profit_row) else None
+                operating_income = float(operating_income_row.iloc[i]) if operating_income_row is not None and i < len(operating_income_row) else None
+                net_income = float(net_income_row.iloc[i]) if net_income_row is not None and i < len(net_income_row) else None
+                
+                gross_margin = (gross_profit / revenue * 100) if revenue and revenue > 0 and gross_profit else None
+                operating_margin = (operating_income / revenue * 100) if revenue and revenue > 0 and operating_income else None
+                net_margin = (net_income / revenue * 100) if revenue and revenue > 0 and net_income else None
+                
+                margin_trends.append({
+                    'quarter': quarter_str,
+                    'date': quarter_date.strftime('%Y-%m-%d'),
+                    'gross_margin': round(gross_margin, 2) if gross_margin is not None else None,
+                    'operating_margin': round(operating_margin, 2) if operating_margin is not None else None,
+                    'net_margin': round(net_margin, 2) if net_margin is not None else None,
+                    'revenue': revenue,
+                    'operating_income': operating_income,
+                    'net_income': net_income
+                })
+            except (IndexError, ValueError, TypeError):
+                continue
+        
+        # Calculate margin expansion/contraction
+        margin_expansion = {}
+        if len(margin_trends) >= 2:
+            latest = margin_trends[0]
+            previous = margin_trends[1]
+            
+            if latest.get('gross_margin') and previous.get('gross_margin'):
+                margin_expansion['gross'] = latest['gross_margin'] - previous['gross_margin']
+            if latest.get('operating_margin') and previous.get('operating_margin'):
+                margin_expansion['operating'] = latest['operating_margin'] - previous['operating_margin']
+            if latest.get('net_margin') and previous.get('net_margin'):
+                margin_expansion['net'] = latest['net_margin'] - previous['net_margin']
+        
+        # Calculate Operating Leverage
+        operating_leverage = None
+        if len(margin_trends) >= 2:
+            latest = margin_trends[0]
+            previous = margin_trends[1]
+            
+            if (latest.get('revenue') and previous.get('revenue') and 
+                latest.get('operating_income') and previous.get('operating_income') and
+                previous['revenue'] > 0 and previous['operating_income'] != 0):
+                
+                revenue_growth = (latest['revenue'] - previous['revenue']) / previous['revenue']
+                operating_income_growth = (latest['operating_income'] - previous['operating_income']) / abs(previous['operating_income'])
+                
+                if revenue_growth != 0:
+                    operating_leverage = operating_income_growth / revenue_growth
+        
+        # Break-even analysis for growth companies
+        break_even_analysis = None
+        company_stage = financials_data.get('company_stage', 'unknown')
+        if company_stage in ['growth', 'early_stage']:
+            if len(margin_trends) >= 4:
+                # Calculate average revenue growth
+                revenue_growth_rates = []
+                for i in range(len(margin_trends) - 1):
+                    if margin_trends[i].get('revenue') and margin_trends[i+1].get('revenue') and margin_trends[i+1]['revenue'] > 0:
+                        growth = (margin_trends[i]['revenue'] - margin_trends[i+1]['revenue']) / margin_trends[i+1]['revenue']
+                        revenue_growth_rates.append(growth)
+                
+                if revenue_growth_rates:
+                    avg_growth = sum(revenue_growth_rates) / len(revenue_growth_rates)
+                    latest_revenue = margin_trends[0].get('revenue', 0)
+                    latest_net_income = margin_trends[0].get('net_income', 0)
+                    
+                    if latest_net_income < 0 and avg_growth > 0:
+                        # Project when they'll break even
+                        current_loss = abs(latest_net_income)
+                        # Estimate break-even revenue (simplified)
+                        if latest_revenue > 0:
+                            loss_margin = current_loss / latest_revenue
+                            # Assume loss margin decreases with scale
+                            break_even_revenue = latest_revenue * (1 + loss_margin / 0.1)  # Simplified
+                            
+                            # Estimate quarters to break-even
+                            if avg_growth > 0:
+                                quarters_to_breakeven = (break_even_revenue / latest_revenue - 1) / avg_growth
+                                break_even_analysis = {
+                                    'estimated_quarters': max(1, int(quarters_to_breakeven)),
+                                    'estimated_revenue': break_even_revenue,
+                                    'current_revenue': latest_revenue,
+                                    'avg_growth_rate': avg_growth * 100
+                                }
+        
+        return {
+            'margin_trends': margin_trends,
+            'margin_expansion': margin_expansion,
+            'operating_leverage': round(operating_leverage, 2) if operating_leverage is not None else None,
+            'break_even_analysis': break_even_analysis
+        }
+    except Exception as e:
+        logger.exception(f"Error in profitability analysis for {ticker}: {str(e)}")
+        return None
+

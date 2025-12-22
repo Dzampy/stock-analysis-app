@@ -209,7 +209,7 @@ def get_institutional_ownership(ticker: str) -> Optional[Dict]:
 
 def get_financials_data(ticker: str) -> Optional[Dict]:
     """
-    Get comprehensive financial data for Financials tab
+    Get comprehensive financial data for Financials tab - RESTORED FROM ORIGINAL APP.PY
     
     Args:
         ticker: Stock ticker symbol
@@ -219,6 +219,17 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
     """
     try:
         from app.services.finviz_service import get_quarterly_estimates_from_finviz
+        from app.analysis.fundamental import (
+            calculate_financials_score, 
+            get_industry_ranking,
+            get_cash_flow_analysis,
+            get_profitability_analysis,
+            get_balance_sheet_health,
+            get_management_guidance_tracking,
+            get_segment_breakdown
+        )
+        from app.utils.json_utils import clean_for_json
+        from datetime import datetime
         
         stock = yf.Ticker(ticker)
         time.sleep(0.3)  # Rate limiting
@@ -233,6 +244,18 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
         
         quarterly_estimates = finviz_data.get('estimates', {}) if isinstance(finviz_data, dict) else {}
         quarterly_actuals = finviz_data.get('actuals', {}) if isinstance(finviz_data, dict) else {}
+        
+        if quarterly_estimates:
+            rev_count = len(quarterly_estimates.get('revenue', {}))
+            eps_count = len(quarterly_estimates.get('eps', {}))
+            if rev_count > 0 or eps_count > 0:
+                logger.info(f"Finviz: Found {rev_count} revenue and {eps_count} EPS estimates for {ticker}")
+        
+        if quarterly_actuals:
+            rev_actual_count = len(quarterly_actuals.get('revenue', {}))
+            eps_actual_count = len(quarterly_actuals.get('eps', {}))
+            if rev_actual_count > 0 or eps_actual_count > 0:
+                logger.info(f"Finviz: Found {rev_actual_count} revenue and {eps_actual_count} EPS actual values for {ticker}")
         
         # Get company info
         try:
@@ -251,233 +274,834 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
             'data centers': ['data center', 'data center reit', 'reit—data center', 'data center reits', 'data centers', 'datacenter', 'datacenters'],
             'technology': ['technology', 'software', 'semiconductors', 'internet', 'telecommunications', 'tech'],
             'healthcare': ['healthcare', 'biotechnology', 'pharmaceuticals', 'medical devices', 'biotech'],
-            'finance': ['financial services', 'banking', 'insurance', 'financial', 'banks'],
-            'energy': ['energy', 'oil', 'gas', 'renewable energy', 'utilities'],
-            'consumer': ['consumer', 'retail', 'consumer goods', 'consumer cyclical', 'consumer defensive'],
-            'industrial': ['industrial', 'manufacturing', 'aerospace', 'defense'],
-            'real estate': ['real estate', 'reit', 'real estate investment trust']
+            'finance': ['financial services', 'banks', 'insurance', 'capital markets', 'banking'],
+            'energy': ['oil & gas', 'renewable energy', 'utilities', 'energy', 'oil'],
+            'consumer': ['consumer goods', 'retail', 'consumer services', 'consumer'],
+            'industrial': ['industrial', 'manufacturing', 'machinery', 'industrials'],
+            'real estate': ['real estate', 'reit', 'real estate investment trust', 'reits']
         }
         
         industry_category = 'Other'
         if ticker.upper() in data_center_tickers:
             industry_category = 'data centers'
         else:
-            industry_lower = industry.lower()
+            industry_lower = industry.lower() if industry else ''
             for category, keywords in industry_category_map.items():
                 if any(keyword in industry_lower for keyword in keywords):
                     industry_category = category
                     break
         
-        # Get comprehensive financial statements
-        income_stmt_q = stock.quarterly_income_stmt
-        income_stmt_a = stock.income_stmt
-        cash_flow_q = stock.quarterly_cashflow
-        cash_flow_a = stock.cashflow
-        balance_sheet_q = stock.quarterly_balance_sheet
-        balance_sheet_a = stock.balance_sheet
+        # Get industry ranking
+        industry_ranking = get_industry_ranking(ticker, industry_category, sector, info.get('marketCap', 0))
         
-        # Process income statement (quarterly)
-        income_statement_quarterly = []
-        if income_stmt_q is not None and not income_stmt_q.empty:
-            quarters = income_stmt_q.columns.tolist()
-            for i, quarter_date in enumerate(quarters):
-                # Format quarter as YYYY-QN (e.g., 2024-Q1)
-                if hasattr(quarter_date, 'year') and hasattr(quarter_date, 'month'):
-                    quarter_num = (quarter_date.month - 1) // 3 + 1
-                    quarter_str = f"{quarter_date.year}-Q{quarter_num}"
-                elif hasattr(quarter_date, 'strftime'):
-                    quarter_str = quarter_date.strftime('%Y-Q%q') if '%q' in quarter_date.strftime('%Y-Q%q') else f"{quarter_date.year}-Q{(quarter_date.month-1)//3+1}"
-                else:
-                    quarter_str = str(quarter_date)
-                
-                # Extract key metrics
-                revenue = None
-                net_income = None
-                eps = None
-                
-                for idx in income_stmt_q.index:
-                    idx_str = str(idx).lower()
-                    if 'total revenue' in idx_str or 'revenue' in idx_str:
-                        val = income_stmt_q.loc[idx].iloc[i]
-                        if pd.notna(val):
-                            revenue = float(val)
-                    if 'net income' in idx_str:
-                        val = income_stmt_q.loc[idx].iloc[i]
-                        if pd.notna(val):
-                            net_income = float(val)
-                    if 'basic earnings per share' in idx_str or 'diluted earnings per share' in idx_str:
-                        val = income_stmt_q.loc[idx].iloc[i]
-                        if pd.notna(val):
-                            eps = float(val)
-                
-                income_statement_quarterly.append({
-                    'quarter': quarter_str,
-                    'date': quarter_date.strftime('%Y-%m-%d') if hasattr(quarter_date, 'strftime') else str(quarter_date),
-                    'revenue': revenue,
-                    'net_income': net_income,
-                    'eps': eps
-                })
+        # Start with Finviz estimates
+        forward_revenue_estimates = quarterly_estimates.get('revenue', {}).copy()
+        forward_eps_estimates = quarterly_estimates.get('eps', {}).copy()
         
-        # Process income statement (annual)
-        income_statement_annual = []
-        if income_stmt_a is not None and not income_stmt_a.empty:
-            years = income_stmt_a.columns.tolist()
-            for i, year_date in enumerate(years):
-                year_str = year_date.strftime('%Y') if hasattr(year_date, 'strftime') else str(year_date)
-                
-                revenue = None
-                net_income = None
-                eps = None
-                
-                for idx in income_stmt_a.index:
-                    idx_str = str(idx).lower()
-                    if 'total revenue' in idx_str or 'revenue' in idx_str:
-                        val = income_stmt_a.loc[idx].iloc[i]
-                        if pd.notna(val):
-                            revenue = float(val)
-                    if 'net income' in idx_str:
-                        val = income_stmt_a.loc[idx].iloc[i]
-                        if pd.notna(val):
-                            net_income = float(val)
-                    if 'basic earnings per share' in idx_str or 'diluted earnings per share' in idx_str:
-                        val = income_stmt_a.loc[idx].iloc[i]
-                        if pd.notna(val):
-                            eps = float(val)
-                
-                income_statement_annual.append({
-                    'year': year_str,
-                    'date': year_date.strftime('%Y-%m-%d') if hasattr(year_date, 'strftime') else str(year_date),
-                    'revenue': revenue,
-                    'net_income': net_income,
-                    'eps': eps
-                })
+        # Check if we need to supplement with yfinance calendar for future quarters
+        now = datetime.now()
+        current_year = now.year
+        current_month = now.month
+        current_quarter = (current_month - 1) // 3 + 1
         
-        # Process cash flow (quarterly)
-        cash_flow_quarterly = []
-        if cash_flow_q is not None and not cash_flow_q.empty:
-            quarters = cash_flow_q.columns.tolist()
-            for i, quarter_date in enumerate(quarters):
-                # Format quarter as YYYY-QN (e.g., 2024-Q1)
-                if hasattr(quarter_date, 'year') and hasattr(quarter_date, 'month'):
-                    quarter_num = (quarter_date.month - 1) // 3 + 1
-                    quarter_str = f"{quarter_date.year}-Q{quarter_num}"
-                elif hasattr(quarter_date, 'strftime'):
-                    quarter_str = quarter_date.strftime('%Y-Q%q') if '%q' in quarter_date.strftime('%Y-Q%q') else f"{quarter_date.year}-Q{(quarter_date.month-1)//3+1}"
-                else:
-                    quarter_str = str(quarter_date)
-                
-                operating_cf = None
-                capex = None
-                fcf = None
-                
-                for idx in cash_flow_q.index:
-                    idx_str = str(idx).lower()
-                    if 'operating cash flow' in idx_str or 'cash from operating activities' in idx_str:
-                        val = cash_flow_q.loc[idx].iloc[i]
-                        if pd.notna(val):
-                            operating_cf = float(val)
-                    if 'capital expenditure' in idx_str or 'capex' in idx_str:
-                        val = cash_flow_q.loc[idx].iloc[i]
-                        if pd.notna(val):
-                            capex = float(val)
-                
-                if operating_cf is not None and capex is not None:
-                    fcf = operating_cf - capex
-                elif operating_cf is not None:
-                    fcf = operating_cf
-                
-                cash_flow_quarterly.append({
-                    'quarter': quarter_str,
-                    'date': quarter_date.strftime('%Y-%m-%d') if hasattr(quarter_date, 'strftime') else str(quarter_date),
-                    'operating_cf': operating_cf,
-                    'capex': capex,
-                    'fcf': fcf
-                })
+        # Check if Finviz has future quarters (e.g., 2026)
+        finviz_has_future = False
+        for q in list(forward_revenue_estimates.keys()) + list(forward_eps_estimates.keys()):
+            if '2026' in q or '2027' in q:
+                finviz_has_future = True
+                break
         
-        # Process balance sheet
-        balance_sheet = {}
-        if balance_sheet_q is not None and not balance_sheet_q.empty:
-            latest_quarter = balance_sheet_q.columns[0] if len(balance_sheet_q.columns) > 0 else None
-            if latest_quarter is not None:
-                for idx in balance_sheet_q.index:
-                    idx_str = str(idx).lower()
-                    val = balance_sheet_q.loc[idx].iloc[0]
-                    if pd.notna(val):
-                        if 'cash' in idx_str and 'equivalents' in idx_str:
-                            balance_sheet['cash'] = float(val)
-                        if 'total debt' in idx_str:
-                            balance_sheet['total_debt'] = float(val)
-                        if 'total equity' in idx_str or 'stockholders equity' in idx_str:
-                            balance_sheet['equity'] = float(val)
-                
-                # Calculate net debt
-                if 'cash' in balance_sheet and 'total_debt' in balance_sheet:
-                    balance_sheet['net_debt'] = balance_sheet['total_debt'] - balance_sheet['cash']
+        # If Finviz doesn't have future quarters, try yfinance calendar as fallback
+        if not finviz_has_future:
+            try:
+                calendar = stock.calendar
+                if calendar is not None:
+                    # yfinance calendar can be either DataFrame or dict
+                    if isinstance(calendar, pd.DataFrame) and not calendar.empty:
+                        # Parse DataFrame format
+                        for idx, row in calendar.iterrows():
+                            if pd.isna(idx):
+                                continue
+                            
+                            # Get quarter info from the index (usually a date)
+                            if isinstance(idx, pd.Timestamp):
+                                cal_year = idx.year
+                                cal_month = idx.month
+                                cal_quarter = (cal_month - 1) // 3 + 1
+                                quarter_str = f"{cal_year}-Q{cal_quarter}"
+                                
+                                # Only add if it's a future quarter
+                                is_future = (cal_year > current_year) or (cal_year == current_year and cal_quarter > current_quarter)
+                                
+                                if is_future:
+                                    # Try to get revenue estimate
+                                    revenue_est = None
+                                    if 'Revenue Average' in row.index:
+                                        revenue_est = row['Revenue Average']
+                                    elif 'Revenue' in row.index:
+                                        revenue_est = row['Revenue']
+                                    
+                                    if revenue_est is not None and pd.notna(revenue_est):
+                                        try:
+                                            revenue_val = float(revenue_est)
+                                            if revenue_val > 0:
+                                                # yfinance returns revenue in actual dollars (not millions)
+                                                if quarter_str not in forward_revenue_estimates:
+                                                    forward_revenue_estimates[quarter_str] = revenue_val
+                                        except (ValueError, TypeError):
+                                            pass
+                                    
+                                    # Try to get EPS estimate
+                                    eps_est = None
+                                    if 'Earnings Average' in row.index:
+                                        eps_est = row['Earnings Average']
+                                    elif 'Earnings' in row.index:
+                                        eps_est = row['Earnings']
+                                    
+                                    if eps_est is not None and pd.notna(eps_est):
+                                        try:
+                                            eps_val = float(eps_est)
+                                            if quarter_str not in forward_eps_estimates:
+                                                forward_eps_estimates[quarter_str] = eps_val
+                                        except (ValueError, TypeError):
+                                            pass
+                    elif isinstance(calendar, dict):
+                        # Parse dict format (yfinance returns dict with keys like 'Revenue Average', 'Earnings Average', 'Earnings Date')
+                        # yfinance calendar typically contains only one quarter, but we'll generate Q2, Q3, Q4 based on Q1
+                        
+                        # Get earnings date to determine Q1
+                        earnings_date = None
+                        if 'Earnings Date' in calendar:
+                            earnings_date = calendar['Earnings Date']
+                            if isinstance(earnings_date, (list, tuple)) and len(earnings_date) > 0:
+                                earnings_date = earnings_date[0]
+                        
+                        # Determine Q1 from earnings date
+                        q1_quarter_str = None
+                        if earnings_date:
+                            if isinstance(earnings_date, pd.Timestamp):
+                                cal_year = earnings_date.year
+                                cal_month = earnings_date.month
+                                cal_quarter = (cal_month - 1) // 3 + 1
+                                q1_quarter_str = f"{cal_year}-Q{cal_quarter}"
+                            elif isinstance(earnings_date, str):
+                                # Try to parse date string
+                                try:
+                                    from dateutil import parser
+                                    parsed_date = parser.parse(earnings_date)
+                                    cal_year = parsed_date.year
+                                    cal_month = parsed_date.month
+                                    cal_quarter = (cal_month - 1) // 3 + 1
+                                    q1_quarter_str = f"{cal_year}-Q{cal_quarter}"
+                                except:
+                                    pass
+                        
+                        # If no date, use next quarter as Q1
+                        if not q1_quarter_str:
+                            if current_quarter < 4:
+                                q1_quarter_str = f"{current_year}-Q{current_quarter + 1}"
+                            else:
+                                q1_quarter_str = f"{current_year + 1}-Q1"
+                        
+                        # Get Q1 estimates
+                        q1_revenue = None
+                        q1_eps = None
+                        
+                        if 'Revenue Average' in calendar:
+                            revenue_est = calendar['Revenue Average']
+                            if revenue_est is not None:
+                                try:
+                                    q1_revenue = float(revenue_est)
+                                except (ValueError, TypeError):
+                                    pass
+                        
+                        if 'Earnings Average' in calendar:
+                            eps_est = calendar['Earnings Average']
+                            if eps_est is not None:
+                                try:
+                                    q1_eps = float(eps_est)
+                                except (ValueError, TypeError):
+                                    pass
+                        
+                        # Process Q1, Q2, Q3, Q4 (generate subsequent quarters)
+                        for i in range(4):  # Q1, Q2, Q3, Q4
+                            # Calculate quarter string
+                            q1_year = int(q1_quarter_str.split('-Q')[0])
+                            q1_num = int(q1_quarter_str.split('-Q')[1])
+                            
+                            target_q = q1_num + i
+                            target_year = q1_year
+                            while target_q > 4:
+                                target_q -= 4
+                                target_year += 1
+                            
+                            quarter_str = f"{target_year}-Q{target_q}"
+                            
+                            # Check if it's a future quarter
+                            q_year = int(quarter_str.split('-Q')[0])
+                            q_num = int(quarter_str.split('-Q')[1])
+                            is_future = (q_year > current_year) or (q_year == current_year and q_num > current_quarter)
+                            
+                            if is_future and quarter_str not in forward_revenue_estimates and quarter_str not in forward_eps_estimates:
+                                # For Q1, use actual estimates from yfinance
+                                # For Q2, use Q1 values as placeholder (yfinance calendar typically has only Q1)
+                                if i == 0:
+                                    # Q1: use actual estimates
+                                    if q1_revenue and q1_revenue > 0:
+                                        forward_revenue_estimates[quarter_str] = q1_revenue
+                                    if q1_eps is not None:
+                                        forward_eps_estimates[quarter_str] = q1_eps
+                                elif i == 1:
+                                    # Q2: use Q1 values as placeholder (since yfinance calendar usually has only Q1)
+                                    if q1_revenue and q1_revenue > 0:
+                                        forward_revenue_estimates[quarter_str] = q1_revenue
+                                    if q1_eps is not None:
+                                        forward_eps_estimates[quarter_str] = q1_eps
+            except Exception as e:
+                logger.exception(f"Error processing yfinance calendar for {ticker}")
         
-        # Calculate margins
-        margins_quarterly = []
-        if income_statement_quarterly:
-            for item in income_statement_quarterly:
-                margin_data = {}
-                if item.get('revenue') and item.get('revenue') > 0:
-                    # Gross margin (simplified - would need COGS)
-                    # Operating margin (simplified - would need operating income)
-                    if item.get('net_income'):
-                        margin_data['net_margin'] = (item['net_income'] / item['revenue']) * 100
-                if margin_data:
-                    margin_data['quarter'] = item['quarter']
-                    margins_quarterly.append(margin_data)
-        
-        # Create executive snapshot
-        executive_snapshot = {}
-        if income_statement_quarterly:
-            latest = income_statement_quarterly[0] if income_statement_quarterly else None
-            if latest:
-                # Calculate TTM (Trailing Twelve Months) - sum of last 4 quarters
-                ttm_revenue = sum([q.get('revenue', 0) or 0 for q in income_statement_quarterly[:4]])
-                ttm_net_income = sum([q.get('net_income', 0) or 0 for q in income_statement_quarterly[:4]])
-                executive_snapshot['revenue_ttm'] = ttm_revenue if ttm_revenue > 0 else None
-                executive_snapshot['net_income_ttm'] = ttm_net_income if ttm_net_income != 0 else None
-        
-        if cash_flow_quarterly:
-            ttm_fcf = sum([q.get('fcf', 0) or 0 for q in cash_flow_quarterly[:4]])
-            executive_snapshot['fcf_ttm'] = ttm_fcf if ttm_fcf != 0 else None
-        
-        # Calculate financials score (will be enhanced by calculate_financials_score)
-        from app.analysis.fundamental import calculate_financials_score
-        financials_score = calculate_financials_score({
-            'income_statement': {'quarterly': income_statement_quarterly},
-            'cash_flow': {'quarterly': cash_flow_quarterly},
-            'balance_sheet': balance_sheet,
-            'executive_snapshot': executive_snapshot
-        }, info, 'unknown')
-        
-        return {
-            'ticker': ticker.upper(),
-            'company_name': info.get('longName', ticker.upper()),
+        financials = {
+            'executive_snapshot': {},
+            'income_statement': {'quarterly': [], 'annual': []},
+            'margins': {'quarterly': [], 'annual': []},
+            'cash_flow': {'quarterly': [], 'annual': []},
+            'balance_sheet': {},
+            'segments': [],
+            'red_flags': [],
+            'fundamentals_verdict': 'neutral',
+            'main_verdict_sentence': '',
+            'company_stage': 'unknown',
             'sector': sector,
             'industry': industry,
             'industry_category': industry_category,
-            'income_statement': {
-                'quarterly': income_statement_quarterly,
-                'annual': income_statement_annual
-            },
-            'cash_flow': {
-                'quarterly': cash_flow_quarterly
-            },
-            'balance_sheet': balance_sheet,
-            'margins': {
-                'quarterly': margins_quarterly
-            },
-            'executive_snapshot': executive_snapshot,
-            'financials_score': financials_score,
-            'quarterly_estimates': quarterly_estimates,
-            'quarterly_actuals': quarterly_actuals,
-            'info': info
+            'industry_ranking': industry_ranking,
+            'forward_estimates': {
+                'revenue': forward_revenue_estimates,
+                'eps': forward_eps_estimates
+            }
         }
+        
+        # Get income statements
+        quarterly_income = stock.quarterly_income_stmt
+        annual_income = stock.financials
+        
+        # Get cash flow statements
+        quarterly_cf = stock.quarterly_cashflow
+        annual_cf = stock.cashflow
+        
+        # Get balance sheet
+        quarterly_bs = stock.quarterly_balance_sheet
+        annual_bs = stock.balance_sheet
+        
+        # Helper function to find row in statement
+        def find_row(df, search_terms):
+            if df is None or df.empty:
+                return None
+            for term in search_terms:
+                for idx in df.index:
+                    if term in str(idx).lower():
+                        return df.loc[idx]
+            return None
+        
+        # Get Revenue
+        revenue_row_q = find_row(quarterly_income, ['total revenue', 'revenue', 'net sales', 'sales'])
+        revenue_row_a = find_row(annual_income, ['total revenue', 'revenue', 'net sales', 'sales'])
+        
+        # Get Net Income
+        net_income_row_q = find_row(quarterly_income, ['net income', 'total net income', 'income from continuing operations'])
+        net_income_row_a = find_row(annual_income, ['net income', 'total net income', 'income from continuing operations'])
+        
+        # Get Operating Cash Flow
+        ocf_row_q = find_row(quarterly_cf, ['operating cash flow', 'total cash from operating activities', 'operating activities'])
+        ocf_row_a = find_row(annual_cf, ['operating cash flow', 'total cash from operating activities', 'operating activities'])
+        
+        # Get CapEx
+        capex_row_q = find_row(quarterly_cf, ['capital expenditures', 'capex', 'capital expenditure'])
+        capex_row_a = find_row(annual_cf, ['capital expenditures', 'capex', 'capital expenditure'])
+        
+        # Get Free Cash Flow (Operating CF - CapEx)
+        def calculate_fcf(ocf_row, capex_row):
+            if ocf_row is None or capex_row is None:
+                return None
+            try:
+                # Both are pandas Series with same index (quarterly dates)
+                fcf = ocf_row.copy()
+                for i in range(min(len(fcf), len(capex_row))):
+                    if pd.notna(fcf.iloc[i]) and pd.notna(capex_row.iloc[i]):
+                        fcf.iloc[i] = float(fcf.iloc[i]) - abs(float(capex_row.iloc[i]))
+                    else:
+                        fcf.iloc[i] = None
+                return fcf
+            except:
+                return None
+        
+        fcf_row_q = calculate_fcf(ocf_row_q, capex_row_q) if ocf_row_q is not None and capex_row_q is not None else None
+        fcf_row_a = calculate_fcf(ocf_row_a, capex_row_a) if ocf_row_a is not None and capex_row_a is not None else None
+        
+        # Calculate TTM values (sum of last 4 quarters)
+        revenue_ttm = None
+        net_income_ttm = None
+        fcf_ttm = None
+        
+        if revenue_row_q is not None and len(revenue_row_q) >= 4:
+            try:
+                revenue_ttm = float(revenue_row_q.iloc[:4].sum())
+            except:
+                try:
+                    revenue_ttm = sum([float(v) for v in list(revenue_row_q.values)[:4] if pd.notna(v)])
+                except:
+                    pass
+        
+        if net_income_row_q is not None and len(net_income_row_q) >= 4:
+            try:
+                net_income_ttm = float(net_income_row_q.iloc[:4].sum())
+            except:
+                try:
+                    net_income_ttm = sum([float(v) for v in list(net_income_row_q.values)[:4] if pd.notna(v)])
+                except:
+                    pass
+        
+        if fcf_row_q is not None and len(fcf_row_q) >= 4:
+            try:
+                fcf_ttm = float(fcf_row_q.iloc[:4].sum())
+            except:
+                try:
+                    fcf_ttm = sum([float(v) for v in list(fcf_row_q.values)[:4] if pd.notna(v)])
+                except:
+                    pass
+        
+        # Calculate YoY growth (compare current quarter to same quarter last year)
+        def calculate_yoy_growth(current_row, periods_ago=4):
+            if current_row is None or len(current_row) < periods_ago + 1:
+                return None
+            try:
+                # Get most recent (first) and 4 quarters ago
+                current = float(current_row.iloc[0])
+                previous = float(current_row.iloc[periods_ago])
+                if previous != 0 and not pd.isna(current) and not pd.isna(previous):
+                    return ((current - previous) / abs(previous)) * 100
+            except (IndexError, ValueError, TypeError):
+                pass
+            return None
+        
+        revenue_yoy = calculate_yoy_growth(revenue_row_q)
+        net_income_yoy = calculate_yoy_growth(net_income_row_q)
+        
+        # Get Gross Margin
+        gross_profit_row_q = find_row(quarterly_income, ['gross profit', 'total gross profit'])
+        gross_margin_q = None
+        if gross_profit_row_q is not None and revenue_row_q is not None:
+            try:
+                if len(gross_profit_row_q) > 0 and len(revenue_row_q) > 0:
+                    gross_profit = float(gross_profit_row_q.iloc[0] if hasattr(gross_profit_row_q, 'iloc') else list(gross_profit_row_q.values())[0])
+                    revenue = float(revenue_row_q.iloc[0] if hasattr(revenue_row_q, 'iloc') else list(revenue_row_q.values())[0])
+                    if revenue != 0:
+                        gross_margin_q = (gross_profit / revenue) * 100
+            except:
+                pass
+        
+        # Get Operating Margin
+        operating_income_row_q = find_row(quarterly_income, ['operating income', 'income from operations', 'operating profit'])
+        operating_margin_q = None
+        if operating_income_row_q is not None and revenue_row_q is not None:
+            try:
+                if len(operating_income_row_q) > 0 and len(revenue_row_q) > 0:
+                    op_income = float(operating_income_row_q.iloc[0] if hasattr(operating_income_row_q, 'iloc') else list(operating_income_row_q.values())[0])
+                    revenue = float(revenue_row_q.iloc[0] if hasattr(revenue_row_q, 'iloc') else list(revenue_row_q.values())[0])
+                    if revenue != 0:
+                        operating_margin_q = (op_income / revenue) * 100
+            except:
+                pass
+        
+        # Get Net Margin
+        net_margin_q = None
+        if net_income_row_q is not None and revenue_row_q is not None:
+            try:
+                if len(net_income_row_q) > 0 and len(revenue_row_q) > 0:
+                    net_income = float(net_income_row_q.iloc[0] if hasattr(net_income_row_q, 'iloc') else list(net_income_row_q.values())[0])
+                    revenue = float(revenue_row_q.iloc[0] if hasattr(revenue_row_q, 'iloc') else list(revenue_row_q.values())[0])
+                    if revenue != 0:
+                        net_margin_q = (net_income / revenue) * 100
+            except:
+                pass
+        
+        # Get Debt
+        total_debt_row = find_row(quarterly_bs, ['total debt', 'total liabilities', 'long term debt'])
+        total_debt = None
+        if total_debt_row is not None and len(total_debt_row) > 0:
+            try:
+                total_debt = float(total_debt_row.iloc[0] if hasattr(total_debt_row, 'iloc') else list(total_debt_row.values())[0])
+            except:
+                pass
+        
+        # Calculate Debt/FCF ratio
+        debt_fcf_ratio = None
+        if total_debt is not None and fcf_ttm is not None and fcf_ttm != 0:
+            debt_fcf_ratio = abs(total_debt / fcf_ttm)
+        
+        # FCF Margin
+        fcf_margin = None
+        if fcf_ttm is not None and revenue_ttm is not None and revenue_ttm != 0:
+            fcf_margin = (fcf_ttm / revenue_ttm) * 100
+        
+        # Build Executive Snapshot
+        financials['executive_snapshot'] = {
+            'revenue_ttm': revenue_ttm,
+            'revenue_yoy': revenue_yoy,
+            'net_income_ttm': net_income_ttm,
+            'net_income_yoy': net_income_yoy,
+            'fcf_ttm': fcf_ttm,
+            'fcf_margin': fcf_margin,
+            'gross_margin': gross_margin_q,
+            'debt_fcf_ratio': debt_fcf_ratio
+        }
+        
+        # Build Income Statement data for charts
+        if revenue_row_q is not None and quarterly_income is not None:
+            for i, col in enumerate(quarterly_income.columns[:8]):  # Last 8 quarters
+                try:
+                    quarter_date = pd.Timestamp(col)
+                    quarter_calc = (quarter_date.month - 1) // 3 + 1
+                    quarter_str = f"{quarter_date.year}-Q{quarter_calc}"
+                    
+                    # Prefer Finviz actuals over yfinance for revenue (same as EPS)
+                    revenue_val = None
+                    
+                    # Try Finviz actuals first - try exact match by quarter string first, then date matching
+                    if quarterly_actuals and 'revenue' in quarterly_actuals:
+                        best_match_rev = None
+                        best_match_q = None
+                        min_date_diff = float('inf')
+                        
+                        # FIRST: Try exact match by quarter string (e.g., "2024-Q3" == "2024-Q3")
+                        if quarter_str in quarterly_actuals['revenue']:
+                            best_match_rev = quarterly_actuals['revenue'][quarter_str]
+                            best_match_q = quarter_str
+                            min_date_diff = 0
+                        else:
+                            # SECOND: Find closest Finviz revenue by date (fallback for fiscal vs calendar quarter differences)
+                            for finviz_q, finviz_rev in quarterly_actuals['revenue'].items():
+                                try:
+                                    if '-Q' in finviz_q:
+                                        fv_year, fv_num = finviz_q.split('-Q')
+                                        fv_num = int(fv_num)
+                                        fv_year = int(fv_year)
+                                        fv_month = (fv_num - 1) * 3 + 1  # Q1=Jan, Q2=Apr, Q3=Jul, Q4=Oct
+                                        fv_date = pd.Timestamp(year=fv_year, month=fv_month, day=1)
+                                        date_diff = abs((quarter_date - fv_date).days)
+                                        
+                                        # Accept match within 120 days (allows for fiscal vs calendar quarter differences)
+                                        if date_diff < min_date_diff and date_diff <= 120:
+                                            min_date_diff = date_diff
+                                            best_match_rev = finviz_rev
+                                            best_match_q = finviz_q
+                                except Exception as e:
+                                    pass
+                        
+                        if best_match_rev is not None:
+                            revenue_val = best_match_rev
+                            logger.debug(f"Using Finviz revenue actual for {ticker} {quarter_str}: {revenue_val} (matched with {best_match_q}, date_diff={min_date_diff} days)")
+                    
+                    # Fallback to yfinance if Finviz not available
+                    if revenue_val is None:
+                        revenue_val = float(revenue_row_q.iloc[i]) if i < len(revenue_row_q) else None
+                        if revenue_val is not None and not pd.isna(revenue_val):
+                            logger.debug(f"Using yfinance revenue for {ticker} {quarter_str}: {revenue_val}")
+                    
+                    net_income_val = float(net_income_row_q.iloc[i]) if net_income_row_q is not None and i < len(net_income_row_q) else None
+                    
+                    if revenue_val is not None and not pd.isna(revenue_val):
+                        # Try to get EPS from income statement
+                        eps_val = None
+                        
+                        # Prefer Finviz actuals over yfinance for EPS if available
+                        if quarterly_actuals and isinstance(quarterly_actuals, dict):
+                            if 'eps' in quarterly_actuals:
+                                # Try exact match first
+                                if quarter_str in quarterly_actuals['eps']:
+                                    eps_val = quarterly_actuals['eps'][quarter_str]
+                                    logger.debug(f"Using Finviz EPS for {ticker} {quarter_str}: {eps_val}")
+                                else:
+                                    # Try to find matching quarter with different format
+                                    for finviz_q, finviz_eps in quarterly_actuals['eps'].items():
+                                        if finviz_q == quarter_str:
+                                            eps_val = finviz_eps
+                                            logger.debug(f"Matched Finviz EPS for {ticker} {quarter_str}: {eps_val}")
+                                            break
+                        
+                        # Fallback to yfinance if Finviz not available
+                        if eps_val is None:
+                            try:
+                                eps_row = find_row(quarterly_income, ['diluted eps', 'basic eps', 'earnings per share', 'eps'])
+                                if eps_row is not None and i < len(eps_row):
+                                    eps_val = float(eps_row.iloc[i]) if hasattr(eps_row, 'iloc') else float(list(eps_row.values())[i])
+                                    if pd.isna(eps_val):
+                                        eps_val = None
+                                    else:
+                                        logger.debug(f"Using yfinance EPS for {ticker} {quarter_str}: {eps_val}")
+                            except Exception:
+                                pass
+                        
+                        # Get estimates from Finviz
+                        revenue_estimate = None
+                        eps_estimate = None
+                        
+                        if quarterly_estimates and isinstance(quarterly_estimates, dict):
+                            # Revenue estimate - try exact match first, then try date-based matching
+                            if 'revenue' in quarterly_estimates:
+                                # Try exact match first
+                                if quarter_str in quarterly_estimates['revenue']:
+                                    revenue_estimate = quarterly_estimates['revenue'][quarter_str]
+                                    logger.debug(f"Using Finviz revenue estimate (exact match) for {ticker} {quarter_str}: {revenue_estimate}")
+                                else:
+                                    # Try to find closest match by date
+                                    best_match_est = None
+                                    best_match_q = None
+                                    min_date_diff = float('inf')
+                                    
+                                    for finviz_q, finviz_est in quarterly_estimates['revenue'].items():
+                                        try:
+                                            if '-Q' in finviz_q:
+                                                fv_year, fv_num = finviz_q.split('-Q')
+                                                fv_num = int(fv_num)
+                                                fv_year = int(fv_year)
+                                                fv_month = (fv_num - 1) * 3 + 1  # Q1=Jan, Q2=Apr, Q3=Jul, Q4=Oct
+                                                fv_date = pd.Timestamp(year=fv_year, month=fv_month, day=1)
+                                                date_diff = abs((quarter_date - fv_date).days)
+                                                
+                                                # Accept match within 120 days
+                                                if date_diff < min_date_diff and date_diff <= 120:
+                                                    min_date_diff = date_diff
+                                                    best_match_est = finviz_est
+                                                    best_match_q = finviz_q
+                                        except Exception as e:
+                                            pass
+                                    
+                                    if best_match_est is not None:
+                                        revenue_estimate = best_match_est
+                                        logger.debug(f"Using Finviz revenue estimate (date match) for {ticker} {quarter_str}: {revenue_estimate} (matched with {best_match_q}, date_diff={min_date_diff} days)")
+                            
+                            # EPS estimate - try exact match first, then try date-based matching
+                            if 'eps' in quarterly_estimates:
+                                # Try exact match first
+                                if quarter_str in quarterly_estimates['eps']:
+                                    eps_estimate = quarterly_estimates['eps'][quarter_str]
+                                else:
+                                    # Try to find closest match by date
+                                    best_match_eps_est = None
+                                    min_date_diff = float('inf')
+                                    
+                                    for finviz_q, finviz_eps_est in quarterly_estimates['eps'].items():
+                                        try:
+                                            if '-Q' in finviz_q:
+                                                fv_year, fv_num = finviz_q.split('-Q')
+                                                fv_num = int(fv_num)
+                                                fv_year = int(fv_year)
+                                                fv_month = (fv_num - 1) * 3 + 1
+                                                fv_date = pd.Timestamp(year=fv_year, month=fv_month, day=1)
+                                                date_diff = abs((quarter_date - fv_date).days)
+                                                
+                                                if date_diff < min_date_diff and date_diff <= 120:
+                                                    min_date_diff = date_diff
+                                                    best_match_eps_est = finviz_eps_est
+                                        except Exception as e:
+                                            pass
+                                    
+                                    if best_match_eps_est is not None:
+                                        eps_estimate = best_match_eps_est
+                        
+                        financials['income_statement']['quarterly'].append({
+                            'quarter': quarter_str,
+                            'date': quarter_date.strftime('%Y-%m-%d'),
+                            'revenue': revenue_val,
+                            'revenue_estimate': revenue_estimate,  # Analyst estimate or None
+                            'net_income': net_income_val if net_income_val is not None and not pd.isna(net_income_val) else None,
+                            'eps': eps_val,
+                            'eps_estimate': eps_estimate  # Analyst estimate or None
+                        })
+                except (IndexError, ValueError, TypeError):
+                    continue
+        
+        # Build Margins data
+        if gross_margin_q is not None or operating_margin_q is not None or net_margin_q is not None:
+            financials['margins']['quarterly'].append({
+                'gross_margin': gross_margin_q,
+                'operating_margin': operating_margin_q,
+                'net_margin': net_margin_q
+            })
+        
+        # Build Cash Flow data
+        if ocf_row_q is not None and quarterly_cf is not None:
+            for i, col in enumerate(quarterly_cf.columns[:8]):
+                try:
+                    quarter_date = pd.Timestamp(col)
+                    quarter_str = f"{quarter_date.year}-Q{(quarter_date.month - 1) // 3 + 1}"
+                    ocf_val = float(ocf_row_q.iloc[i]) if i < len(ocf_row_q) else None
+                    capex_val = float(capex_row_q.iloc[i]) if capex_row_q is not None and i < len(capex_row_q) else None
+                    fcf_val = float(fcf_row_q.iloc[i]) if fcf_row_q is not None and i < len(fcf_row_q) else None
+                    
+                    if ocf_val is not None and not pd.isna(ocf_val):
+                        financials['cash_flow']['quarterly'].append({
+                            'quarter': quarter_str,
+                            'date': quarter_date.strftime('%Y-%m-%d'),
+                            'operating_cf': ocf_val,
+                            'capex': abs(capex_val) if capex_val is not None and not pd.isna(capex_val) else None,
+                            'fcf': fcf_val if fcf_val is not None and not pd.isna(fcf_val) else None
+                        })
+                except (IndexError, ValueError, TypeError):
+                    continue
+        
+        # Build Balance Sheet (simplified)
+        cash_row = find_row(quarterly_bs, ['cash and cash equivalents', 'cash', 'cash and short term investments'])
+        equity_row = find_row(quarterly_bs, ['total stockholders equity', 'total equity', 'stockholders equity'])
+        current_assets_row = find_row(quarterly_bs, ['total current assets'])
+        current_liabilities_row = find_row(quarterly_bs, ['total current liabilities'])
+        
+        cash = None
+        equity = None
+        current_ratio = None
+        
+        if cash_row is not None and len(cash_row) > 0:
+            try:
+                cash = float(cash_row.iloc[0] if hasattr(cash_row, 'iloc') else list(cash_row.values())[0])
+            except:
+                pass
+        
+        if equity_row is not None and len(equity_row) > 0:
+            try:
+                equity = float(equity_row.iloc[0] if hasattr(equity_row, 'iloc') else list(equity_row.values())[0])
+            except:
+                pass
+        
+        if current_assets_row is not None and current_liabilities_row is not None:
+            try:
+                if len(current_assets_row) > 0 and len(current_liabilities_row) > 0:
+                    ca = float(current_assets_row.iloc[0] if hasattr(current_assets_row, 'iloc') else list(current_assets_row.values())[0])
+                    cl = float(current_liabilities_row.iloc[0] if hasattr(current_liabilities_row, 'iloc') else list(current_liabilities_row.values())[0])
+                    if cl != 0:
+                        current_ratio = ca / cl
+            except:
+                pass
+        
+        net_debt = None
+        if total_debt is not None and cash is not None:
+            net_debt = total_debt - cash
+        
+        financials['balance_sheet'] = {
+            'cash': cash,
+            'total_debt': total_debt,
+            'net_debt': net_debt,
+            'equity': equity,
+            'current_ratio': current_ratio
+        }
+        
+        # Generate Red Flags
+        red_flags = []
+        
+        # Check for declining revenue
+        if len(financials['income_statement']['quarterly']) >= 3:
+            revenues = [q['revenue'] for q in financials['income_statement']['quarterly'][:3] if q.get('revenue') is not None]
+            if len(revenues) >= 3:
+                # Check if revenue is declining: newest > previous > older
+                is_declining = all(revenues[i] > revenues[i+1] for i in range(len(revenues)-1))
+                if is_declining:
+                    red_flags.append({
+                        'type': 'revenue_decline',
+                        'severity': 'high',
+                        'message': 'Tržby klesají 3 kvartály po sobě'
+                    })
+        
+        # Check FCF < Net Income
+        if fcf_ttm is not None and net_income_ttm is not None and fcf_ttm < net_income_ttm:
+            red_flags.append({
+                'type': 'fcf_quality',
+                'severity': 'medium',
+                'message': 'FCF < Net Income (možné accounting issues)'
+            })
+        
+        # Check rising debt + falling margins
+        if debt_fcf_ratio is not None and debt_fcf_ratio > 3 and gross_margin_q is not None:
+            red_flags.append({
+                'type': 'debt_margin',
+                'severity': 'high',
+                'message': 'Rostoucí dluh + potenciálně klesající marže'
+            })
+        
+        financials['red_flags'] = red_flags
+        
+        # Detect Company Stage
+        company_stage = 'unknown'
+        
+        # Early-stage: Very low/no revenue, negative earnings, high burn rate
+        if revenue_ttm is not None and revenue_ttm < 100_000_000:  # Less than $100M
+            if net_income_ttm is not None and net_income_ttm < 0:
+                if fcf_ttm is not None and fcf_ttm < 0:
+                    company_stage = 'early_stage'
+        
+        # Growth: Growing revenue, may be unprofitable but improving
+        if revenue_yoy and revenue_yoy > 20:
+            if net_income_ttm is None or net_income_ttm < 0:
+                if net_income_yoy and net_income_yoy > 0:  # Improving losses
+                    company_stage = 'growth'
+        
+        # Mature: Stable revenue, positive earnings, positive FCF
+        if revenue_ttm and revenue_ttm > 1_000_000_000:  # Over $1B
+            if net_income_ttm and net_income_ttm > 0:
+                if fcf_ttm and fcf_ttm > 0:
+                    if revenue_yoy and -5 < revenue_yoy < 15:  # Moderate growth
+                        company_stage = 'mature'
+        
+        # Turnaround: Declining revenue, negative earnings, trying to recover
+        if revenue_yoy and revenue_yoy < -10:
+            if net_income_ttm and net_income_ttm < 0:
+                company_stage = 'turnaround'
+        
+        # Default to growth if revenue is growing
+        if company_stage == 'unknown' and revenue_yoy and revenue_yoy > 10:
+            company_stage = 'growth'
+        
+        financials['company_stage'] = company_stage
+        
+        # Generate Fundamentals Verdict
+        verdict_score = 0
+        if revenue_yoy and revenue_yoy > 0:
+            verdict_score += 1
+        if net_income_yoy and net_income_yoy > 0:
+            verdict_score += 1
+        if fcf_ttm and fcf_ttm > 0:
+            verdict_score += 1
+        if gross_margin_q and gross_margin_q > 30:
+            verdict_score += 1
+        if debt_fcf_ratio and debt_fcf_ratio < 2:
+            verdict_score += 1
+        
+        if verdict_score >= 4:
+            financials['fundamentals_verdict'] = 'strong'
+        elif verdict_score >= 2:
+            financials['fundamentals_verdict'] = 'neutral'
+        else:
+            financials['fundamentals_verdict'] = 'weak'
+        
+        # Generate Main Verdict Sentence
+        verdict_parts = []
+        
+        # Revenue assessment
+        if revenue_yoy:
+            if revenue_yoy > 15:
+                verdict_parts.append('Silné tržby')
+            elif revenue_yoy > 5:
+                verdict_parts.append('Rostoucí tržby')
+            elif revenue_yoy > 0:
+                verdict_parts.append('Mírně rostoucí tržby')
+            else:
+                verdict_parts.append('Klesající tržby')
+        
+        # Earnings assessment
+        if net_income_ttm:
+            if net_income_ttm > 0:
+                if net_income_yoy and net_income_yoy > 10:
+                    verdict_parts.append('zisk roste rychle')
+                elif net_income_yoy and net_income_yoy > 0:
+                    verdict_parts.append('zisk roste')
+                else:
+                    verdict_parts.append('zisk je stabilní')
+            else:
+                if company_stage == 'early_stage':
+                    verdict_parts.append('ztráty jsou očekávané (early-stage)')
+                elif net_income_yoy and net_income_yoy > 0:
+                    verdict_parts.append('ztráty se zmenšují')
+                else:
+                    verdict_parts.append('ztráty pokračují')
+        
+        # Cash flow assessment
+        if fcf_ttm:
+            if fcf_ttm > 0:
+                if fcf_ttm >= net_income_ttm if net_income_ttm else False:
+                    verdict_parts.append('výborný cash flow')
+                else:
+                    verdict_parts.append('pozitivní cash flow')
+            else:
+                if company_stage == 'early_stage':
+                    verdict_parts.append('burn rate je očekávaný')
+                else:
+                    verdict_parts.append('negativní cash flow')
+        
+        # Combine into sentence
+        if len(verdict_parts) >= 2:
+            main_sentence = f"{verdict_parts[0]}, {verdict_parts[1]}"
+            if len(verdict_parts) >= 3:
+                main_sentence += f" → {verdict_parts[2]}"
+        elif len(verdict_parts) == 1:
+            main_sentence = verdict_parts[0]
+        else:
+            main_sentence = "Finanční data vyžadují další analýzu."
+        
+        # Add context based on stage
+        if company_stage == 'early_stage':
+            main_sentence += " (Pre-revenue / early-stage company - ztráty jsou očekávané)"
+        elif company_stage == 'growth':
+            if net_income_ttm and net_income_ttm < 0:
+                main_sentence += " (Growth phase - investice do růstu)"
+        elif company_stage == 'turnaround':
+            main_sentence += " (Turnaround - firma se snaží zotavit)"
+        
+        financials['main_verdict_sentence'] = main_sentence
+        
+        # Add trend indicators to executive snapshot
+        financials['executive_snapshot']['revenue_trend'] = 'improving' if revenue_yoy and revenue_yoy > 0 else 'deteriorating' if revenue_yoy and revenue_yoy < 0 else 'stable'
+        financials['executive_snapshot']['earnings_trend'] = 'improving' if net_income_yoy and net_income_yoy > 0 else 'deteriorating' if net_income_yoy and net_income_yoy < 0 else 'stable'
+        financials['executive_snapshot']['fcf_trend'] = 'improving' if fcf_ttm and fcf_ttm > 0 else 'deteriorating' if fcf_ttm and fcf_ttm < 0 else 'stable'
+        
+        # Calculate overall financials score (pass company_stage for growth adjustments)
+        financials_score = calculate_financials_score(financials, info, company_stage)
+        financials['financials_score'] = financials_score
+        
+        # Add advanced analyses
+        # 1. Cash Flow Statement Analysis
+        try:
+            cash_flow_analysis = get_cash_flow_analysis(ticker)
+            if cash_flow_analysis:
+                financials['cash_flow_analysis'] = cash_flow_analysis
+        except Exception as e:
+            logger.warning(f"Failed to get cash flow analysis for {ticker}: {str(e)}")
+        
+        # 2. Profitability Deep Dive
+        try:
+            profitability_analysis = get_profitability_analysis(ticker, financials)
+            if profitability_analysis:
+                financials['profitability_analysis'] = profitability_analysis
+        except Exception as e:
+            logger.warning(f"Failed to get profitability analysis for {ticker}: {str(e)}")
+        
+        # 3. Balance Sheet Health Score
+        try:
+            balance_sheet_health = get_balance_sheet_health(ticker)
+            if balance_sheet_health:
+                financials['balance_sheet_health'] = balance_sheet_health
+        except Exception as e:
+            logger.warning(f"Failed to get balance sheet health for {ticker}: {str(e)}")
+        
+        # 4. Management Guidance Tracking
+        try:
+            guidance_tracking = get_management_guidance_tracking(ticker)
+            if guidance_tracking:
+                financials['management_guidance'] = guidance_tracking
+        except Exception as e:
+            logger.warning(f"Failed to get management guidance for {ticker}: {str(e)}")
+        
+        # 5. Segment/Geography Breakdown
+        try:
+            segment_breakdown = get_segment_breakdown(ticker)
+            if segment_breakdown:
+                financials['segment_breakdown'] = segment_breakdown
+        except Exception as e:
+            logger.warning(f"Failed to get segment breakdown for {ticker}: {str(e)}")
+        
+        # Clean financials data to ensure all Timestamps are converted before return
+        return clean_for_json(financials)
     
     except Exception as e:
-        logger.exception(f"Error fetching financials data for {ticker}")
+        logger.exception(f"Error fetching financials for {ticker}")
         return None
 
 
