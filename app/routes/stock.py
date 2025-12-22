@@ -16,7 +16,22 @@ bp = Blueprint('stock', __name__)
 @bp.route('/')
 def index():
     """Main page - render index.html"""
-    return render_template('index.html')
+    try:
+        return render_template('index.html')
+    except Exception as e:
+        logger.exception(f"Error rendering index.html: {e}")
+        # Fallback: return simple HTML if template not found
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head><title>Stock Analysis Platform</title></head>
+        <body>
+            <h1>Stock Analysis Platform</h1>
+            <p>Application is running. Please check the logs for template issues.</p>
+            <p>Error: {}</p>
+        </body>
+        </html>
+        """.format(str(e)), 200
 
 
 @bp.route('/api/stock/<ticker>')

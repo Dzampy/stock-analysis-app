@@ -1,5 +1,6 @@
 from flask import Flask
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from app.utils.logger import logger
 from app.utils.error_handler import register_error_handlers
@@ -7,7 +8,16 @@ from app.utils.error_handler import register_error_handlers
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__, template_folder='templates', static_folder='static')
+# Get absolute path to templates folder (relative to app.py location)
+base_dir = Path(__file__).parent.absolute()
+template_dir = base_dir / 'templates'
+static_dir = base_dir / 'static'
+
+# Ensure directories exist
+template_dir.mkdir(exist_ok=True)
+static_dir.mkdir(exist_ok=True)
+
+app = Flask(__name__, template_folder=str(template_dir), static_folder=str(static_dir))
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
