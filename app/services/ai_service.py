@@ -5,6 +5,7 @@ import os
 import requests
 from typing import Dict, Optional, List
 from app.config import GEMINI_API_KEY, GEMINI_AVAILABLE
+from app.utils.logger import logger
 
 
 def generate_news_summary(news_list: List[Dict], ticker: str) -> Dict:
@@ -109,7 +110,7 @@ def extract_text_from_pdf(pdf_file):
                         'text': text.strip()
                     })
             except Exception as e:
-                print(f"Error extracting text from page {page_num + 1}: {str(e)}")
+                logger.warning(f"Error extracting text from page {page_num + 1}: {str(e)}")
                 continue
         
         full_text = '\n\n'.join([page['text'] for page in text_content])
@@ -120,7 +121,7 @@ def extract_text_from_pdf(pdf_file):
             'page_breakdown': text_content
         }
     except Exception as e:
-        print(f"Error extracting text from PDF: {str(e)}")
+        logger.exception(f"Error extracting text from PDF")
         return {
             'success': False,
             'error': str(e)
@@ -285,7 +286,7 @@ def analyze_earnings_call_with_ai(text_content, ticker=None):
                     elif available_model is None:
                         available_model = m.name
         except Exception as e:
-            print(f"Error listing models: {str(e)}")
+            logger.warning(f"Error listing models: {str(e)}")
         
         # If no model found via list, try common model names
         if available_model is None:
@@ -423,7 +424,7 @@ Text earnings call prezentace:
         }
         
     except Exception as e:
-        print(f"Error in AI analysis: {str(e)}")
+        logger.exception(f"Error in AI analysis")
         import traceback
         traceback.print_exc()
         return {
@@ -618,7 +619,7 @@ News text:
         }
         
     except Exception as e:
-        print(f"Error in AI news impact analysis: {str(e)}")
+        logger.exception(f"Error in AI news impact analysis")
         import traceback
         traceback.print_exc()
         return {
@@ -701,7 +702,7 @@ Buď velmi konkrétní a poskytni praktické příklady."""
             'full_explanation': response.text
         }
     except Exception as e:
-        print(f"Error explaining economic event: {str(e)}")
+        logger.exception(f"Error explaining economic event")
         import traceback
         traceback.print_exc()
         return {
@@ -863,7 +864,7 @@ Formátuj v češtině, buď velmi konkrétní a použij výše uvedená finanč
             }
         }
     except Exception as e:
-        print(f"Error generating investment thesis: {str(e)}")
+        logger.exception(f"Error generating investment thesis")
         import traceback
         traceback.print_exc()
         return {

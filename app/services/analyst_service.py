@@ -5,6 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import re
+from app.utils.logger import logger
 
 # Get SEC API key from environment
 SEC_API_KEY = os.getenv('SEC_API_KEY')
@@ -129,19 +130,19 @@ def get_marketbeat_insider_trading(ticker):
                                         'text': transaction_type
                                     })
                             except Exception as e:
-                                print(f"Error parsing MarketBeat row: {str(e)}")
+                                logger.warning(f"Error parsing MarketBeat row: {str(e)}")
                                 continue
                         
                         if transactions:
                             break  # Found data, no need to try other URLs
             except Exception as e:
-                print(f"Error accessing {url}: {str(e)}")
+                logger.warning(f"Error accessing {url}: {str(e)}")
                 continue
         
         return transactions if transactions else None
         
     except Exception as e:
-        print(f"Error scraping MarketBeat for {ticker}: {str(e)}")
+        logger.exception(f"Error scraping MarketBeat for {ticker}")
         import traceback
         traceback.print_exc()
         return None
@@ -161,7 +162,7 @@ def get_tipranks_insider_trading(ticker):
         
         response = requests.get(url, headers=headers, timeout=15)
         if response.status_code != 200:
-            print(f"TipRanks returned status {response.status_code} for {ticker}")
+            logger.warning(f"TipRanks returned status {response.status_code} for {ticker}")
             return None
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -252,13 +253,13 @@ def get_tipranks_insider_trading(ticker):
                         'position': position
                     })
             except Exception as e:
-                print(f"Error parsing TipRanks row: {str(e)}")
+                logger.warning(f"Error parsing TipRanks row: {str(e)}")
                 continue
         
         return transactions if transactions else None
         
     except Exception as e:
-        print(f"Error scraping TipRanks for {ticker}: {str(e)}")
+        logger.exception(f"Error scraping TipRanks for {ticker}")
         import traceback
         traceback.print_exc()
         return None
@@ -267,7 +268,7 @@ def get_tipranks_insider_trading(ticker):
 def get_sec_api_insider_trading(ticker):
     """Get insider trading data from SEC API (sec-api.io) - official SEC Form 3, 4, 5 filings"""
     if not SEC_API_KEY:
-        print("SEC_API_KEY not configured, skipping SEC API")
+        logger.debug("SEC_API_KEY not configured, skipping SEC API")
         return None
     
     try:
@@ -300,7 +301,7 @@ def get_sec_api_insider_trading(ticker):
             
             filings = data.get('filings', [])
             if not filings:
-                print(f"SEC API returned no filings for {ticker}")
+                logger.info(f"SEC API returned no filings for {ticker}")
                 return None
             
             for filing in filings:
@@ -352,7 +353,7 @@ def get_sec_api_insider_trading(ticker):
                                 transaction_type = 'sell'
                             
                             if transaction_type and value > 0:
-                                print(f"DEBUG SEC API: Adding {transaction_type} transaction: {insider_name}, value={value}, shares={shares}, code={transaction_code}")
+                                logger.debug(f"SEC API: Adding {transaction_type} transaction: {insider_name}, value={value}, shares={shares}, code={transaction_code}")
                                 transactions.append({
                                     'date': date_str,
                                     'transaction_type': transaction_type,
@@ -363,7 +364,7 @@ def get_sec_api_insider_trading(ticker):
                                     'transaction_code': transaction_code
                                 })
                             elif transaction_type:
-                                print(f"DEBUG SEC API: Skipping {transaction_type} transaction (value={value}, shares={shares}, code={transaction_code})")
+                                logger.debug(f"SEC API: Skipping {transaction_type} transaction (value={value}, shares={shares}, code={transaction_code})")
                     
                     # Process derivative transactions (options, warrants, etc.)
                     derivative = filing.get('derivativeTable', {}).get('holdings', [])
@@ -399,23 +400,23 @@ def get_sec_api_insider_trading(ticker):
                                 })
                 
                 except Exception as filing_error:
-                    print(f"Error processing SEC filing: {str(filing_error)}")
+                    logger.warning(f"Error processing SEC filing: {str(filing_error)}")
                     continue
             
             return transactions if transactions else None
             
         elif response.status_code == 401:
-            print(f"SEC API authentication failed - check API key")
+            logger.warning(f"SEC API authentication failed - check API key")
             return None
         elif response.status_code == 429:
-            print(f"SEC API rate limit exceeded")
+            logger.warning(f"SEC API rate limit exceeded")
             return None
         else:
-            print(f"SEC API returned status {response.status_code}: {response.text[:200]}")
+            logger.warning(f"SEC API returned status {response.status_code}: {response.text[:200]}")
             return None
             
     except Exception as e:
-        print(f"Error fetching SEC API insider trading for {ticker}: {str(e)}")
+        logger.exception(f"Error fetching SEC API insider trading for {ticker}")
         import traceback
         traceback.print_exc()
         return None

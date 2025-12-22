@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import time
 from app.utils.constants import RATE_LIMIT_DELAY
 from app.services.sentiment_service import analyze_sentiment
+from app.utils.logger import logger
 
 
 def normalize_date(date_str: str) -> Optional[str]:
@@ -54,7 +55,7 @@ def normalize_date(date_str: str) -> Optional[str]:
         
         return None
     except Exception as e:
-        print(f"Error normalizing date '{date_str}': {str(e)}")
+        logger.warning(f"Error normalizing date '{date_str}': {str(e)}")
         return None
 
 
@@ -182,9 +183,9 @@ def calculate_news_price_impact(ticker: str, news_date_str: str, news_title: str
                                 if price_at_news > 0:
                                     price_1h = ((price_1h_after / price_at_news) - 1) * 100
                 except Exception as e:
-                    print(f"[NEWS IMPACT] Error getting 1h intraday data for {ticker}: {str(e)}")
+                    logger.warning(f"Error getting 1h intraday data for {ticker}: {str(e)}")
         except Exception as e:
-            print(f"[NEWS IMPACT] Error in 1h impact calculation for {ticker}: {str(e)}")
+            logger.warning(f"Error in 1h impact calculation for {ticker}: {str(e)}")
         
         # Get daily data for 1d and 1w impact
         hist_daily = stock.history(period='1mo', interval='1d', auto_adjust=True)
@@ -246,7 +247,7 @@ def calculate_news_price_impact(ticker: str, news_date_str: str, news_title: str
         }
         
     except Exception as e:
-        print(f"Error calculating price impact for {ticker}: {str(e)}")
+        logger.exception(f"Error calculating price impact for {ticker}")
         import traceback
         traceback.print_exc()
         return None
@@ -322,7 +323,7 @@ def get_stock_news(ticker: str, max_news: int = 10) -> List[Dict]:
             news = stock.get_news(tab='press releases')
             
             if not news:
-                print(f"No Press Releases found for {ticker}")
+                logger.info(f"No Press Releases found for {ticker}")
                 return []
             
             # Process Press Releases
@@ -424,20 +425,20 @@ def get_stock_news(ticker: str, max_news: int = 10) -> List[Dict]:
                         break
                         
                 except Exception as e:
-                    print(f"Error processing news item for {ticker}: {str(e)}")
+                    logger.warning(f"Error processing news item for {ticker}: {str(e)}")
                     continue
             
-            print(f"Found {len(analyzed_news)} Press Releases for {ticker}")
+            logger.info(f"Found {len(analyzed_news)} Press Releases for {ticker}")
             return analyzed_news
             
         except Exception as e:
-            print(f"Error fetching news from yfinance for {ticker}: {str(e)}")
+            logger.exception(f"Error fetching news from yfinance for {ticker}")
             import traceback
             traceback.print_exc()
             return []
         
     except Exception as e:
-        print(f"Error fetching news for {ticker}: {str(e)}")
+        logger.exception(f"Error fetching news for {ticker}")
         import traceback
         traceback.print_exc()
         return []
@@ -498,7 +499,7 @@ def calculate_historical_news_impact_patterns(ticker: str, news_list: List[Dict]
         }
         
     except Exception as e:
-        print(f"Error calculating historical patterns for {ticker}: {str(e)}")
+        logger.exception(f"Error calculating historical patterns for {ticker}")
         return None
 # - get_marketbeat_insider_trading()
 # - get_tipranks_insider_trading()

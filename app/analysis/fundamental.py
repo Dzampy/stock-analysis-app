@@ -7,6 +7,7 @@ import yfinance as yf
 import time
 from typing import Dict, Optional, List
 from app.utils.constants import RATE_LIMIT_DELAY
+from app.utils.logger import logger
 
 
 def calculate_metrics(df: pd.DataFrame, info: Dict) -> Dict:
@@ -221,7 +222,7 @@ def calculate_financials_score(financials: Dict, info: Dict, company_stage: str 
         }
     
     except Exception as e:
-        print(f"Error calculating financials score: {str(e)}")
+        logger.exception(f"Error calculating financials score")
         import traceback
         traceback.print_exc()
         return {
@@ -393,7 +394,7 @@ def get_balance_sheet_health(ticker):
             'trends': trends
         }
     except Exception as e:
-        print(f"Error in balance sheet health analysis for {ticker}: {str(e)}")
+        logger.exception(f"Error in balance sheet health analysis for {ticker}")
         import traceback
         traceback.print_exc()
         return None
@@ -458,7 +459,7 @@ def get_management_guidance_tracking(ticker):
                         except:
                             continue
             except Exception as e:
-                print(f"Error parsing calendar for {ticker}: {e}")
+                logger.warning(f"Error parsing calendar for {ticker}: {e}")
         
         # Calculate accuracy score if we have guidance vs actuals
         if guidance_tracking:
@@ -506,7 +507,7 @@ def get_management_guidance_tracking(ticker):
             'revisions_count': 0  # Would need to track revisions over time
         }
     except Exception as e:
-        print(f"Error in management guidance tracking for {ticker}: {str(e)}")
+        logger.exception(f"Error in management guidance tracking for {ticker}")
         import traceback
         traceback.print_exc()
         return None
@@ -541,7 +542,7 @@ def get_segment_breakdown(ticker):
             'available': len(segment_data) > 0 or len(geography_data) > 0
         }
     except Exception as e:
-        print(f"Error in segment breakdown for {ticker}: {str(e)}")
+        logger.exception(f"Error in segment breakdown for {ticker}")
         return None
 
 
@@ -569,14 +570,14 @@ def get_peer_comparison_data(ticker: str, industry_category: str, sector: str, l
         target_info = target_stock.info
         
         if not target_info or 'symbol' not in target_info:
-            print(f"[PEER COMPARISON] Could not get info for target ticker {ticker}")
+            logger.warning(f"Could not get info for target ticker {ticker}")
             return []
         
         target_sector = target_info.get('sector', sector) or sector
         target_industry = target_info.get('industry', industry_category) or industry_category
         target_market_cap = target_info.get('marketCap')
         
-        print(f"[PEER COMPARISON] Looking for peers for {ticker} in sector '{target_sector}', industry '{target_industry}'")
+        logger.debug(f"Looking for peers for {ticker} in sector '{target_sector}', industry '{target_industry}'")
         
         # Known peer lists for common sectors/industries
         # This is a simplified approach - in production, would use a stock screener API
@@ -610,7 +611,7 @@ def get_peer_comparison_data(ticker: str, industry_category: str, sector: str, l
         
         # If no specific peers found, try to use screener to find similar companies
         if not peer_candidates:
-            print(f"[PEER COMPARISON] No predefined peers found, trying to find similar companies by market cap and sector")
+            logger.debug(f"No predefined peers found, trying to find similar companies by market cap and sector")
             # For now, return empty - would need screener integration
             return []
         
@@ -696,7 +697,7 @@ def get_peer_comparison_data(ticker: str, industry_category: str, sector: str, l
                     break
                     
             except Exception as e:
-                print(f"[PEER COMPARISON] Error fetching data for {peer_ticker}: {str(e)}")
+                logger.warning(f"Error fetching data for {peer_ticker}: {str(e)}")
                 continue
         
         # Sort by similarity score (market cap proximity)
@@ -705,11 +706,11 @@ def get_peer_comparison_data(ticker: str, industry_category: str, sector: str, l
         # Limit results
         peers_data = peers_data[:limit]
         
-        print(f"[PEER COMPARISON] Found {len(peers_data)} peers for {ticker}")
+        logger.info(f"Found {len(peers_data)} peers for {ticker}")
         return peers_data
         
     except Exception as e:
-        print(f"[PEER COMPARISON] Error getting peer comparison data for {ticker}: {str(e)}")
+        logger.exception(f"Error getting peer comparison data for {ticker}")
         import traceback
         traceback.print_exc()
         return []

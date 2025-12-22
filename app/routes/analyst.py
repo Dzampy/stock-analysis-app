@@ -3,6 +3,8 @@ from flask import Blueprint, jsonify
 from app.services.finviz_service import get_finviz_analyst_ratings, get_finviz_insider_trading
 from app.services.analyst_service import get_marketbeat_insider_trading, get_tipranks_insider_trading, get_sec_api_insider_trading
 from app.utils.json_utils import clean_for_json
+from app.utils.logger import logger
+from app.utils.error_handler import NotFoundError, ExternalAPIError
 import yfinance as yf
 import pandas as pd
 import time
@@ -31,21 +33,21 @@ def get_analyst_data(ticker):
             finviz_recs = get_finviz_analyst_ratings(ticker_upper)
             if finviz_recs and len(finviz_recs) > 0:
                 recommendations = finviz_recs
-                print(f"[ANALYST] Found {len(recommendations)} recommendations from Finviz for {ticker}")
+                logger.info(f"Found {len(recommendations)} recommendations from Finviz for {ticker}")
             else:
                 # Try MarketBeat
                 mb_recs = get_marketbeat_analyst_ratings(ticker_upper)
                 if mb_recs and len(mb_recs) > 0:
                     recommendations = mb_recs
-                    print(f"[ANALYST] Found {len(recommendations)} recommendations from MarketBeat for {ticker}")
+                    logger.info(f"Found {len(recommendations)} recommendations from MarketBeat for {ticker}")
                 else:
                     # Try Benzinga
                     bz_recs = get_benzinga_analyst_ratings(ticker_upper)
                     if bz_recs and len(bz_recs) > 0:
                         recommendations = bz_recs
-                        print(f"[ANALYST] Found {len(recommendations)} recommendations from Benzinga for {ticker}")
+                        logger.info(f"Found {len(recommendations)} recommendations from Benzinga for {ticker}")
         except Exception as e:
-            print(f"[ANALYST] Error getting recommendations: {str(e)}")
+            logger.warning(f"Error getting recommendations: {str(e)}")
             recommendations = []
         
         # Get recommendation summary
@@ -102,11 +104,11 @@ def get_analyst_data(ticker):
         
         return jsonify(clean_for_json(analyst_data))
         
+    except NotFoundError:
+        raise
     except Exception as e:
-        print(f"Error fetching analyst data for {ticker}: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Failed to fetch analyst data: {str(e)}'}), 500
+        logger.exception(f"Error fetching analyst data for {ticker}")
+        raise ExternalAPIError('Failed to fetch analyst data', service='analyst')
 
 
 @bp.route('/api/insider-trading/<ticker>')
@@ -121,25 +123,25 @@ def get_insider_trading(ticker):
         # Try SEC API first (most reliable and official source)
         sec_data = get_sec_api_insider_trading(ticker_upper)
         if sec_data and len(sec_data) > 0:
-            print(f"SEC API returned {len(sec_data)} transactions for {ticker_upper}")
+            logger.info(f"SEC API returned {len(sec_data)} transactions for {ticker_upper}")
             insider_transactions = sec_data
         else:
             # Fallback to Finviz
-            print(f"SEC API returned no data for {ticker_upper}, trying Finviz")
+            logger.debug(f"SEC API returned no data for {ticker_upper}, trying Finviz")
             finviz_data = get_finviz_insider_trading(ticker_upper)
             if finviz_data and len(finviz_data) > 0:
-                print(f"Finviz returned {len(finviz_data)} transactions for {ticker_upper}")
+                logger.info(f"Finviz returned {len(finviz_data)} transactions for {ticker_upper}")
                 insider_transactions = finviz_data
             else:
                 # Fallback to MarketBeat
-                print(f"Finviz returned no data for {ticker_upper}, trying MarketBeat")
+                logger.debug(f"Finviz returned no data for {ticker_upper}, trying MarketBeat")
                 marketbeat_data = get_marketbeat_insider_trading(ticker_upper)
                 if marketbeat_data and len(marketbeat_data) > 0:
-                    print(f"MarketBeat returned {len(marketbeat_data)} transactions for {ticker_upper}")
+                    logger.info(f"MarketBeat returned {len(marketbeat_data)} transactions for {ticker_upper}")
                     insider_transactions = marketbeat_data
                 else:
                     # Last resort: yfinance
-                    print(f"MarketBeat returned no data for {ticker_upper}, trying yfinance fallback")
+                    logger.debug(f"MarketBeat returned no data for {ticker_upper}, trying yfinance fallback")
                     try:
                         stock = yf.Ticker(ticker_upper)
                         insider_df = stock.insider_transactions
@@ -199,10 +201,10 @@ def get_insider_trading(ticker):
                                             'text': str(row_dict.get('Text', ''))
                                         })
                                 except Exception as row_error:
-                                    print(f"Error parsing yfinance row: {str(row_error)}")
+                                    logger.warning(f"Error parsing yfinance row: {str(row_error)}")
                                     continue
                     except Exception as yf_error:
-                        print(f"Error getting yfinance insider data: {str(yf_error)}")
+                        logger.warning(f"Error getting yfinance insider data: {str(yf_error)}")
         
         return jsonify(clean_for_json({
             'ticker': ticker_upper,
@@ -211,7 +213,7 @@ def get_insider_trading(ticker):
         }))
         
     except Exception as e:
-        print(f"Error in insider trading endpoint for {ticker}: {str(e)}")
+        logger.exception(f"Error in insider trading endpoint for {ticker}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Failed to fetch insider trading: {str(e)}'}), 500
@@ -239,7 +241,7 @@ def get_institutional_analysis(ticker):
         }))
     
     except Exception as e:
-        print(f"Error in institutional analysis endpoint: {str(e)}")
+        logger.exception(f"Error in institutional analysis endpoint for {ticker}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Failed to get institutional analysis: {str(e)}'}), 500
@@ -317,10 +319,10 @@ def get_earnings_calendar():
                                         'is_past': earnings_date < today
                                     })
                             except Exception as e:
-                                print(f"Error processing earnings date for {ticker}: {str(e)}")
+                                logger.warning(f"Error processing earnings date for {ticker}: {str(e)}")
                                 continue
                 except Exception as e:
-                    print(f"Error fetching earnings_dates for {ticker}: {str(e)}")
+                    logger.warning(f"Error fetching earnings_dates for {ticker}: {str(e)}")
                     continue
                 
                 # Small delay only every 5 stocks to avoid rate limiting
@@ -328,7 +330,7 @@ def get_earnings_calendar():
                     time.sleep(0.2)
                 
             except Exception as e:
-                print(f"Error fetching earnings for {ticker}: {str(e)}")
+                logger.warning(f"Error fetching earnings for {ticker}: {str(e)}")
                 continue
         
         # Sort by earnings date
@@ -340,7 +342,7 @@ def get_earnings_calendar():
         })
         
     except Exception as e:
-        print(f"Error in earnings calendar: {str(e)}")
+        logger.exception(f"Error in earnings calendar")
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Failed to fetch earnings calendar: {str(e)}', 'earnings': [], 'total': 0}), 500

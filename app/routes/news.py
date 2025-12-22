@@ -3,6 +3,8 @@ from flask import Blueprint, jsonify, request
 from app.services.news_service import get_stock_news
 from app.services.ai_service import analyze_news_impact_with_ai
 from app.utils.json_utils import clean_for_json
+from app.utils.logger import logger
+from app.utils.error_handler import ValidationError, ExternalAPIError
 
 bp = Blueprint('news', __name__)
 
@@ -28,10 +30,8 @@ def get_news_for_ticker(ticker):
         }))
         
     except Exception as e:
-        print(f"Error in news endpoint for {ticker}: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Failed to fetch news: {str(e)}'}), 500
+        logger.exception(f"Error in news endpoint for {ticker}")
+        raise ExternalAPIError('Failed to fetch news', service='news_service')
 
 
 @bp.route('/api/analyze-news-impact', methods=['POST'])
@@ -50,7 +50,7 @@ def analyze_news_impact():
         ticker = data.get('ticker', '')
         
         if not news_title and not news_summary:
-            return jsonify({'error': 'News title or summary required'}), 400
+            raise ValidationError('News title or summary required', {'provided': {'title': bool(news_title), 'summary': bool(news_summary)}})
         
         # Combine news content
         news_text = f"{news_title}\n\n{news_summary}\n\n{news_content}" if news_content else f"{news_title}\n\n{news_summary}"
@@ -63,11 +63,11 @@ def analyze_news_impact():
         
         return jsonify(clean_for_json(analysis_result))
         
+    except ValidationError:
+        raise
     except Exception as e:
-        print(f"Error in analyze-news-impact endpoint: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
+        logger.exception(f"Error in analyze-news-impact endpoint")
+        raise ExternalAPIError('Failed to analyze news impact', service='ai_service')
 
 
 @bp.route('/api/social-sentiment/<ticker>')
@@ -99,10 +99,8 @@ def get_social_sentiment(ticker):
         return jsonify(clean_for_json(result))
         
     except Exception as e:
-        print(f"Error in get_social_sentiment endpoint: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        logger.exception(f"Error in get_social_sentiment endpoint for {ticker}")
+        raise ExternalAPIError('Failed to fetch social sentiment', service='sentiment_service')
 
 
 @bp.route('/api/social-sentiment/watchlist')
@@ -145,7 +143,7 @@ def get_watchlist_social_sentiment():
                 })
                 time.sleep(0.5)  # Rate limiting between tickers
             except Exception as e:
-                print(f"Error processing ticker {ticker}: {str(e)}")
+                logger.warning(f"Error processing ticker {ticker}: {str(e)}")
                 continue
         
         # Sort by mention count (most discussed first)
@@ -157,10 +155,8 @@ def get_watchlist_social_sentiment():
         }))
         
     except Exception as e:
-        print(f"Error in get_watchlist_social_sentiment endpoint: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        logger.exception(f"Error in get_watchlist_social_sentiment endpoint")
+        raise ExternalAPIError('Failed to fetch watchlist social sentiment', service='sentiment_service')
 
 
 @bp.route('/api/economic-event-explanation')
@@ -177,7 +173,7 @@ def get_economic_event_explanation():
         event_description = request.args.get('description', '')
         
         if not event_name:
-            return jsonify({'error': 'Event name required'}), 400
+            raise ValidationError('Event name required', {'provided': {'event': event_name}})
         
         explanation = explain_economic_event_with_ai(event_name, event_description)
         
@@ -186,9 +182,9 @@ def get_economic_event_explanation():
         
         return jsonify(clean_for_json(explanation))
         
+    except ValidationError:
+        raise
     except Exception as e:
-        print(f"Error in economic-event-explanation endpoint: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        logger.exception(f"Error in economic-event-explanation endpoint")
+        raise ExternalAPIError('Failed to generate economic event explanation', service='ai_service')
 

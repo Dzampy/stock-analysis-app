@@ -8,6 +8,7 @@ import time
 from typing import Dict, Optional, List
 from datetime import datetime, timedelta
 from app.config import ML_AVAILABLE
+from app.utils.logger import logger
 
 
 def calculate_factor_scores(ticker: str, info: Dict, df: Optional[pd.DataFrame] = None) -> Optional[Dict]:
@@ -302,7 +303,7 @@ def calculate_factor_scores(ticker: str, info: Dict, df: Optional[pd.DataFrame] 
         }
     
     except Exception as e:
-        print(f"Error calculating factor scores for {ticker}: {str(e)}")
+        logger.exception(f"Error calculating factor scores for {ticker}")
         import traceback
         traceback.print_exc()
         return None
@@ -554,15 +555,15 @@ def calculate_factor_rotation(ticker, periods=['1mo', '3mo', '6mo', '1y']):
                 })
                 
             except Exception as e:
-                print(f"[FACTOR ROTATION] Error calculating factor rotation for {period}: {str(e)}")
+                logger.warning(f"Error calculating factor rotation for {period}: {str(e)}")
                 import traceback
                 traceback.print_exc()
                 continue
         
-        print(f"[FACTOR ROTATION] Calculated rotation data for {ticker}: {len(rotation_data)} periods")
+        logger.debug(f"Calculated rotation data for {ticker}: {len(rotation_data)} periods")
         return rotation_data if rotation_data else None
     except Exception as e:
-        print(f"[FACTOR ROTATION] Error in factor rotation calculation: {str(e)}")
+        logger.exception(f"Error in factor rotation calculation")
         import traceback
         traceback.print_exc()
         return None
@@ -615,7 +616,7 @@ def calculate_factor_correlation(factor_scores_history):
             'momentum_quality': round(float(correlation_matrix[2][3]), 3)
         }
     except Exception as e:
-        print(f"Error calculating factor correlation: {str(e)}")
+        logger.exception(f"Error calculating factor correlation")
         return None
 
 
@@ -684,7 +685,7 @@ def calculate_optimal_factor_mix(ticker, info, df):
         
         return optimal_mix
     except Exception as e:
-        print(f"Error calculating optimal factor mix: {str(e)}")
+        logger.exception(f"Error calculating optimal factor mix")
         return None
 
 
@@ -773,7 +774,7 @@ def calculate_factor_sensitivity(ticker, info, df):
         
         return sensitivity
     except Exception as e:
-        print(f"Error calculating factor sensitivity: {str(e)}")
+        logger.exception(f"Error calculating factor sensitivity")
         import traceback
         traceback.print_exc()
         return None
@@ -965,7 +966,7 @@ def calculate_fair_value_ml(ticker, info, df=None):
             'ml_confidence': 'high' if abs(discount_premium_pct) < 20 else 'medium' if abs(discount_premium_pct) < 40 else 'low'
         }
     except Exception as e:
-        print(f"Error calculating ML fair value for {ticker}: {str(e)}")
+        logger.exception(f"Error calculating ML fair value for {ticker}")
         import traceback
         traceback.print_exc()
         return None
@@ -1060,7 +1061,7 @@ def calculate_fair_value(ticker, info, df=None):
             'ml_confidence': 'low'  # Traditional methods
         }
     except Exception as e:
-        print(f"Error calculating fair value for {ticker}: {str(e)}")
+        logger.exception(f"Error calculating fair value for {ticker}")
         import traceback
         traceback.print_exc()
         return None

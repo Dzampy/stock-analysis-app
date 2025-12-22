@@ -14,6 +14,8 @@ from app.analysis.factor import (
 )
 from app.services.ml_service import get_prediction_history
 from app.utils.json_utils import clean_for_json
+from app.utils.logger import logger
+from app.utils.error_handler import NotFoundError, ExternalAPIError
 
 bp = Blueprint('ai', __name__)
 
@@ -24,19 +26,18 @@ def get_ai_recommendations(ticker):
     try:
         from app.services.ml_service import generate_ai_recommendations
         
-        print(f"[AI RECOMMENDATIONS API] ===== NEW CODE VERSION ===== Starting request for {ticker}")
+        logger.info(f"Starting AI recommendations request for {ticker.upper()}")
         recommendations = generate_ai_recommendations(ticker.upper())
         if recommendations is None:
-            return jsonify({'error': 'Could not generate recommendations'}), 404
+            raise NotFoundError('Could not generate recommendations', {'ticker': ticker.upper()})
         
         # Debug: Check chart_data in recommendations
-        print(f"[AI RECOMMENDATIONS API] recommendations keys: {list(recommendations.keys())}")
-        print(f"[AI RECOMMENDATIONS API] has chart_data: {'chart_data' in recommendations}")
+        logger.debug(f"Recommendations keys: {list(recommendations.keys())}")
         if 'chart_data' in recommendations:
             cd = recommendations['chart_data']
-            print(f"[AI RECOMMENDATIONS API] chart_data type: {type(cd)}")
+            logger.debug(f"Chart data type: {type(cd)}")
             if isinstance(cd, dict) and 'dates' in cd:
-                print(f"[AI RECOMMENDATIONS API] chart_data dates length: {len(cd['dates']) if isinstance(cd['dates'], list) else 'not a list'}")
+                logger.debug(f"Chart data dates length: {len(cd['dates']) if isinstance(cd['dates'], list) else 'not a list'}")
         
         # Always fetch chart_data directly (more reliable)
         chart_data = None
@@ -53,19 +54,17 @@ def get_ai_recommendations(ticker):
                     'close': [float(x) for x in df['Close'].round(2).fillna(0).tolist()],
                     'volume': [int(x) for x in df['Volume'].fillna(0).astype(int).tolist()],
                 }
-                print(f"[AI RECOMMENDATIONS API] ✅ Fetched chart_data: {len(chart_data['dates'])} dates")
+                logger.debug(f"Fetched chart_data: {len(chart_data['dates'])} dates")
         except Exception as e:
-            print(f"[AI RECOMMENDATIONS API] ❌ Error fetching chart_data: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.warning(f"Error fetching chart_data: {e}")
             chart_data = {'dates': [], 'open': [], 'high': [], 'low': [], 'close': [], 'volume': []}
         
         # Clean recommendations - chart_data should be preserved by clean_for_json
         # Extract chart_data BEFORE clean_for_json to preserve it
         chart_data_from_rec = recommendations.get('chart_data')
-        print(f"[AI RECOMMENDATIONS API] chart_data_from_rec exists: {chart_data_from_rec is not None}")
+        logger.debug(f"Chart data from recommendations exists: {chart_data_from_rec is not None}")
         if chart_data_from_rec:
-            print(f"[AI RECOMMENDATIONS API] chart_data_from_rec type: {type(chart_data_from_rec)}, has dates: {'dates' in chart_data_from_rec if isinstance(chart_data_from_rec, dict) else False}")
+            logger.debug(f"Chart data from rec type: {type(chart_data_from_rec)}, has dates: {'dates' in chart_data_from_rec if isinstance(chart_data_from_rec, dict) else False}")
         
         cleaned = clean_for_json(recommendations)
         
@@ -79,7 +78,7 @@ def get_ai_recommendations(ticker):
                 'close': [float(x) for x in chart_data_from_rec.get('close', [])],
                 'volume': [int(x) for x in chart_data_from_rec.get('volume', [])],
             }
-            print(f"[AI RECOMMENDATIONS API] ✅ Added chart_data from recommendations: {len(cleaned['chart_data']['dates'])} dates")
+            logger.debug(f"Added chart_data from recommendations: {len(cleaned['chart_data']['dates'])} dates")
         elif chart_data and isinstance(chart_data, dict) and 'dates' in chart_data:
             cleaned['chart_data'] = {
                 'dates': list(chart_data.get('dates', [])),
@@ -89,14 +88,14 @@ def get_ai_recommendations(ticker):
                 'close': [float(x) for x in chart_data.get('close', [])],
                 'volume': [int(x) for x in chart_data.get('volume', [])],
             }
-            print(f"[AI RECOMMENDATIONS API] ✅ Added chart_data from fetched: {len(cleaned['chart_data']['dates'])} dates")
+            logger.debug(f"Added chart_data from fetched: {len(cleaned['chart_data']['dates'])} dates")
         else:
             cleaned['chart_data'] = {'dates': [], 'open': [], 'high': [], 'low': [], 'close': [], 'volume': []}
-            print(f"[AI RECOMMENDATIONS API] ⚠️ No chart_data available, using empty")
+            logger.warning("No chart_data available, using empty")
         
         # Final verification - ensure chart_data is in cleaned
         if 'chart_data' not in cleaned or not cleaned.get('chart_data') or len(cleaned.get('chart_data', {}).get('dates', [])) == 0:
-            print(f"[AI RECOMMENDATIONS API] ❌ CRITICAL: chart_data missing or empty! Re-adding from chart_data_from_rec...")
+            logger.warning("Chart_data missing or empty! Re-adding from chart_data_from_rec...")
             if chart_data_from_rec and isinstance(chart_data_from_rec, dict) and 'dates' in chart_data_from_rec:
                 cleaned['chart_data'] = {
                     'dates': list(chart_data_from_rec.get('dates', [])),
@@ -106,30 +105,31 @@ def get_ai_recommendations(ticker):
                     'close': [float(x) for x in chart_data_from_rec.get('close', [])],
                     'volume': [int(x) for x in chart_data_from_rec.get('volume', [])],
                 }
-                print(f"[AI RECOMMENDATIONS API] ✅ Re-added chart_data: {len(cleaned['chart_data']['dates'])} dates")
+                logger.debug(f"Re-added chart_data: {len(cleaned['chart_data']['dates'])} dates")
             else:
                 cleaned['chart_data'] = {'dates': [], 'open': [], 'high': [], 'low': [], 'close': [], 'volume': []}
         
         dates_len = len(cleaned.get('chart_data', {}).get('dates', []))
-        print(f"[AI RECOMMENDATIONS API] ✅ FINAL: Returning with {dates_len} dates")
-        print(f"[AI RECOMMENDATIONS API] ✅ FINAL: Keys in cleaned: {list(cleaned.keys())}")
-        print(f"[AI RECOMMENDATIONS API] ✅ FINAL: 'chart_data' in cleaned: {'chart_data' in cleaned}")
+        logger.debug(f"Returning with {dates_len} dates, keys: {list(cleaned.keys())}")
         
         # Use json.dumps with make_response
         import json
         response_json = json.dumps(cleaned, default=str)
         parsed = json.loads(response_json)
         if 'chart_data' not in parsed:
-            print(f"[AI RECOMMENDATIONS API] ❌ CRITICAL: chart_data missing in JSON! Re-adding...")
+            logger.warning("Chart_data missing in JSON! Re-adding...")
             parsed['chart_data'] = cleaned.get('chart_data', {'dates': [], 'open': [], 'high': [], 'low': [], 'close': [], 'volume': []})
             response_json = json.dumps(parsed, default=str)
         
         response = make_response(response_json)
         response.headers['Content-Type'] = 'application/json'
-        print(f"[AI RECOMMENDATIONS API] ✅ FINAL RETURN: {dates_len} dates, keys: {list(cleaned.keys())}")
+        logger.info(f"Successfully prepared AI recommendations for {ticker.upper()}")
         return response
+    except NotFoundError:
+        raise
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.exception(f"Error in AI recommendations endpoint for {ticker}")
+        raise ExternalAPIError('Failed to generate AI recommendations', service='ml_service')
 
 
 @bp.route('/api/factor-analysis/<ticker>')
@@ -231,7 +231,7 @@ def get_factor_analysis(ticker):
         return jsonify(clean_for_json(factor_data))
     
     except Exception as e:
-        print(f"Error in factor analysis endpoint: {str(e)}")
+        logger.exception(f"Error in factor analysis endpoint for {ticker}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Failed to get factor analysis: {str(e)}'}), 500
@@ -284,7 +284,7 @@ def get_backtest_results(ticker):
             time_module.sleep(0.3)
             hist = stock.history(period='2y')
         except Exception as e:
-            print(f"[BACKTEST] Error getting data: {e}")
+            logger.warning(f"Backtest error getting data: {e}")
             return jsonify({'error': 'Could not fetch historical data'}), 500
         
         if hist.empty:
@@ -367,7 +367,7 @@ def get_backtest_results(ticker):
                     backtest_results.append(result_entry)
             
             except Exception as e:
-                print(f"[BACKTEST] Error processing entry {pred_date}: {e}")
+                logger.warning(f"Backtest error processing entry {pred_date}: {e}")
                 continue
         
         if not backtest_results:
@@ -429,7 +429,7 @@ def get_backtest_results(ticker):
         }))
         
     except Exception as e:
-        print(f"[BACKTEST] Error: {e}")
+        logger.exception(f"Backtest error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Backtest failed: {str(e)}'}), 500
@@ -473,7 +473,7 @@ def get_ai_investment_thesis(ticker):
         
         return jsonify(clean_for_json(thesis))
     except Exception as e:
-        print(f"Error in get_ai_investment_thesis endpoint: {str(e)}")
+        logger.exception(f"Error in get_ai_investment_thesis endpoint for {ticker}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
@@ -549,7 +549,7 @@ def analyze_earnings_call():
         }))
         
     except Exception as e:
-        print(f"Error in analyze-earnings-call endpoint: {str(e)}")
+        logger.exception(f"Error in analyze-earnings-call endpoint")
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Server error: {str(e)}'}), 500

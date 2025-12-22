@@ -2,6 +2,8 @@
 from flask import Blueprint, jsonify, request
 from app.utils.json_utils import clean_for_json
 from app.services.screener_service import run_stock_screener
+from app.utils.logger import logger
+from app.utils.error_handler import ValidationError, ExternalAPIError
 
 bp = Blueprint('screener', __name__)
 
@@ -22,9 +24,7 @@ def run_screener():
         }))
     
     except Exception as e:
-        print(f"Error in screener endpoint: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Failed to run screener: {str(e)}'}), 500
+        logger.exception(f"Error in screener endpoint")
+        raise ExternalAPIError('Failed to run screener', service='screener_service')
 
 

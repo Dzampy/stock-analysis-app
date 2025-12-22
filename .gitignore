@@ -41,6 +41,7 @@ Thumbs.db
 # Logs
 *.log
 server.log
+logs/
 
 # Prediction history (optional - you might want to commit this)
 prediction_history/
@@ -57,3 +58,9 @@ app.py.bak*
 REFACTORING_*.md
 GITHUB_PUSH_INSTRUCTIONS.md
 
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/

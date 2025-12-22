@@ -2,6 +2,8 @@
 from flask import Blueprint, jsonify, request
 import yfinance as yf
 from app.utils.json_utils import clean_for_json
+from app.utils.logger import logger
+from app.utils.error_handler import ExternalAPIError
 
 bp = Blueprint('search', __name__)
 
@@ -12,10 +14,10 @@ def search_stocks(query):
     import json
     import os
     import time
-    print(f"[SEARCH HTTP] search_stocks called with query: {query}")
+    logger.debug(f"Search stocks called with query: {query}")
     try:
         query = query.strip().upper()
-        print(f"[SEARCH] Query after processing: {query}")
+        logger.debug(f"Query after processing: {query}")
         if not query or len(query) < 1:
             return jsonify({'results': [], '_version': 'v3_empty'})
         
@@ -135,10 +137,8 @@ def search_stocks(query):
         return jsonify(cleaned)
         
     except Exception as e:
-        print(f"Error in search endpoint: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Search failed: {str(e)}', 'results': []}), 500
+        logger.exception(f"Error in search endpoint for query: {query}")
+        raise ExternalAPIError('Search failed', service='search')
 
 
 @bp.route('/api/search-ticker')
@@ -162,7 +162,7 @@ def search_ticker():
                     'exchange': info.get('exchange', 'N/A')
                 })
         except Exception as e:
-            print(f"Error searching for ticker {query}: {str(e)}")
+            logger.warning(f"Error searching for ticker {query}: {str(e)}")
             pass
         
         # If query is longer, try partial matches (simple approach)
@@ -172,9 +172,7 @@ def search_ticker():
         return jsonify(clean_for_json({'results': results[:10]}))
         
     except Exception as e:
-        print(f"Error in search-ticker endpoint: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Failed to search ticker: {str(e)}'}), 500
+        logger.exception(f"Error in search-ticker endpoint for query: {query}")
+        raise ExternalAPIError('Failed to search ticker', service='search')
 
 

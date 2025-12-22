@@ -4,6 +4,7 @@ Portfolio and watchlist analysis service
 import os
 from typing import Dict, List, Optional
 from app.config import GEMINI_API_KEY, GEMINI_AVAILABLE
+from app.utils.logger import logger
 
 
 def analyze_watchlist_news_with_ai(all_news_data):
@@ -146,7 +147,7 @@ News z watchlistu:
         }
         
     except Exception as e:
-        print(f"Error in AI watchlist news analysis: {str(e)}")
+        logger.exception(f"Error in AI watchlist news analysis")
         import traceback
         traceback.print_exc()
         return {

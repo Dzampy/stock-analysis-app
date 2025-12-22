@@ -7,6 +7,8 @@ from app.services.finviz_service import get_short_interest_from_finviz, get_shor
 from app.services.news_service import get_stock_news
 from app.services.ai_service import generate_news_summary
 from app.utils.json_utils import clean_for_json
+from app.utils.logger import logger
+from app.utils.error_handler import NotFoundError, ExternalAPIError, create_error_response
 
 bp = Blueprint('stock', __name__)
 
@@ -23,26 +25,31 @@ def get_stock(ticker):
     period = request.args.get('period', '1y')
     
     try:
+        logger.info(f"Fetching stock data for {ticker.upper()} with period {period}")
         data = get_stock_data(ticker.upper(), period)
         
         if data is None:
             # Check if it's an intraday timeframe that might not be available
             intraday_timeframes = ['1m', '5m', '15m', '1h', '4h']
             if period in intraday_timeframes:
-                error_msg = f'Intraday data ({period}) may not be available for this stock. Try a different timeframe or stock like AAPL, MSFT, or TSLA.'
+                raise NotFoundError(
+                    f'Intraday data ({period}) may not be available for this stock. Try a different timeframe or stock like AAPL, MSFT, or TSLA.',
+                    {'ticker': ticker.upper(), 'period': period, 'type': 'intraday'}
+                )
             else:
-                error_msg = 'Stock not found or data unavailable'
-            return jsonify({'error': error_msg}), 404
+                raise NotFoundError(
+                    'Stock not found or data unavailable',
+                    {'ticker': ticker.upper(), 'period': period}
+                )
+    except NotFoundError:
+        raise  # Re-raise NotFoundError to be handled by error handler
     except Exception as e:
-        print(f"Error in get_stock endpoint: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        intraday_timeframes = ['1m', '5m', '15m', '1h', '4h']
-        if period in intraday_timeframes:
-            error_msg = f'Error fetching intraday data ({period}): {str(e)}. Intraday data may not be available for this stock.'
-        else:
-            error_msg = f'Error fetching stock data: {str(e)}'
-        return jsonify({'error': error_msg}), 500
+        logger.exception(f"Error fetching stock data for {ticker.upper()}: {str(e)}")
+        raise ExternalAPIError(
+            f'Error fetching stock data: {str(e)}',
+            service='yfinance',
+            details={'ticker': ticker.upper(), 'period': period}
+        )
     
     df = data['history']
     info = data['info']
@@ -73,15 +80,10 @@ def get_stock(ticker):
     metrics = calculate_metrics(df, info)
     
     # Get earnings QoQ data
-    # #region agent log
-    print(f"[DEBUG] /api/stock/{ticker}: Calling get_earnings_qoq")
-    # #endregion
+    logger.debug(f"Calling get_earnings_qoq for {ticker.upper()}")
     earnings_qoq = get_earnings_qoq(ticker.upper())
-    # #region agent log
-    print(f"[DEBUG] /api/stock/{ticker}: get_earnings_qoq returned: {earnings_qoq is not None}")
     if earnings_qoq:
-        print(f"[DEBUG] /api/stock/{ticker}: earnings_qoq['eps'] = {earnings_qoq.get('eps', [])[:4]}")
-    # #endregion
+        logger.debug(f"Earnings QoQ data retrieved for {ticker.upper()}")
     
     # Get news with sentiment analysis
     news = get_stock_news(ticker.upper(), max_news=10)
@@ -109,10 +111,6 @@ def get_stock(ticker):
     }
     
     # Clean all data for JSON (replace NaN with None)
-    # #region agent log
-    if earnings_qoq:
-        print(f"[DEBUG] /api/stock/{ticker}: Before clean_for_json - earnings_qoq['eps'] = {earnings_qoq.get('eps', [])[:4]}")
-    # #endregion
     
     response_data = {
         'ticker': ticker.upper(),
@@ -127,14 +125,6 @@ def get_stock(ticker):
         'volume_analysis': clean_for_json(volume_analysis) if volume_analysis else None
     }
     
-    # #region agent log
-    if response_data.get('earnings_qoq'):
-        print(f"[DEBUG] /api/stock/{ticker}: After clean_for_json - earnings_qoq['eps'] = {response_data['earnings_qoq'].get('eps', [])[:4]}")
-        print(f"[DEBUG] /api/stock/{ticker}: Full earnings_qoq['eps'] = {response_data['earnings_qoq'].get('eps', [])}")
-        print(f"[DEBUG] /api/stock/{ticker}: earnings_qoq['eps'] None count = {sum(1 for x in response_data['earnings_qoq'].get('eps', []) if x is None)}")
-    else:
-        print(f"[DEBUG] /api/stock/{ticker}: earnings_qoq is None or missing after clean_for_json")
-    # #endregion
-    
+    logger.info(f"Successfully prepared stock data response for {ticker.upper()}")
     return jsonify(response_data)
 

@@ -11,6 +11,7 @@ import joblib
 import json
 from app.config import ML_AVAILABLE
 from app.utils.constants import MODEL_CACHE_VERSION
+from app.utils.logger import logger
 import time
 
 # Model cache (module-level)
@@ -25,7 +26,7 @@ _PREDICTION_HISTORY_DIR.mkdir(exist_ok=True)
 def _clear_model_cache_if_needed():
     """Clear model cache if version changed"""
     if _model_cache and not any(k.startswith(f"rf_v{MODEL_CACHE_VERSION}_") for k in _model_cache.keys()):
-        print(f"[ML] Clearing model cache due to version change (new version: {MODEL_CACHE_VERSION})")
+        logger.info(f"Clearing model cache due to version change (new version: {MODEL_CACHE_VERSION})")
         _model_cache.clear()
         _scaler_cache.clear()
 
@@ -285,7 +286,7 @@ def _train_random_forest_model(features_dict, current_price, df=None):
         
         return None, None
     except Exception as e:
-        print(f"[ML] Error training model: {e}")
+        logger.exception(f"Error training model: {e}")
         return None, None
 
 
@@ -411,7 +412,7 @@ def predict_price(features, current_price, df=None):
         }
         
     except Exception as e:
-        print(f"[ML] Error in predict_price: {e}")
+        logger.exception(f"Error in predict_price: {e}")
         import traceback
         traceback.print_exc()
         # Fallback
@@ -473,7 +474,7 @@ def _save_prediction_history(ticker: str, current_price: float, prediction_resul
             json.dump(history, f, indent=2)
             
     except Exception as e:
-        print(f"[ML HISTORY] Error saving prediction history: {e}")
+        logger.exception(f"Error saving prediction history: {e}")
 
 
 def get_prediction_history(ticker: str, days: int = 30) -> List[Dict]:
@@ -505,7 +506,7 @@ def get_prediction_history(ticker: str, days: int = 30) -> List[Dict]:
         
         return history
     except Exception as e:
-        print(f"[ML HISTORY] Error loading prediction history: {e}")
+        logger.exception(f"Error loading prediction history: {e}")
         return []
 
 
@@ -608,7 +609,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         }
         
     except Exception as e:
-        print(f"[AI RECOMMENDATIONS] Error: {e}")
+        logger.exception(f"Error in AI recommendations: {e}")
         import traceback
         traceback.print_exc()
         return None

@@ -2,6 +2,8 @@
 from flask import Blueprint, jsonify, request
 import yfinance as yf
 from app.utils.json_utils import clean_for_json
+from app.utils.logger import logger
+from app.utils.error_handler import ValidationError, ExternalAPIError
 
 bp = Blueprint('portfolio', __name__)
 
@@ -75,7 +77,7 @@ def get_portfolio_data():
                 total_value += current_value
                 
             except Exception as e:
-                print(f"Error processing position {pos.get('ticker', 'unknown')}: {str(e)}")
+                logger.warning(f"Error processing position {pos.get('ticker', 'unknown')}: {str(e)}")
                 continue
         
         total_pnl = total_value - total_cost
@@ -93,10 +95,8 @@ def get_portfolio_data():
         }))
         
     except Exception as e:
-        print(f"Error calculating portfolio data: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Failed to calculate portfolio data: {str(e)}'}), 500
+        logger.exception(f"Error calculating portfolio data")
+        raise ExternalAPIError('Failed to calculate portfolio data', service='portfolio')
 
 
 @bp.route('/api/analyze-watchlist-summary', methods=['POST'])
@@ -119,10 +119,8 @@ def analyze_watchlist_summary():
         return jsonify(clean_for_json(result))
         
     except Exception as e:
-        print(f"Error analyzing watchlist: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Failed to analyze watchlist: {str(e)}'}), 500
+        logger.exception(f"Error analyzing watchlist")
+        raise ExternalAPIError('Failed to analyze watchlist', service='portfolio_service')
 
 
 @bp.route('/api/alerts-dashboard', methods=['POST'])
@@ -188,10 +186,10 @@ def get_alerts_dashboard():
                                     found_earnings = True
                                     break
                             except Exception as e:
-                                print(f"Error processing earnings date for {ticker}: {str(e)}")
+                                logger.warning(f"Error processing earnings date for {ticker}: {str(e)}")
                                 continue
                 except Exception as e:
-                    print(f"Error fetching earnings_dates for {ticker}: {str(e)}")
+                    logger.warning(f"Error fetching earnings_dates for {ticker}: {str(e)}")
                     pass
                 
                 # Get recent news with high sentiment
@@ -220,7 +218,7 @@ def get_alerts_dashboard():
                     time.sleep(0.3)
                     
             except Exception as e:
-                print(f"Error processing alerts for {ticker}: {str(e)}")
+                logger.warning(f"Error processing alerts for {ticker}: {str(e)}")
                 continue
         
         # Sort earnings alerts by date
@@ -236,14 +234,7 @@ def get_alerts_dashboard():
         })
         
     except Exception as e:
-        print(f"Error in alerts dashboard: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'error': f'Failed to fetch alerts: {str(e)}',
-            'earnings_alerts': [],
-            'news_alerts': [],
-            'total': 0
-        }), 500
+        logger.exception(f"Error in alerts dashboard")
+        raise ExternalAPIError('Failed to fetch alerts', service='portfolio')
 
 

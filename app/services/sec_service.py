@@ -6,6 +6,7 @@ import requests
 from typing import Dict, Optional, List
 from app.config import SEC_API_KEY
 from app.utils.constants import SEC_API_TIMEOUT
+from app.utils.logger import logger
 
 
 def get_institutional_flow(ticker: str) -> Optional[Dict]:
@@ -43,11 +44,11 @@ def get_institutional_flow(ticker: str) -> Optional[Dict]:
         
         if response.status_code != 200:
             if response.status_code == 401:
-                print(f"SEC API authentication failed for institutional flow")
+                logger.warning(f"SEC API authentication failed for institutional flow")
             elif response.status_code == 429:
-                print(f"SEC API rate limit exceeded for institutional flow")
+                logger.warning(f"SEC API rate limit exceeded for institutional flow")
             else:
-                print(f"SEC API returned status {response.status_code} for institutional flow")
+                logger.warning(f"SEC API returned status {response.status_code} for institutional flow")
             return None
         
         data = response.json()
@@ -87,7 +88,7 @@ def get_institutional_flow(ticker: str) -> Optional[Dict]:
                         'value': value
                     })
             except Exception as e:
-                print(f"Error processing 13F filing: {str(e)}")
+                logger.warning(f"Error processing 13F filing: {str(e)}")
                 continue
         
         # Calculate net flow for each institution
@@ -144,7 +145,7 @@ def get_institutional_flow(ticker: str) -> Optional[Dict]:
         }
         
     except Exception as e:
-        print(f"Error getting institutional flow for {ticker}: {str(e)}")
+        logger.exception(f"Error getting institutional flow for {ticker}")
         import traceback
         traceback.print_exc()
         return None
@@ -184,11 +185,11 @@ def get_whale_watching(ticker: str) -> Optional[Dict]:
         
         if response.status_code != 200:
             if response.status_code == 401:
-                print(f"SEC API authentication failed for whale watching")
+                logger.warning(f"SEC API authentication failed for whale watching")
             elif response.status_code == 429:
-                print(f"SEC API rate limit exceeded for whale watching")
+                logger.warning(f"SEC API rate limit exceeded for whale watching")
             else:
-                print(f"SEC API returned status {response.status_code} for whale watching")
+                logger.warning(f"SEC API returned status {response.status_code} for whale watching")
             return None
         
         data = response.json()
@@ -234,7 +235,7 @@ def get_whale_watching(ticker: str) -> Optional[Dict]:
                             'date': date_str
                         }
             except Exception as e:
-                print(f"Error processing 13F filing for whale watching: {str(e)}")
+                logger.warning(f"Error processing 13F filing for whale watching: {str(e)}")
                 continue
         
         # Sort by value to find whales (largest positions)
@@ -286,7 +287,7 @@ def get_whale_watching(ticker: str) -> Optional[Dict]:
         }
         
     except Exception as e:
-        print(f"Error getting whale watching for {ticker}: {str(e)}")
+        logger.exception(f"Error getting whale watching for {ticker}")
         import traceback
         traceback.print_exc()
         return None

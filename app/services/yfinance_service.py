@@ -6,6 +6,7 @@ import pandas as pd
 import time
 from typing import Dict, Optional, List
 from app.utils.constants import RATE_LIMIT_DELAY, DEFAULT_PERIOD
+from app.utils.logger import logger
 
 
 def get_stock_data(ticker: str, period: str = DEFAULT_PERIOD) -> Optional[Dict]:
@@ -42,17 +43,17 @@ def get_stock_data(ticker: str, period: str = DEFAULT_PERIOD) -> Optional[Dict]:
         # Try using Ticker method first
         try:
             if use_interval:
-                print(f"Fetching intraday data for {ticker}: period={use_period}, interval={use_interval}")
+                logger.debug(f"Fetching intraday data for {ticker}: period={use_period}, interval={use_interval}")
                 stock = yf.Ticker(ticker)
                 hist = stock.history(period=use_period, interval=use_interval, auto_adjust=True, prepost=False)
-                print(f"Got {len(hist)} rows of intraday data")
+                logger.debug(f"Got {len(hist)} rows of intraday data")
             else:
                 hist = yf.download(ticker, period=use_period, progress=False, show_errors=False, auto_adjust=True)
                 if hist.empty:
                     stock = yf.Ticker(ticker)
                     hist = stock.history(period=use_period, auto_adjust=True)
         except Exception as e:
-            print(f"Error downloading data for {ticker}: {str(e)}")
+            logger.warning(f"Error downloading data for {ticker}: {str(e)}")
             try:
                 stock = yf.Ticker(ticker)
                 if use_interval:
@@ -60,9 +61,9 @@ def get_stock_data(ticker: str, period: str = DEFAULT_PERIOD) -> Optional[Dict]:
                 else:
                     hist = stock.history(period=use_period, auto_adjust=True)
             except Exception as e2:
-                print(f"Error with Ticker method: {str(e2)}")
+                logger.warning(f"Error with Ticker method: {str(e2)}")
                 if use_interval:
-                    print(f"Intraday data may not be available for {ticker} with interval {use_interval}")
+                    logger.debug(f"Intraday data may not be available for {ticker} with interval {use_interval}")
                 raise
         
         if hist.empty:
@@ -87,7 +88,7 @@ def get_stock_data(ticker: str, period: str = DEFAULT_PERIOD) -> Optional[Dict]:
                     'longBusinessSummary': 'Data temporarily unavailable from Yahoo Finance API.'
                 }
         except Exception as e:
-            print(f"Warning: Could not fetch info for {ticker}: {str(e)}")
+            logger.warning(f"Could not fetch info for {ticker}: {str(e)}")
             info = {
                 'longName': ticker,
                 'symbol': ticker,
@@ -101,7 +102,7 @@ def get_stock_data(ticker: str, period: str = DEFAULT_PERIOD) -> Optional[Dict]:
             'info': info
         }
     except Exception as e:
-        print(f"Error fetching data for {ticker}: {str(e)}")
+        logger.exception(f"Error fetching data for {ticker}")
         return None
 
 
@@ -181,7 +182,7 @@ def get_institutional_ownership(ticker: str) -> Optional[Dict]:
                     except:
                         pass
         except Exception as e:
-            print(f"[INSTITUTIONAL] Error scraping Finviz for {ticker}: {e}")
+            logger.warning(f"Error scraping Finviz for institutional data for {ticker}: {e}")
         
         # Get top holders from yfinance
         top_holders = []
@@ -200,7 +201,7 @@ def get_institutional_ownership(ticker: str) -> Optional[Dict]:
         }
     
     except Exception as e:
-        print(f"Error fetching institutional ownership for {ticker}: {str(e)}")
+        logger.exception(f"Error fetching institutional ownership for {ticker}")
         import traceback
         traceback.print_exc()
         return None
@@ -227,7 +228,7 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
         try:
             finviz_data = get_quarterly_estimates_from_finviz(ticker)
         except Exception as finviz_error:
-            print(f"[WARNING] Finviz scraping failed for {ticker}: {str(finviz_error)}")
+            logger.warning(f"Finviz scraping failed for {ticker}: {str(finviz_error)}")
             finviz_data = {'estimates': {}, 'actuals': {}}
         
         quarterly_estimates = finviz_data.get('estimates', {}) if isinstance(finviz_data, dict) else {}
@@ -281,9 +282,7 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
         }
     
     except Exception as e:
-        print(f"Error fetching financials data for {ticker}: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.exception(f"Error fetching financials data for {ticker}")
         return None
 
 
@@ -426,7 +425,7 @@ def get_earnings_qoq(ticker: str) -> Optional[Dict]:
         }
     
     except Exception as e:
-        print(f"Error fetching earnings QoQ for {ticker}: {str(e)}")
+        logger.exception(f"Error fetching earnings QoQ for {ticker}")
         import traceback
         traceback.print_exc()
         return None
@@ -557,7 +556,7 @@ def get_retail_activity_indicators(ticker: str) -> Optional[Dict]:
             'avg_volume': int(avg_volume)
         }
     except Exception as e:
-        print(f"Error getting retail activity indicators for {ticker}: {str(e)}")
+        logger.exception(f"Error getting retail activity indicators for {ticker}")
         import traceback
         traceback.print_exc()
         return None

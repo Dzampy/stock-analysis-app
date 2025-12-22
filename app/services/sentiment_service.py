@@ -8,6 +8,7 @@ from typing import Dict, Optional, List
 from datetime import datetime, timedelta
 from app.config import REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT, REDDIT_AVAILABLE
 from app.utils.constants import RATE_LIMIT_DELAY
+from app.utils.logger import logger
 
 # Initialize sentiment analyzer
 sentiment_analyzer = SentimentIntensityAnalyzer()
@@ -67,7 +68,7 @@ def get_reddit_sentiment(ticker, days=7):
         # This is a placeholder - implement if needed
         return None
     except Exception as e:
-        print(f"Error getting Reddit sentiment: {str(e)}")
+        logger.exception(f"Error getting Reddit sentiment")
         return None
 
 
@@ -84,7 +85,7 @@ def get_social_sentiment_fallback(ticker, days=7):
             'total_comments': 0
         }
     except Exception as e:
-        print(f"Error in get_social_sentiment_fallback: {str(e)}")
+        logger.exception(f"Error in get_social_sentiment_fallback")
         return {
             'posts': [],
             'sentiment_score': 50.0,
@@ -123,7 +124,7 @@ def get_twitter_sentiment(ticker, days=7):
             # Simulated data structure - replace with actual scraping
             
         except Exception as e:
-            print(f"Twitter scraping not available: {str(e)}")
+            logger.warning(f"Twitter scraping not available: {str(e)}")
         
         # Calculate sentiment from collected tweets
         if sentiment_scores:
@@ -143,7 +144,7 @@ def get_twitter_sentiment(ticker, days=7):
         }
         
     except Exception as e:
-        print(f"Error in get_twitter_sentiment: {str(e)}")
+        logger.exception(f"Error in get_twitter_sentiment")
         return {
             'tweets': [],
             'sentiment_score': 50.0,
@@ -228,13 +229,13 @@ def get_stocktwits_sentiment(ticker, days=7):
                             sentiment_scores.append(sentiment_score)
                             
                         except Exception as e:
-                            print(f"Error processing StockTwits message: {str(e)}")
+                            logger.warning(f"Error processing StockTwits message: {str(e)}")
                             continue
                             
             time.sleep(1)  # Rate limiting
             
         except Exception as e:
-            print(f"Error accessing StockTwits API: {str(e)}")
+            logger.warning(f"Error accessing StockTwits API: {str(e)}")
         
         # Calculate sentiment score
         if sentiment_scores:
@@ -266,7 +267,7 @@ def get_stocktwits_sentiment(ticker, days=7):
         }
         
     except Exception as e:
-        print(f"Error in get_stocktwits_sentiment: {str(e)}")
+        logger.exception(f"Error in get_stocktwits_sentiment")
         return {
             'messages': [],
             'sentiment_score': 50.0,
@@ -347,7 +348,7 @@ def aggregate_social_sentiment(ticker, days=7):
         }
         
     except Exception as e:
-        print(f"Error in aggregate_social_sentiment: {str(e)}")
+        logger.exception(f"Error in aggregate_social_sentiment")
         import traceback
         traceback.print_exc()
         return {
@@ -472,7 +473,7 @@ Diskuse:
         }
         
     except Exception as e:
-        print(f"Error in analyze_social_topics_with_ai: {str(e)}")
+        logger.exception(f"Error in analyze_social_topics_with_ai")
         import traceback
         traceback.print_exc()
         return {

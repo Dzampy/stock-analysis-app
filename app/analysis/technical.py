@@ -10,6 +10,7 @@ from typing import Dict, Optional
 import yfinance as yf
 import time
 from app.utils.constants import RATE_LIMIT_DELAY, VOLUME_UNUSUAL_THRESHOLD
+from app.utils.logger import logger
 
 
 def calculate_technical_indicators(df: pd.DataFrame) -> Dict:
@@ -55,7 +56,7 @@ def calculate_technical_indicators(df: pd.DataFrame) -> Dict:
         else:
             indicators['adx'] = []
     except Exception as e:
-        print(f"[INDICATORS] ADX calculation error: {e}")
+        logger.warning(f"ADX calculation error: {e}")
         indicators['adx'] = []
     
     # Stochastic Oscillator
@@ -68,7 +69,7 @@ def calculate_technical_indicators(df: pd.DataFrame) -> Dict:
             indicators['stoch_k'] = []
             indicators['stoch_d'] = []
     except Exception as e:
-        print(f"[INDICATORS] Stochastic calculation error: {e}")
+        logger.warning(f"Stochastic calculation error: {e}")
         indicators['stoch_k'] = []
         indicators['stoch_d'] = []
     
@@ -80,7 +81,7 @@ def calculate_technical_indicators(df: pd.DataFrame) -> Dict:
         else:
             indicators['atr'] = []
     except Exception as e:
-        print(f"[INDICATORS] ATR calculation error: {e}")
+        logger.warning(f"ATR calculation error: {e}")
         indicators['atr'] = []
     
     return indicators
@@ -160,7 +161,7 @@ def get_volume_analysis(ticker: str) -> Optional[Dict]:
         }
     
     except Exception as e:
-        print(f"Error fetching volume analysis for {ticker}: {str(e)}")
+        logger.exception(f"Error fetching volume analysis for {ticker}")
         import traceback
         traceback.print_exc()
         return None

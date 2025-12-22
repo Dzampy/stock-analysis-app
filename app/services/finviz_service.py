@@ -17,6 +17,7 @@ except ImportError:
     CLOUDSCRAPER_AVAILABLE = False
 
 from app.utils.constants import FINVIZ_TIMEOUT, RATE_LIMIT_DELAY
+from app.utils.logger import logger
 
 
 def get_quarterly_estimates_from_finviz(ticker: str) -> Dict:
@@ -48,24 +49,24 @@ def get_quarterly_estimates_from_finviz(ticker: str) -> Dict:
             else:
                 response = requests.get(url, headers=headers, timeout=FINVIZ_TIMEOUT)
         except requests.exceptions.Timeout:
-            print(f"[WARNING] Finviz request timeout for {ticker}")
+            logger.warning(f" Finviz request timeout for {ticker}")
             return {'estimates': estimates, 'actuals': actuals}
         except requests.exceptions.RequestException as e:
-            print(f"[WARNING] Finviz request failed for {ticker}: {str(e)}")
+            logger.warning(f" Finviz request failed for {ticker}: {str(e)}")
             return {'estimates': estimates, 'actuals': actuals}
         except Exception as e:
             # If cloudscraper fails, try regular requests
             try:
                 response = requests.get(url, headers=headers, timeout=FINVIZ_TIMEOUT)
             except requests.exceptions.Timeout:
-                print(f"[WARNING] Finviz request timeout for {ticker}")
+                logger.warning(f" Finviz request timeout for {ticker}")
                 return {'estimates': estimates, 'actuals': actuals}
             except requests.exceptions.RequestException as req_e:
-                print(f"[WARNING] Finviz request failed for {ticker}: {str(req_e)}")
+                logger.warning(f" Finviz request failed for {ticker}: {str(req_e)}")
                 return {'estimates': estimates, 'actuals': actuals}
         
         if response.status_code != 200:
-            print(f"[WARNING] Finviz returned status {response.status_code} for {ticker}")
+            logger.warning(f" Finviz returned status {response.status_code} for {ticker}")
             return {'estimates': estimates, 'actuals': actuals}
         
         # Finviz stores estimates in JSON data embedded in HTML
@@ -211,7 +212,7 @@ def get_quarterly_estimates_from_finviz(ticker: str) -> Dict:
                                     actuals['revenue'][quarter_str] = revenue_actual
                                 
             except json.JSONDecodeError as e:
-                print(f"Error parsing Finviz JSON data: {str(e)}")
+                logger.exception(f"Error parsing Finviz JSON data: {str(e)}")
         
         # Fallback: Also check snapshot table for EPS next Q
         if not estimates['eps']:
@@ -244,15 +245,15 @@ def get_quarterly_estimates_from_finviz(ticker: str) -> Dict:
         if estimates['revenue'] or estimates['eps']:
             rev_count = len(estimates['revenue'])
             eps_count = len(estimates['eps'])
-            print(f"Finviz: Found {rev_count} revenue and {eps_count} EPS estimates for {ticker}")
+            logger.info(f"Finviz: Found {rev_count} revenue and {eps_count} EPS estimates for {ticker}")
         
         if actuals['revenue'] or actuals['eps']:
             rev_actual_count = len(actuals['revenue'])
             eps_actual_count = len(actuals['eps'])
-            print(f"Finviz: Found {rev_actual_count} revenue and {eps_actual_count} EPS actual values for {ticker}")
+            logger.info(f"Finviz: Found {rev_actual_count} revenue and {eps_actual_count} EPS actual values for {ticker}")
         
     except Exception as e:
-        print(f"Error fetching estimates from Finviz for {ticker}: {str(e)}")
+        logger.exception(f"Error fetching estimates from Finviz for {ticker}: {str(e)}")
         import traceback
         traceback.print_exc()
     
@@ -282,7 +283,7 @@ def get_short_interest_from_finviz(ticker: str) -> Optional[Dict]:
         
         response = requests.get(url, headers=headers, timeout=15)
         if response.status_code != 200:
-            print(f"Finviz returned status {response.status_code} for {ticker} short interest")
+            logger.warning(f"Finviz returned status {response.status_code} for {ticker} short interest")
             return None
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -300,7 +301,7 @@ def get_short_interest_from_finviz(ticker: str) -> Optional[Dict]:
                     break
         
         if not snapshot_table:
-            print(f"[SHORT INTEREST] No snapshot table found for {ticker}")
+            logger.info(f"[SHORT INTEREST] No snapshot table found for {ticker}")
             return None
         
         short_interest_data = {}
@@ -370,7 +371,7 @@ def get_short_interest_from_finviz(ticker: str) -> Optional[Dict]:
                         short_ratio = shares_short / avg_volume
                         short_interest_data['short_ratio'] = round(short_ratio, 2)
             except Exception as e:
-                print(f"[SHORT INTEREST] yfinance fallback failed for {ticker}: {e}")
+                logger.info(f"[SHORT INTEREST] yfinance fallback failed for {ticker}: {e}")
         
         if not short_interest_data:
             return None
@@ -430,7 +431,7 @@ def get_short_interest_from_finviz(ticker: str) -> Optional[Dict]:
         return short_interest_data
     
     except Exception as e:
-        print(f"Error fetching short interest for {ticker}: {str(e)}")
+        logger.exception(f"Error fetching short interest for {ticker}: {str(e)}")
         import traceback
         traceback.print_exc()
         return None
@@ -448,7 +449,7 @@ def get_short_interest_history(ticker: str) -> Optional[List[Dict]]:
     """
     try:
         if not CLOUDSCRAPER_AVAILABLE:
-            print("[SHORT INTEREST HISTORY] cloudscraper not installed. Install with: pip install cloudscraper")
+            logger.warning("cloudscraper not installed. Install with: pip install cloudscraper")
             return None
         
         import csv
@@ -466,7 +467,7 @@ def get_short_interest_history(ticker: str) -> Optional[List[Dict]]:
         response = scraper.get(url, timeout=30)
         
         if response.status_code != 200:
-            print(f"[SHORT INTEREST HISTORY] MarketBeat returned status {response.status_code} for {ticker}")
+            logger.info(f"[SHORT INTEREST HISTORY] MarketBeat returned status {response.status_code} for {ticker}")
             return None
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -505,7 +506,7 @@ def get_short_interest_history(ticker: str) -> Optional[List[Dict]]:
                             except (ValueError, TypeError):
                                 continue
                 except Exception as e:
-                    print(f"[SHORT INTEREST HISTORY] Error parsing shortInterestSeries: {e}")
+                    logger.info(f"[SHORT INTEREST HISTORY] Error parsing shortInterestSeries: {e}")
             
             # Extract shortInterestFloatSeries
             match = re.search(r'var shortInterestFloatSeries = "([^"]+)"', script.string)
@@ -532,7 +533,7 @@ def get_short_interest_history(ticker: str) -> Optional[List[Dict]]:
                         if entry['date'] in float_data:
                             entry['short_float_pct'] = float_data[entry['date']]
                 except Exception as e:
-                    print(f"[SHORT INTEREST HISTORY] Error parsing shortInterestFloatSeries: {e}")
+                    logger.info(f"[SHORT INTEREST HISTORY] Error parsing shortInterestFloatSeries: {e}")
             
             # Extract shortInterestRatioSeries
             match = re.search(r'var shortInterestRatioSeries = "([^"]+)"', script.string)
@@ -559,13 +560,13 @@ def get_short_interest_history(ticker: str) -> Optional[List[Dict]]:
                         if entry['date'] in ratio_data:
                             entry['short_ratio'] = ratio_data[entry['date']]
                 except Exception as e:
-                    print(f"[SHORT INTEREST HISTORY] Error parsing shortInterestRatioSeries: {e}")
+                    logger.info(f"[SHORT INTEREST HISTORY] Error parsing shortInterestRatioSeries: {e}")
         
         history_data.sort(key=lambda x: x['date'])
         return history_data[-30:] if history_data else None
     
     except Exception as e:
-        print(f"Error fetching short interest history from MarketBeat for {ticker}: {str(e)}")
+        logger.exception(f"Error fetching short interest history from MarketBeat for {ticker}: {str(e)}")
         import traceback
         traceback.print_exc()
         return None
@@ -591,7 +592,7 @@ def get_finviz_analyst_ratings(ticker: str) -> Optional[List[Dict]]:
         
         response = requests.get(url, headers=headers, timeout=15)
         if response.status_code != 200:
-            print(f"Finviz returned status {response.status_code} for {ticker}")
+            logger.warning(f"Finviz returned status {response.status_code} for {ticker}")
             return None
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -651,7 +652,7 @@ def get_finviz_analyst_ratings(ticker: str) -> Optional[List[Dict]]:
                                                 'target_price': target_price
                                             })
                                     except Exception as e:
-                                        print(f"Error parsing Finviz analyst row: {str(e)}")
+                                        logger.exception(f"Error parsing Finviz analyst row: {str(e)}")
                                         continue
                                 
                                 if recommendations:
@@ -660,7 +661,7 @@ def get_finviz_analyst_ratings(ticker: str) -> Optional[List[Dict]]:
         return recommendations if recommendations else None
         
     except Exception as e:
-        print(f"Error scraping Finviz analyst ratings for {ticker}: {str(e)}")
+        logger.exception(f"Error scraping Finviz analyst ratings for {ticker}: {str(e)}")
         import traceback
         traceback.print_exc()
         return None
@@ -687,7 +688,7 @@ def get_finviz_insider_trading(ticker: str) -> Optional[List[Dict]]:
         
         response = requests.get(url, headers=headers, timeout=15)
         if response.status_code != 200:
-            print(f"Finviz returned status {response.status_code} for {ticker}")
+            logger.warning(f"Finviz returned status {response.status_code} for {ticker}")
             return None
         
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -770,13 +771,13 @@ def get_finviz_insider_trading(ticker: str) -> Optional[List[Dict]]:
                             'text': transaction_text
                         })
                 except Exception as e:
-                    print(f"Error parsing Finviz row: {str(e)}")
+                    logger.exception(f"Error parsing Finviz row: {str(e)}")
                     continue
         
         return transactions if transactions else None
         
     except Exception as e:
-        print(f"Error scraping Finviz for {ticker}: {str(e)}")
+        logger.exception(f"Error scraping Finviz for {ticker}: {str(e)}")
         import traceback
         traceback.print_exc()
         return None

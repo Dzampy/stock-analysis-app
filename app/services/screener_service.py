@@ -5,6 +5,7 @@ import yfinance as yf
 import time
 from ta.momentum import RSIIndicator
 from app.services.finviz_service import get_short_interest_from_finviz
+from app.utils.logger import logger
 
 
 def get_popular_tickers():
@@ -92,7 +93,7 @@ def run_stock_screener(filters):
         sector = filters.get('sector')
         industry = filters.get('industry')
         
-        print(f"[SCREENER] Screening {len(tickers)} tickers with filters: {filters}")
+        logger.info(f"Screening {len(tickers)} tickers with filters: {filters}")
         
         # Process tickers in batches to avoid rate limiting
         batch_size = 10
@@ -244,18 +245,18 @@ def run_stock_screener(filters):
                     })
                     
                 except Exception as e:
-                    print(f"[SCREENER] Error processing {ticker}: {str(e)}")
+                    logger.warning(f"Error processing {ticker}: {str(e)}")
                     continue
             
             # Small delay between batches
             if i + batch_size < len(tickers):
                 time.sleep(0.5)
         
-        print(f"[SCREENER] Found {len(results)} stocks matching filters")
+        logger.info(f"Found {len(results)} stocks matching filters")
         return results
         
     except Exception as e:
-        print(f"Error in stock screener: {str(e)}")
+        logger.exception(f"Error in stock screener")
         import traceback
         traceback.print_exc()
         return []
