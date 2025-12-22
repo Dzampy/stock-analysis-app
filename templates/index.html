@@ -11237,7 +11237,7 @@
                             
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
                                 <!-- Recommended Position -->
-                                <div class="card" style="background: linear-gradient(135deg, ${data.position_sizing.size_color}15 0%, ${data.position_sizing.size_color}05 100%); border: 2px solid ${data.position_sizing.size_color}; padding: 20px; text-align: center;">
+                                <div class="card" style="background: linear-gradient(135deg, ${(data.position_sizing?.size_color || '#667eea')}15 0%, ${(data.position_sizing?.size_color || '#667eea')}05 100%); border: 2px solid ${data.position_sizing?.size_color || '#667eea'}; padding: 20px; text-align: center;">
                                     <h4 style="margin: 0 0 15px 0; color: var(--text-primary);">📊 Recommended Position</h4>
                                     <div style="font-size: 3em; font-weight: 800; color: ${data.position_sizing?.size_color || '#667eea'}; margin-bottom: 10px;">
                                         ${(data.position_sizing?.recommended_pct !== undefined && data.position_sizing?.recommended_pct !== null) ? data.position_sizing.recommended_pct : 'N/A'}%
