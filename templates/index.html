@@ -16953,7 +16953,8 @@
                     </div>
                 </div>
                 `;
-                console.log('[Financials] Balance Sheet HTML created, length:', html.length);
+                console.log('[Financials] Balance Sheet HTML created, length after:', html.length);
+                console.log('[Financials] Balance Sheet HTML snippet:', html.substring(html.length - 500));
             } else {
                 // Show placeholder if no balance sheet data
                 html += `
@@ -17770,7 +17771,22 @@
                 `;
             }
 
+            console.log('[Financials] Final HTML length before setting innerHTML:', html.length);
+            console.log('[Financials] HTML contains Balance Sheet:', html.includes('Balance Sheet'));
+            console.log('[Financials] HTML contains cash:', html.includes('Cash & Equivalents'));
             container.innerHTML = html;
+            console.log('[Financials] innerHTML set, checking DOM...');
+            
+            // Check if Balance Sheet section exists in DOM
+            setTimeout(() => {
+                const bsSection = document.querySelector('h4:contains("Balance Sheet")') || 
+                                 Array.from(document.querySelectorAll('h4')).find(h => h.textContent.includes('Balance Sheet'));
+                console.log('[Financials] Balance Sheet section in DOM:', bsSection);
+                if (bsSection) {
+                    console.log('[Financials] Balance Sheet section parent:', bsSection.parentElement);
+                    console.log('[Financials] Balance Sheet section computed style:', window.getComputedStyle(bsSection));
+                }
+            }, 100);
 
             // Create charts (use setTimeout to ensure DOM is updated)
             setTimeout(() => {
