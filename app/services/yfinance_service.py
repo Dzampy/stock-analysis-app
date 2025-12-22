@@ -268,14 +268,195 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
                     industry_category = category
                     break
         
-        # TODO: Add more financial data processing here
-        # This is a simplified version - full implementation will be added gradually
+        # Get comprehensive financial statements
+        income_stmt_q = stock.quarterly_income_stmt
+        income_stmt_a = stock.income_stmt
+        cash_flow_q = stock.quarterly_cashflow
+        cash_flow_a = stock.cashflow
+        balance_sheet_q = stock.quarterly_balance_sheet
+        balance_sheet_a = stock.balance_sheet
+        
+        # Process income statement (quarterly)
+        income_statement_quarterly = []
+        if income_stmt_q is not None and not income_stmt_q.empty:
+            quarters = income_stmt_q.columns.tolist()
+            for i, quarter_date in enumerate(quarters):
+                quarter_str = quarter_date.strftime('%Y-Q%q') if hasattr(quarter_date, 'strftime') else str(quarter_date)
+                
+                # Extract key metrics
+                revenue = None
+                net_income = None
+                eps = None
+                
+                for idx in income_stmt_q.index:
+                    idx_str = str(idx).lower()
+                    if 'total revenue' in idx_str or 'revenue' in idx_str:
+                        val = income_stmt_q.loc[idx].iloc[i]
+                        if pd.notna(val):
+                            revenue = float(val)
+                    if 'net income' in idx_str:
+                        val = income_stmt_q.loc[idx].iloc[i]
+                        if pd.notna(val):
+                            net_income = float(val)
+                    if 'basic earnings per share' in idx_str or 'diluted earnings per share' in idx_str:
+                        val = income_stmt_q.loc[idx].iloc[i]
+                        if pd.notna(val):
+                            eps = float(val)
+                
+                income_statement_quarterly.append({
+                    'quarter': quarter_str,
+                    'date': quarter_date.strftime('%Y-%m-%d') if hasattr(quarter_date, 'strftime') else str(quarter_date),
+                    'revenue': revenue,
+                    'net_income': net_income,
+                    'eps': eps
+                })
+        
+        # Process income statement (annual)
+        income_statement_annual = []
+        if income_stmt_a is not None and not income_stmt_a.empty:
+            years = income_stmt_a.columns.tolist()
+            for i, year_date in enumerate(years):
+                year_str = year_date.strftime('%Y') if hasattr(year_date, 'strftime') else str(year_date)
+                
+                revenue = None
+                net_income = None
+                eps = None
+                
+                for idx in income_stmt_a.index:
+                    idx_str = str(idx).lower()
+                    if 'total revenue' in idx_str or 'revenue' in idx_str:
+                        val = income_stmt_a.loc[idx].iloc[i]
+                        if pd.notna(val):
+                            revenue = float(val)
+                    if 'net income' in idx_str:
+                        val = income_stmt_a.loc[idx].iloc[i]
+                        if pd.notna(val):
+                            net_income = float(val)
+                    if 'basic earnings per share' in idx_str or 'diluted earnings per share' in idx_str:
+                        val = income_stmt_a.loc[idx].iloc[i]
+                        if pd.notna(val):
+                            eps = float(val)
+                
+                income_statement_annual.append({
+                    'year': year_str,
+                    'date': year_date.strftime('%Y-%m-%d') if hasattr(year_date, 'strftime') else str(year_date),
+                    'revenue': revenue,
+                    'net_income': net_income,
+                    'eps': eps
+                })
+        
+        # Process cash flow (quarterly)
+        cash_flow_quarterly = []
+        if cash_flow_q is not None and not cash_flow_q.empty:
+            quarters = cash_flow_q.columns.tolist()
+            for i, quarter_date in enumerate(quarters):
+                quarter_str = quarter_date.strftime('%Y-Q%q') if hasattr(quarter_date, 'strftime') else str(quarter_date)
+                
+                operating_cf = None
+                capex = None
+                fcf = None
+                
+                for idx in cash_flow_q.index:
+                    idx_str = str(idx).lower()
+                    if 'operating cash flow' in idx_str or 'cash from operating activities' in idx_str:
+                        val = cash_flow_q.loc[idx].iloc[i]
+                        if pd.notna(val):
+                            operating_cf = float(val)
+                    if 'capital expenditure' in idx_str or 'capex' in idx_str:
+                        val = cash_flow_q.loc[idx].iloc[i]
+                        if pd.notna(val):
+                            capex = float(val)
+                
+                if operating_cf is not None and capex is not None:
+                    fcf = operating_cf - capex
+                elif operating_cf is not None:
+                    fcf = operating_cf
+                
+                cash_flow_quarterly.append({
+                    'quarter': quarter_str,
+                    'date': quarter_date.strftime('%Y-%m-%d') if hasattr(quarter_date, 'strftime') else str(quarter_date),
+                    'operating_cf': operating_cf,
+                    'capex': capex,
+                    'fcf': fcf
+                })
+        
+        # Process balance sheet
+        balance_sheet = {}
+        if balance_sheet_q is not None and not balance_sheet_q.empty:
+            latest_quarter = balance_sheet_q.columns[0] if len(balance_sheet_q.columns) > 0 else None
+            if latest_quarter is not None:
+                for idx in balance_sheet_q.index:
+                    idx_str = str(idx).lower()
+                    val = balance_sheet_q.loc[idx].iloc[0]
+                    if pd.notna(val):
+                        if 'cash' in idx_str and 'equivalents' in idx_str:
+                            balance_sheet['cash'] = float(val)
+                        if 'total debt' in idx_str:
+                            balance_sheet['total_debt'] = float(val)
+                        if 'total equity' in idx_str or 'stockholders equity' in idx_str:
+                            balance_sheet['equity'] = float(val)
+                
+                # Calculate net debt
+                if 'cash' in balance_sheet and 'total_debt' in balance_sheet:
+                    balance_sheet['net_debt'] = balance_sheet['total_debt'] - balance_sheet['cash']
+        
+        # Calculate margins
+        margins_quarterly = []
+        if income_statement_quarterly:
+            for item in income_statement_quarterly:
+                margin_data = {}
+                if item.get('revenue') and item.get('revenue') > 0:
+                    # Gross margin (simplified - would need COGS)
+                    # Operating margin (simplified - would need operating income)
+                    if item.get('net_income'):
+                        margin_data['net_margin'] = (item['net_income'] / item['revenue']) * 100
+                if margin_data:
+                    margin_data['quarter'] = item['quarter']
+                    margins_quarterly.append(margin_data)
+        
+        # Create executive snapshot
+        executive_snapshot = {}
+        if income_statement_quarterly:
+            latest = income_statement_quarterly[0] if income_statement_quarterly else None
+            if latest:
+                # Calculate TTM (Trailing Twelve Months) - sum of last 4 quarters
+                ttm_revenue = sum([q.get('revenue', 0) or 0 for q in income_statement_quarterly[:4]])
+                ttm_net_income = sum([q.get('net_income', 0) or 0 for q in income_statement_quarterly[:4]])
+                executive_snapshot['revenue_ttm'] = ttm_revenue if ttm_revenue > 0 else None
+                executive_snapshot['net_income_ttm'] = ttm_net_income if ttm_net_income != 0 else None
+        
+        if cash_flow_quarterly:
+            ttm_fcf = sum([q.get('fcf', 0) or 0 for q in cash_flow_quarterly[:4]])
+            executive_snapshot['fcf_ttm'] = ttm_fcf if ttm_fcf != 0 else None
+        
+        # Calculate financials score (will be enhanced by calculate_financials_score)
+        from app.analysis.fundamental import calculate_financials_score
+        financials_score = calculate_financials_score({
+            'income_statement': {'quarterly': income_statement_quarterly},
+            'cash_flow': {'quarterly': cash_flow_quarterly},
+            'balance_sheet': balance_sheet,
+            'executive_snapshot': executive_snapshot
+        }, info, 'unknown')
         
         return {
             'ticker': ticker.upper(),
+            'company_name': info.get('longName', ticker.upper()),
             'sector': sector,
             'industry': industry,
             'industry_category': industry_category,
+            'income_statement': {
+                'quarterly': income_statement_quarterly,
+                'annual': income_statement_annual
+            },
+            'cash_flow': {
+                'quarterly': cash_flow_quarterly
+            },
+            'balance_sheet': balance_sheet,
+            'margins': {
+                'quarterly': margins_quarterly
+            },
+            'executive_snapshot': executive_snapshot,
+            'financials_score': financials_score,
             'quarterly_estimates': quarterly_estimates,
             'quarterly_actuals': quarterly_actuals,
             'info': info
