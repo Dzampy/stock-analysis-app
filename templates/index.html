@@ -16069,7 +16069,7 @@
         }
 
         function formatCurrency(value) {
-            if (value === null || value === undefined) return 'N/A';
+            if (value === null || value === undefined || isNaN(value) || typeof value !== 'number') return 'N/A';
             if (Math.abs(value) >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
             if (Math.abs(value) >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
             if (Math.abs(value) >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
@@ -16114,7 +16114,7 @@
                             Celkové Hodnocení
                         </div>
                         <div style="font-size: 3.5em; font-weight: 800; color: ${scoreColor}; margin-bottom: 10px; line-height: 1;">
-                            ${scoreValue.toFixed(0)}
+                            ${(scoreValue !== null && scoreValue !== undefined && !isNaN(scoreValue) && typeof scoreValue === 'number') ? scoreValue.toFixed(0) : 'N/A'}
                         </div>
                         <div style="font-size: 1.1em; font-weight: 700; color: ${scoreColor}; margin-bottom: 15px;">
                             ${scoreGrade}
@@ -16134,10 +16134,11 @@
                                         'stability': 'Stabilita',
                                         'efficiency': 'Efektivita'
                                     };
+                                    const formattedValue = (value !== null && value !== undefined && !isNaN(value) && typeof value === 'number') ? value.toFixed(1) : 'N/A';
                                     return `
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 0.75em;">
                                             <span style="color: var(--text-secondary);">${labels[key] || key}:</span>
-                                            <span style="font-weight: 600; color: var(--text-primary);">${value.toFixed(1)}</span>
+                                            <span style="font-weight: 600; color: var(--text-primary);">${formattedValue}</span>
                                         </div>
                                     `;
                                 }).join('')}
@@ -16240,7 +16241,7 @@
                             ${revenueTrendData.length > 0 ? `<canvas id="${revenueSparklineId}" data-sparkline="${revenueDataStr}" style="width: 80px; height: 30px; margin-left: 10px;"></canvas>` : ''}
                         </div>
                         <div style="font-size: 0.9em; color: ${statusColor}; font-weight: 600; margin-bottom: 5px;">
-                            → YoY ${revenueYoy !== null && revenueYoy !== undefined ? (revenueYoy >= 0 ? '+' : '') + revenueYoy.toFixed(1) + '%' : 'N/A'}
+                            → YoY ${(revenueYoy !== null && revenueYoy !== undefined && !isNaN(revenueYoy) && typeof revenueYoy === 'number') ? (revenueYoy >= 0 ? '+' : '') + revenueYoy.toFixed(1) + '%' : 'N/A'}
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                             <div style="font-size: 0.75em; color: var(--text-tertiary);">${statusEmoji} ${revenueStatus} - ${statusText}${trendText}</div>
@@ -16310,7 +16311,7 @@
                             ${earningsTrendData.length > 0 ? `<canvas id="${earningsSparklineId}" data-sparkline="${earningsDataStr}" style="width: 80px; height: 30px; margin-left: 10px;"></canvas>` : ''}
                         </div>
                         <div style="font-size: 0.9em; color: ${statusColor}; font-weight: 600; margin-bottom: 5px;">
-                            → YoY ${incomeYoy !== null && incomeYoy !== undefined ? (incomeYoy >= 0 ? '+' : '') + incomeYoy.toFixed(1) + '%' : 'N/A'}
+                            → YoY ${(incomeYoy !== null && incomeYoy !== undefined && !isNaN(incomeYoy) && typeof incomeYoy === 'number') ? (incomeYoy >= 0 ? '+' : '') + incomeYoy.toFixed(1) + '%' : 'N/A'}
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                             <div style="font-size: 0.75em; color: var(--text-tertiary);">${statusEmoji} ${incomeStatus} - ${statusText}${trendText}</div>
@@ -16397,7 +16398,7 @@
                             ${fcfTrendData.length > 0 ? `<canvas id="${fcfSparklineId}" data-sparkline="${fcfDataStr}" style="width: 80px; height: 30px; margin-left: 10px;"></canvas>` : ''}
                         </div>
                         <div style="font-size: 0.9em; color: ${statusColor}; font-weight: 600; margin-bottom: 5px;">
-                            → FCF margin ${fcfMargin !== null && fcfMargin !== undefined && fcfMargin >= 0 ? fcfMargin.toFixed(1) + '%' : 'N/A'}
+                            → FCF margin ${(fcfMargin !== null && fcfMargin !== undefined && !isNaN(fcfMargin) && typeof fcfMargin === 'number' && fcfMargin >= 0) ? fcfMargin.toFixed(1) + '%' : 'N/A'}
                         </div>
                         ${burnRateHtml}
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
@@ -16441,7 +16442,7 @@
                                 </span>
                             </span>
                         </div>
-                        <div style="font-size: 1.8em; font-weight: 700; color: var(--text-primary); margin-bottom: 5px;">${gm !== null && gm !== undefined ? gm.toFixed(1) + '%' : 'N/A'}</div>
+                        <div style="font-size: 1.8em; font-weight: 700; color: var(--text-primary); margin-bottom: 5px;">${(gm !== null && gm !== undefined && !isNaN(gm) && typeof gm === 'number') ? gm.toFixed(1) + '%' : 'N/A'}</div>
                         <div style="font-size: 0.9em; color: ${statusColor}; font-weight: 600; margin-bottom: 5px;">
                             ${statusEmoji} ${gmStatus}
                         </div>
