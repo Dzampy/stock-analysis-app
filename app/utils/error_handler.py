@@ -118,13 +118,21 @@ def handle_generic_error(error: Exception) -> tuple:
     """Handle generic exceptions"""
     error_message = str(error) or "An unexpected error occurred"
     
+    # Safely get request info
+    try:
+        path = request.path if request else None
+        method = request.method if request else None
+    except:
+        path = None
+        method = None
+    
     # Log full traceback
     logger.exception(
         f"Unhandled exception: {error_message}",
         extra={
             'exception_type': type(error).__name__,
-            'path': request.path if request else None,
-            'method': request.method if request else None
+            'path': path,
+            'method': method
         }
     )
     
