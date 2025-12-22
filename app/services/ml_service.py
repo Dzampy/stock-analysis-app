@@ -561,9 +561,74 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             'take_profit': current_price * 1.15,
             'dca_levels': [current_price * 0.95, current_price * 0.90, current_price * 0.85]
         }
+        # Calculate position sizing with proper structure
+        risk_score = risk_analysis.get('risk_score', 50)
+        ml_confidence = price_prediction.get('confidence', 50) if price_prediction else 50
+        
+        # Base position size calculation
+        base_position = 5.0  # Default 5%
+        
+        # Adjust based on risk score (higher risk = smaller position)
+        if risk_score >= 70:
+            base_position = 1.0
+        elif risk_score >= 50:
+            base_position = 3.0
+        elif risk_score >= 30:
+            base_position = 5.0
+        else:
+            base_position = 7.0
+        
+        # Adjust based on ML confidence (higher confidence = larger position)
+        confidence_multiplier = ml_confidence / 50.0  # 0.5x to 2.0x
+        recommended_pct = base_position * confidence_multiplier
+        
+        # Cap at reasonable limits
+        recommended_pct = max(0.5, min(15.0, recommended_pct))
+        
+        # Calculate range (conservative to aggressive)
+        conservative_pct = recommended_pct * 0.6  # 60% of recommended
+        aggressive_pct = recommended_pct * 1.5   # 150% of recommended
+        conservative_pct = max(0.5, min(10.0, conservative_pct))
+        aggressive_pct = max(1.0, min(20.0, aggressive_pct))
+        
+        # Determine size category and color
+        if recommended_pct >= 10:
+            size_category = 'Large'
+            size_color = '#10b981'
+        elif recommended_pct >= 5:
+            size_category = 'Medium'
+            size_color = '#fbbf24'
+        else:
+            size_category = 'Small'
+            size_color = '#ef4444'
+        
+        # Calculate volatility (ATR-based)
+        atr = ml_features.get('atr', current_price * 0.02)
+        volatility_pct = (atr / current_price * 100) if current_price > 0 else 2.0
+        
         position_sizing = {
-            'recommended_position_pct': 3.0,
-            'justification': 'Standard position size based on risk score'
+            'recommended_pct': round(recommended_pct, 1),
+            'size_category': size_category,
+            'size_color': size_color,
+            'range': {
+                'conservative': round(conservative_pct, 1),
+                'aggressive': round(aggressive_pct, 1)
+            },
+            'risk_score': round(risk_score, 1),
+            'ml_confidence': round(ml_confidence, 1),
+            'volatility_pct': round(volatility_pct, 2),
+            'reasoning': f'Position size based on risk score ({risk_score:.1f}/100) and ML confidence ({ml_confidence:.1f}%). Lower risk and higher confidence allow for larger positions.',
+            'confidence_factors': [
+                f"Risk Score: {risk_score:.1f}/100",
+                f"ML Confidence: {ml_confidence:.1f}%",
+                f"Volatility: {volatility_pct:.2f}%"
+            ],
+            'adjustments': {
+                'risk': round(risk_score / 50.0, 2),
+                'confidence': round(ml_confidence / 50.0, 2),
+                'volatility': round(volatility_pct / 2.0, 2),
+                'risk_reward': 1.0
+            }
         }
         
         # Calculate technical score
