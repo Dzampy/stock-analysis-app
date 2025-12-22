@@ -16068,6 +16068,14 @@
             }
         }
 
+        // Helper function to safely format numbers with toFixed
+        function safeToFixed(value, decimals = 2) {
+            if (value === null || value === undefined || isNaN(value) || typeof value !== 'number') {
+                return null;
+            }
+            return value.toFixed(decimals);
+        }
+
         function formatCurrency(value) {
             if (value === null || value === undefined || isNaN(value) || typeof value !== 'number') return 'N/A';
             if (Math.abs(value) >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
