@@ -6651,7 +6651,7 @@
                 const epsEst = earningsData.eps_estimate ? earningsData.eps_estimate[i] : null;
                 const epsRep = earningsData.eps_reported ? earningsData.eps_reported[i] : null;
                 const epsSurprise = earningsData.eps_surprise_pct ? earningsData.eps_surprise_pct[i] : null;
-                const earnings = earningsData.earnings[i];
+                const earnings = earningsData.earnings && earningsData.earnings[i] !== undefined ? earningsData.earnings[i] : null;
                 const earningsQoq = earningsData.earnings_qoq_change ? earningsData.earnings_qoq_change[i] : null;
                 const earningsQoqPct = earningsData.earnings_qoq_change_pct ? earningsData.earnings_qoq_change_pct[i] : null;
                 
