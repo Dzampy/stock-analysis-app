@@ -17,46 +17,81 @@ bp = Blueprint('stock', __name__)
 def index():
     """Main page - render index.html"""
     from flask import current_app
+    from pathlib import Path
     import os
     
-    # Check if template exists
+    # Try to find template using multiple strategies
     template_path = None
-    if current_app.template_folder:
-        template_path = os.path.join(current_app.template_folder, 'index.html')
-        logger.info(f"Looking for template at: {template_path}")
-        logger.info(f"Template exists: {os.path.exists(template_path) if template_path else False}")
+    template_content = None
     
-    try:
-        return render_template('index.html')
-    except Exception as e:
-        logger.exception(f"Error rendering index.html: {e}")
-        logger.info(f"Template folder: {current_app.template_folder}")
-        logger.info(f"Root path: {current_app.root_path}")
-        # Fallback: return simple HTML if template not found
-        return f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Stock Analysis Platform</title>
-            <meta charset="UTF-8">
-            <style>
-                body {{ font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: #fff; }}
-                .container {{ max-width: 800px; margin: 0 auto; }}
-                h1 {{ color: #4CAF50; }}
-                .error {{ color: #f44336; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>Stock Analysis Platform</h1>
-                <p>Application is running successfully! 🎉</p>
-                <p class="error">Note: Template file not found. This is a fallback page.</p>
-                <p>Template path: {template_path or 'Not set'}</p>
-                <p>Error: {str(e)}</p>
-            </div>
-        </body>
-        </html>
-        """, 200
+    # Strategy 1: Use Flask's template folder
+    if current_app.template_folder:
+        template_path = Path(current_app.template_folder) / 'index.html'
+        if template_path.exists():
+            logger.info(f"Found template at Flask template_folder: {template_path}")
+            try:
+                return render_template('index.html')
+            except Exception as e:
+                logger.warning(f"render_template failed: {e}")
+    
+    # Strategy 2: Try absolute path from app.py location
+    base_dir = Path(__file__).parent.parent.parent  # Go up from app/routes/stock.py to project root
+    alt_template_path = base_dir / 'templates' / 'index.html'
+    if alt_template_path.exists():
+        logger.info(f"Found template at alternative path: {alt_template_path}")
+        try:
+            # Read template directly and use render_template_string
+            with open(alt_template_path, 'r', encoding='utf-8') as f:
+                template_content = f.read()
+            from flask import render_template_string
+            return render_template_string(template_content)
+        except Exception as e:
+            logger.warning(f"Direct template read failed: {e}")
+    
+    # Strategy 3: Try common Render paths
+    render_paths = [
+        Path('/opt/render/project/src/templates/index.html'),
+        Path('/opt/render/project/src') / 'templates' / 'index.html',
+        Path.cwd() / 'templates' / 'index.html',
+    ]
+    for render_path in render_paths:
+        if render_path.exists():
+            logger.info(f"Found template at Render path: {render_path}")
+            try:
+                with open(render_path, 'r', encoding='utf-8') as f:
+                    template_content = f.read()
+                from flask import render_template_string
+                return render_template_string(template_content)
+            except Exception as e:
+                logger.warning(f"Render path template read failed: {e}")
+    
+    # Fallback: return simple HTML if template not found
+    logger.error(f"Could not find index.html template. Tried: {template_path}, {alt_template_path}, {render_paths}")
+    logger.info(f"Template folder: {current_app.template_folder}")
+    logger.info(f"Root path: {current_app.root_path}")
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Stock Analysis Platform</title>
+        <meta charset="UTF-8">
+        <style>
+            body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: #fff; }
+            .container { max-width: 800px; margin: 0 auto; }
+            h1 { color: #4CAF50; }
+            .error { color: #f44336; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Stock Analysis Platform</h1>
+            <p>Application is running successfully! 🎉</p>
+            <p class="error">Note: Template file not found. This is a fallback page.</p>
+            <p>Please check the logs for template path information.</p>
+        </div>
+    </body>
+    </html>
+    """, 200
 
 
 @bp.route('/api/stock/<ticker>')
