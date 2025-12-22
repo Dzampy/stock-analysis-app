@@ -33,13 +33,19 @@ except Exception as e:
 
 # Flask root_path defaults to the package directory (app/), but we need it to be the project root
 # IMPORTANT: Use absolute path for template_folder to ensure Flask finds it regardless of root_path
-# Flask will use template_folder as-is if it's absolute, otherwise it's relative to root_path
+# Convert to absolute path explicitly
+template_abs_path = str(template_dir.absolute())
+static_abs_path = str(static_dir.absolute())
+
 app = Flask(__name__, 
             root_path=str(base_dir),
-            template_folder=str(template_dir.absolute()), 
-            static_folder=str(static_dir.absolute()))
+            template_folder=template_abs_path, 
+            static_folder=static_abs_path)
+
+# Verify paths after Flask initialization
 logger.info(f"Flask root_path: {app.root_path}")
 logger.info(f"Flask template_folder: {app.template_folder}")
+logger.info(f"Is template_folder absolute: {Path(app.template_folder).is_absolute()}")
 logger.info(f"Expected template path: {Path(app.template_folder) / 'index.html'}")
 logger.info(f"Template path exists: {(Path(app.template_folder) / 'index.html').exists()}")
 app.config['TEMPLATES_AUTO_RELOAD'] = True
