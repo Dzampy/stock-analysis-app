@@ -13,7 +13,7 @@ pip install -r requirements.txt
 
 2. **Nastavte environment variables (volitelné):**
 Vytvořte soubor `.env`:
-```
+     ```
 GEMINI_API_KEY=your_gemini_api_key
 SEC_API_KEY=your_sec_api_key
 REDDIT_CLIENT_ID=your_reddit_client_id

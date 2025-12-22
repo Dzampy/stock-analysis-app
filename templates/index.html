@@ -16781,12 +16781,22 @@
 
             // Balance Sheet (in same section)
             const bs = data.balance_sheet || {};
+            console.log('[Financials] Balance Sheet data:', bs);
+            
             // Show Balance Sheet section if we have at least one value (including 0)
             const hasBalanceSheetData = (bs.cash !== null && bs.cash !== undefined) || 
                                        (bs.total_debt !== null && bs.total_debt !== undefined) || 
                                        (bs.equity !== null && bs.equity !== undefined) || 
                                        (bs.current_ratio !== null && bs.current_ratio !== undefined) ||
                                        (bs.net_debt !== null && bs.net_debt !== undefined);
+            
+            console.log('[Financials] hasBalanceSheetData:', hasBalanceSheetData, {
+                cash: bs.cash,
+                total_debt: bs.total_debt,
+                equity: bs.equity,
+                current_ratio: bs.current_ratio,
+                net_debt: bs.net_debt
+            });
             
             if (hasBalanceSheetData) {
                 html += `
@@ -18465,23 +18475,42 @@
         
         function createCashFlowBreakdownChart(cfAnalysis, ticker) {
             const ctx = document.getElementById(`cashFlowBreakdownChart-${ticker}`);
-            if (!ctx || typeof Chart === 'undefined') return;
+            if (!ctx || typeof Chart === 'undefined') {
+                console.warn('[Cash Flow Chart] Canvas or Chart.js not available');
+                return;
+            }
             
             const breakdown = cfAnalysis.quarterly_breakdown || [];
-            if (breakdown.length === 0) return;
+            if (breakdown.length === 0) {
+                console.warn('[Cash Flow Chart] No breakdown data available');
+                return;
+            }
+            
+            console.log('[Cash Flow Chart] Breakdown data:', breakdown);
             
             const labels = breakdown.map(q => {
                 const qStr = q.quarter || q.date;
-                if (qStr.includes('-Q')) {
+                if (qStr && qStr.includes('-Q')) {
                     const [year, qNum] = qStr.split('-Q');
                     return `Q${qNum} '${year.slice(-2)}`;
                 }
-                return qStr;
+                return qStr || 'N/A';
             }).reverse();
             
-            const operating = breakdown.map(q => q.operating_cf || 0).reverse();
-            const investing = breakdown.map(q => q.investing_cf || 0).reverse();
-            const financing = breakdown.map(q => q.financing_cf || 0).reverse();
+            const operating = breakdown.map(q => {
+                const val = q.operating_cf;
+                return (val !== null && val !== undefined && !isNaN(val)) ? parseFloat(val) : 0;
+            }).reverse();
+            const investing = breakdown.map(q => {
+                const val = q.investing_cf;
+                return (val !== null && val !== undefined && !isNaN(val)) ? parseFloat(val) : 0;
+            }).reverse();
+            const financing = breakdown.map(q => {
+                const val = q.financing_cf;
+                return (val !== null && val !== undefined && !isNaN(val)) ? parseFloat(val) : 0;
+            }).reverse();
+            
+            console.log('[Cash Flow Chart] Data arrays:', { operating, investing, financing, labels });
             
             const isDark = document.body.classList.contains('dark-mode');
             const chartTextColor = isDark ? '#e5e7eb' : '#1f2937';
@@ -18552,7 +18581,16 @@
                                 color: gridColor,
                                 lineWidth: 1,
                                 drawBorder: false
-                            }
+                            },
+                            // Use logarithmic scale if values vary greatly
+                            type: (() => {
+                                const allValues = [...operating, ...investing, ...financing].filter(v => v !== 0);
+                                if (allValues.length === 0) return 'linear';
+                                const maxVal = Math.max(...allValues.map(Math.abs));
+                                const minVal = Math.min(...allValues.map(Math.abs).filter(v => v > 0));
+                                // Use log scale if max/min ratio > 100
+                                return (maxVal / minVal > 100) ? 'logarithmic' : 'linear';
+                            })()
                         },
                         x: {
                             stacked: false,
