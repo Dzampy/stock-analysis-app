@@ -33,14 +33,15 @@ except Exception as e:
 
 # Flask root_path defaults to the package directory (app/), but we need it to be the project root
 # Set root_path to base_dir (where app.py is) so templates/ is found correctly
+# IMPORTANT: Use absolute path for template_folder to ensure Flask finds it
 app = Flask(__name__, 
             root_path=str(base_dir),
-            template_folder='templates', 
-            static_folder='static')
+            template_folder=str(template_dir), 
+            static_folder=str(static_dir))
 logger.info(f"Flask root_path: {app.root_path}")
 logger.info(f"Flask template_folder: {app.template_folder}")
-logger.info(f"Expected template path: {Path(app.root_path) / app.template_folder / 'index.html'}")
-logger.info(f"Template path exists: {(Path(app.root_path) / app.template_folder / 'index.html').exists()}")
+logger.info(f"Expected template path: {Path(app.template_folder) / 'index.html'}")
+logger.info(f"Template path exists: {(Path(app.template_folder) / 'index.html').exists()}")
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
