@@ -16488,7 +16488,7 @@
                                 </span>
                             </span>
                         </div>
-                        <div style="font-size: 1.8em; font-weight: 700; color: var(--text-primary); margin-bottom: 5px;">${ratio !== null && ratio !== undefined ? ratio.toFixed(1) + '×' : 'N/A'}</div>
+                        <div style="font-size: 1.8em; font-weight: 700; color: var(--text-primary); margin-bottom: 5px;">${(ratio !== null && ratio !== undefined && !isNaN(ratio) && typeof ratio === 'number') ? ratio.toFixed(1) + '×' : 'N/A'}</div>
                         <div style="font-size: 0.9em; color: ${statusColor}; font-weight: 600; margin-bottom: 5px;">
                             ${statusEmoji} ${ratioStatus}
                         </div>
@@ -16601,7 +16601,7 @@
                     html += `
                         <div style="padding: 20px; background: var(--metric-bg); border-radius: 12px;">
                             <div style="font-size: 1.2em; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">Gross Margin</div>
-                            <div style="font-size: 2em; font-weight: 700; color: #667eea; margin-bottom: 10px;">${snapshot.gross_margin.toFixed(1)}%</div>
+                            <div style="font-size: 2em; font-weight: 700; color: #667eea; margin-bottom: 10px;">${(snapshot.gross_margin !== null && snapshot.gross_margin !== undefined && !isNaN(snapshot.gross_margin) && typeof snapshot.gross_margin === 'number') ? snapshot.gross_margin.toFixed(1) + '%' : 'N/A'}</div>
                             <div style="font-size: 0.9em; color: var(--text-secondary);">Zisk po přímých nákladech</div>
                             <div style="font-size: 0.8em; color: var(--text-tertiary); margin-top: 5px;">(Revenue - COGS) / Revenue</div>
                         </div>
@@ -16613,7 +16613,7 @@
                     html += `
                         <div style="padding: 20px; background: var(--metric-bg); border-radius: 12px;">
                             <div style="font-size: 1.2em; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">Operating Margin</div>
-                            <div style="font-size: 2em; font-weight: 700; color: #667eea; margin-bottom: 10px;">${opMargin.toFixed(1)}%</div>
+                            <div style="font-size: 2em; font-weight: 700; color: #667eea; margin-bottom: 10px;">${(opMargin !== null && opMargin !== undefined && !isNaN(opMargin) && typeof opMargin === 'number') ? opMargin.toFixed(1) + '%' : 'N/A'}</div>
                             <div style="font-size: 0.9em; color: var(--text-secondary);">Zisk po provozních nákladech</div>
                             <div style="font-size: 0.8em; color: var(--text-tertiary); margin-top: 5px;">Efektivita operací</div>
                         </div>
@@ -16824,7 +16824,7 @@
                     html += `
                         <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px; border-left: 4px solid ${crColor};">
                             <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Current Ratio</div>
-                            <div style="font-size: 1.5em; font-weight: 700; color: ${crColor};">${bs.current_ratio.toFixed(2)}</div>
+                            <div style="font-size: 1.5em; font-weight: 700; color: ${crColor};">${(bs.current_ratio !== null && bs.current_ratio !== undefined && !isNaN(bs.current_ratio) && typeof bs.current_ratio === 'number') ? bs.current_ratio.toFixed(2) : 'N/A'}</div>
                             <div style="font-size: 0.75em; color: var(--text-tertiary); margin-top: 5px;">${crEmoji} ${crStatus} - ${crDesc}</div>
                         </div>
                     `;
@@ -16839,21 +16839,21 @@
                 
                 if (bs.net_debt !== null && bs.net_debt < 0 && bs.current_ratio !== null && bs.current_ratio !== undefined && bs.current_ratio >= 1.5) {
                     bsVerdict = 'Strong';
-                    bsVerdictDesc = 'Více hotovosti než dluhu a silná likvidita (Current Ratio: ' + (bs.current_ratio !== null && bs.current_ratio !== undefined ? bs.current_ratio.toFixed(2) : 'N/A') + ')';
+                    bsVerdictDesc = 'Více hotovosti než dluhu a silná likvidita (Current Ratio: ' + ((bs.current_ratio !== null && bs.current_ratio !== undefined && !isNaN(bs.current_ratio) && typeof bs.current_ratio === 'number') ? bs.current_ratio.toFixed(2) : 'N/A') + ')';
                     bsVerdictColor = '#10b981';
                     bsVerdictBg = 'rgba(16, 185, 129, 0.1)';
                     bsVerdictEmoji = '🟢';
                 } else if (bs.net_debt !== null && bs.net_debt < 0) {
                     bsVerdict = 'Strong';
-                    bsVerdictDesc = 'Více hotovosti než dluhu, ale pozor na likviditu (Current Ratio: ' + (bs.current_ratio !== null && bs.current_ratio !== undefined ? bs.current_ratio.toFixed(2) : 'N/A') + ')';
+                    bsVerdictDesc = 'Více hotovosti než dluhu, ale pozor na likviditu (Current Ratio: ' + ((bs.current_ratio !== null && bs.current_ratio !== undefined && !isNaN(bs.current_ratio) && typeof bs.current_ratio === 'number') ? bs.current_ratio.toFixed(2) : 'N/A') + ')';
                     bsVerdictColor = '#10b981';
                     bsVerdictBg = 'rgba(16, 185, 129, 0.1)';
                     bsVerdictEmoji = '🟢';
                 } else if (bs.current_ratio !== null && bs.current_ratio !== undefined && bs.current_ratio >= 1 && bs.net_debt !== null && bs.net_debt < bs.cash) {
-                    bsVerdictDesc = 'Stabilní finanční pozice - dostatečná likvidita (Current Ratio: ' + (bs.current_ratio !== null && bs.current_ratio !== undefined ? bs.current_ratio.toFixed(2) : 'N/A') + ')';
+                    bsVerdictDesc = 'Stabilní finanční pozice - dostatečná likvidita (Current Ratio: ' + ((bs.current_ratio !== null && bs.current_ratio !== undefined && !isNaN(bs.current_ratio) && typeof bs.current_ratio === 'number') ? bs.current_ratio.toFixed(2) : 'N/A') + ')';
                 } else if (bs.current_ratio !== null && bs.current_ratio !== undefined && bs.current_ratio < 1) {
                     bsVerdict = 'Weak';
-                    bsVerdictDesc = `Nízká likvidita (Current Ratio: ${bs.current_ratio !== null && bs.current_ratio !== undefined ? bs.current_ratio.toFixed(2) : 'N/A'}) - firma může mít problémy splatit krátkodobé závazky${bs.net_debt !== null && bs.net_debt > 0 ? '. Net debt je pozitivní.' : ''}`;
+                    bsVerdictDesc = `Nízká likvidita (Current Ratio: ${(bs.current_ratio !== null && bs.current_ratio !== undefined && !isNaN(bs.current_ratio) && typeof bs.current_ratio === 'number') ? bs.current_ratio.toFixed(2) : 'N/A'}) - firma může mít problémy splatit krátkodobé závazky${bs.net_debt !== null && bs.net_debt > 0 ? '. Net debt je pozitivní.' : ''}`;
                     bsVerdictColor = '#ef4444';
                     bsVerdictBg = 'rgba(239, 68, 68, 0.1)';
                     bsVerdictEmoji = '🔴';
