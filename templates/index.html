@@ -16616,8 +16616,8 @@
                     `;
                 }
                 
-                if (data.margins?.quarterly?.[0]?.operating_margin !== null) {
-                    const opMargin = data.margins.quarterly[0].operating_margin;
+                if (data.margins?.quarterly?.[0]?.operating_margin !== null && data.margins?.quarterly?.[0]?.operating_margin !== undefined) {
+                    const opMargin = data.margins?.quarterly?.[0]?.operating_margin;
                     html += `
                         <div style="padding: 20px; background: var(--metric-bg); border-radius: 12px;">
                             <div style="font-size: 1.2em; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">Operating Margin</div>
@@ -16629,7 +16629,7 @@
                 }
                 
                 if (data.margins?.quarterly?.[0]?.net_margin !== null && data.margins?.quarterly?.[0]?.net_margin !== undefined) {
-                    const netMargin = data.margins.quarterly[0].net_margin;
+                    const netMargin = data.margins?.quarterly?.[0]?.net_margin;
                     html += `
                         <div style="padding: 20px; background: var(--metric-bg); border-radius: 12px;">
                             <div style="font-size: 1.2em; font-weight: 600; color: var(--text-primary); margin-bottom: 10px;">Net Margin</div>
