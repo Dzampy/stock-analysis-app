@@ -281,7 +281,14 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
         if income_stmt_q is not None and not income_stmt_q.empty:
             quarters = income_stmt_q.columns.tolist()
             for i, quarter_date in enumerate(quarters):
-                quarter_str = quarter_date.strftime('%Y-Q%q') if hasattr(quarter_date, 'strftime') else str(quarter_date)
+                # Format quarter as YYYY-QN (e.g., 2024-Q1)
+                if hasattr(quarter_date, 'year') and hasattr(quarter_date, 'month'):
+                    quarter_num = (quarter_date.month - 1) // 3 + 1
+                    quarter_str = f"{quarter_date.year}-Q{quarter_num}"
+                elif hasattr(quarter_date, 'strftime'):
+                    quarter_str = quarter_date.strftime('%Y-Q%q') if '%q' in quarter_date.strftime('%Y-Q%q') else f"{quarter_date.year}-Q{(quarter_date.month-1)//3+1}"
+                else:
+                    quarter_str = str(quarter_date)
                 
                 # Extract key metrics
                 revenue = None
@@ -350,7 +357,14 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
         if cash_flow_q is not None and not cash_flow_q.empty:
             quarters = cash_flow_q.columns.tolist()
             for i, quarter_date in enumerate(quarters):
-                quarter_str = quarter_date.strftime('%Y-Q%q') if hasattr(quarter_date, 'strftime') else str(quarter_date)
+                # Format quarter as YYYY-QN (e.g., 2024-Q1)
+                if hasattr(quarter_date, 'year') and hasattr(quarter_date, 'month'):
+                    quarter_num = (quarter_date.month - 1) // 3 + 1
+                    quarter_str = f"{quarter_date.year}-Q{quarter_num}"
+                elif hasattr(quarter_date, 'strftime'):
+                    quarter_str = quarter_date.strftime('%Y-Q%q') if '%q' in quarter_date.strftime('%Y-Q%q') else f"{quarter_date.year}-Q{(quarter_date.month-1)//3+1}"
+                else:
+                    quarter_str = str(quarter_date)
                 
                 operating_cf = None
                 capex = None
