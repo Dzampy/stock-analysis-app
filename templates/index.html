@@ -16089,6 +16089,23 @@
             const container = document.getElementById('financialsContent');
             let html = '';
             
+            // Validate data structure
+            if (!data || typeof data !== 'object') {
+                container.innerHTML = '<p style="color: var(--text-secondary);">Invalid financial data received.</p>';
+                return;
+            }
+            
+            // Ensure income_statement, cash_flow, and margins are objects if they exist
+            if (data.income_statement && typeof data.income_statement !== 'object') {
+                data.income_statement = {};
+            }
+            if (data.cash_flow && typeof data.cash_flow !== 'object') {
+                data.cash_flow = {};
+            }
+            if (data.margins && typeof data.margins !== 'object') {
+                data.margins = {};
+            }
+            
             const snapshot = data.executive_snapshot || {};
             const companyStage = data.company_stage || 'unknown';
             const mainVerdict = data.main_verdict_sentence || '';
