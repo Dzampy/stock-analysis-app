@@ -18194,6 +18194,9 @@
                             ticks: {
                                 callback: function(value) {
                                     if (showGrowth) {
+                                        if (value === null || value === undefined || isNaN(value) || typeof value !== 'number') {
+                                            return 'N/A';
+                                        }
                                         return value.toFixed(1) + '%';
                                     }
                                     return formatCurrency(value);
