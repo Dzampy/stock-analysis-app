@@ -11239,11 +11239,11 @@
                                 <!-- Recommended Position -->
                                 <div class="card" style="background: linear-gradient(135deg, ${data.position_sizing.size_color}15 0%, ${data.position_sizing.size_color}05 100%); border: 2px solid ${data.position_sizing.size_color}; padding: 20px; text-align: center;">
                                     <h4 style="margin: 0 0 15px 0; color: var(--text-primary);">📊 Recommended Position</h4>
-                                    <div style="font-size: 3em; font-weight: 800; color: ${data.position_sizing.size_color}; margin-bottom: 10px;">
-                                        ${data.position_sizing.recommended_pct}%
+                                    <div style="font-size: 3em; font-weight: 800; color: ${data.position_sizing?.size_color || '#667eea'}; margin-bottom: 10px;">
+                                        ${(data.position_sizing?.recommended_pct !== undefined && data.position_sizing?.recommended_pct !== null) ? data.position_sizing.recommended_pct : 'N/A'}%
                                     </div>
-                                    <div style="font-size: 1.2em; font-weight: 600; color: ${data.position_sizing.size_color}; margin-bottom: 5px;">
-                                        ${data.position_sizing.size_category}
+                                    <div style="font-size: 1.2em; font-weight: 600; color: ${data.position_sizing?.size_color || '#667eea'}; margin-bottom: 5px;">
+                                        ${data.position_sizing?.size_category || 'N/A'}
                                     </div>
                                     <div style="font-size: 0.9em; color: var(--text-secondary); margin-top: 10px;">
                                         of portfolio
@@ -11257,13 +11257,13 @@
                                         <div style="padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border-left: 3px solid #ef4444;">
                                             <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Conservative</div>
                                             <div style="font-size: 1.5em; font-weight: 700; color: #ef4444;">
-                                                ${data.position_sizing.range.conservative}%
+                                                ${(data.position_sizing?.range?.conservative !== undefined && data.position_sizing?.range?.conservative !== null) ? data.position_sizing.range.conservative : 'N/A'}%
                                             </div>
                                         </div>
                                         <div style="padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border-left: 3px solid #10b981;">
                                             <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Aggressive</div>
                                             <div style="font-size: 1.5em; font-weight: 700; color: #10b981;">
-                                                ${data.position_sizing.range.aggressive}%
+                                                ${(data.position_sizing?.range?.aggressive !== undefined && data.position_sizing?.range?.aggressive !== null) ? data.position_sizing.range.aggressive : 'N/A'}%
                                             </div>
                                         </div>
                                     </div>
@@ -11275,15 +11275,15 @@
                                     <div style="display: flex; flex-direction: column; gap: 8px;">
                                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 6px;">
                                             <span style="color: var(--text-primary); font-size: 0.9em;">Risk Score</span>
-                                            <span style="color: ${data.position_sizing.risk_score < 30 ? '#10b981' : data.position_sizing.risk_score < 50 ? '#fbbf24' : '#ef4444'}; font-weight: 600;">${data.position_sizing.risk_score}/100</span>
+                                            <span style="color: ${(data.position_sizing?.risk_score !== undefined && data.position_sizing?.risk_score !== null && data.position_sizing.risk_score < 30) ? '#10b981' : (data.position_sizing?.risk_score !== undefined && data.position_sizing?.risk_score !== null && data.position_sizing.risk_score < 50) ? '#fbbf24' : '#ef4444'}; font-weight: 600;">${(data.position_sizing?.risk_score !== undefined && data.position_sizing?.risk_score !== null) ? data.position_sizing.risk_score : 'N/A'}/100</span>
                                         </div>
                                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 6px;">
                                             <span style="color: var(--text-primary); font-size: 0.9em;">ML Confidence</span>
-                                            <span style="color: ${data.position_sizing.ml_confidence >= 70 ? '#10b981' : data.position_sizing.ml_confidence >= 50 ? '#fbbf24' : '#ef4444'}; font-weight: 600;">${data.position_sizing.ml_confidence}%</span>
+                                            <span style="color: ${(data.position_sizing?.ml_confidence !== undefined && data.position_sizing?.ml_confidence !== null && data.position_sizing.ml_confidence >= 70) ? '#10b981' : (data.position_sizing?.ml_confidence !== undefined && data.position_sizing?.ml_confidence !== null && data.position_sizing.ml_confidence >= 50) ? '#fbbf24' : '#ef4444'}; font-weight: 600;">${(data.position_sizing?.ml_confidence !== undefined && data.position_sizing?.ml_confidence !== null) ? data.position_sizing.ml_confidence : 'N/A'}%</span>
                                         </div>
                                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 6px;">
                                             <span style="color: var(--text-primary); font-size: 0.9em;">Volatility (ATR)</span>
-                                            <span style="color: var(--text-primary); font-weight: 600;">${data.position_sizing.volatility_pct}%</span>
+                                            <span style="color: var(--text-primary); font-weight: 600;">${(data.position_sizing?.volatility_pct !== undefined && data.position_sizing?.volatility_pct !== null) ? data.position_sizing.volatility_pct : 'N/A'}%</span>
                                         </div>
                                     </div>
                                 </div>
@@ -11293,11 +11293,11 @@
                             <div style="margin-top: 20px; padding: 15px; background: rgba(102, 126, 234, 0.05); border-radius: 8px; border-left: 3px solid #667eea;">
                                 <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600;">💡 Reasoning</div>
                                 <p style="margin: 0; color: var(--text-primary); line-height: 1.6; font-size: 0.9em;">
-                                    ${data.position_sizing.reasoning}
+                                    ${data.position_sizing?.reasoning || 'Position sizing based on risk analysis and ML confidence.'}
                                 </p>
                             </div>
                             
-                            ${data.position_sizing.confidence_factors && data.position_sizing.confidence_factors.length > 0 ? `
+                            ${data.position_sizing?.confidence_factors && data.position_sizing.confidence_factors.length > 0 ? `
                                 <div style="margin-top: 15px; padding: 15px; background: rgba(16, 185, 129, 0.05); border-radius: 8px; border-left: 3px solid #10b981;">
                                     <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600;">✅ Confidence Factors</div>
                                     <ul style="margin: 0; padding-left: 20px; color: var(--text-primary); line-height: 1.8; font-size: 0.9em;">
@@ -11306,25 +11306,25 @@
                                 </div>
                             ` : ''}
                             
-                            ${data.position_sizing.adjustments ? `
+                            ${data.position_sizing?.adjustments ? `
                                 <div style="margin-top: 15px; padding: 12px; background: rgba(102, 126, 234, 0.05); border-radius: 8px;">
                                     <div style="font-size: 0.8em; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600;">⚙️ Adjustment Factors</div>
                                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; font-size: 0.85em;">
                                         <div>
                                             <span style="color: var(--text-secondary);">Risk:</span>
-                                            <span style="color: var(--text-primary); font-weight: 600; margin-left: 5px;">${data.position_sizing.adjustments.risk}x</span>
+                                            <span style="color: var(--text-primary); font-weight: 600; margin-left: 5px;">${(data.position_sizing.adjustments?.risk !== undefined && data.position_sizing.adjustments?.risk !== null) ? data.position_sizing.adjustments.risk : 'N/A'}x</span>
                                         </div>
                                         <div>
                                             <span style="color: var(--text-secondary);">Confidence:</span>
-                                            <span style="color: var(--text-primary); font-weight: 600; margin-left: 5px;">${data.position_sizing.adjustments.confidence}x</span>
+                                            <span style="color: var(--text-primary); font-weight: 600; margin-left: 5px;">${(data.position_sizing.adjustments?.confidence !== undefined && data.position_sizing.adjustments?.confidence !== null) ? data.position_sizing.adjustments.confidence : 'N/A'}x</span>
                                         </div>
                                         <div>
                                             <span style="color: var(--text-secondary);">Volatility:</span>
-                                            <span style="color: var(--text-primary); font-weight: 600; margin-left: 5px;">${data.position_sizing.adjustments.volatility}x</span>
+                                            <span style="color: var(--text-primary); font-weight: 600; margin-left: 5px;">${(data.position_sizing.adjustments?.volatility !== undefined && data.position_sizing.adjustments?.volatility !== null) ? data.position_sizing.adjustments.volatility : 'N/A'}x</span>
                                         </div>
                                         <div>
                                             <span style="color: var(--text-secondary);">R/R Ratio:</span>
-                                            <span style="color: var(--text-primary); font-weight: 600; margin-left: 5px;">${data.position_sizing.adjustments.risk_reward}x</span>
+                                            <span style="color: var(--text-primary); font-weight: 600; margin-left: 5px;">${(data.position_sizing.adjustments?.risk_reward !== undefined && data.position_sizing.adjustments?.risk_reward !== null) ? data.position_sizing.adjustments.risk_reward : 'N/A'}x</span>
                                         </div>
                                     </div>
                                 </div>
