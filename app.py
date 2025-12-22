@@ -23,19 +23,6 @@ if template_dir.exists():
     template_files = list(template_dir.glob('*.html'))
     logger.info(f"Template files found: {[f.name for f in template_files]}")
     logger.info(f"index.html exists: {(template_dir / 'index.html').exists()}")
-else:
-    logger.warning(f"Template directory does not exist!")
-    # Try to find templates in common locations
-    possible_locations = [
-        base_dir / 'templates',
-        Path.cwd() / 'templates',
-        base_dir.parent / 'templates',
-    ]
-    for loc in possible_locations:
-        if loc.exists():
-            logger.info(f"Found templates at: {loc}")
-            template_dir = loc
-            break
 
 # Ensure directories exist (but don't fail if we can't create them)
 try:
@@ -44,10 +31,16 @@ try:
 except Exception as e:
     logger.warning(f"Could not create directories: {e}")
 
-# Use absolute path to templates - Flask will look here
-app = Flask(__name__, template_folder=str(template_dir), static_folder=str(static_dir))
-logger.info(f"Flask template_folder set to: {app.template_folder}")
+# Flask root_path defaults to the package directory (app/), but we need it to be the project root
+# Set root_path to base_dir (where app.py is) so templates/ is found correctly
+app = Flask(__name__, 
+            root_path=str(base_dir),
+            template_folder='templates', 
+            static_folder='static')
 logger.info(f"Flask root_path: {app.root_path}")
+logger.info(f"Flask template_folder: {app.template_folder}")
+logger.info(f"Expected template path: {Path(app.root_path) / app.template_folder / 'index.html'}")
+logger.info(f"Template path exists: {(Path(app.root_path) / app.template_folder / 'index.html').exists()}")
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
