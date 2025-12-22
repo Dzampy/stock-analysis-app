@@ -1,14 +1,11 @@
 from flask import Flask
 import os
 from dotenv import load_dotenv
-from app.utils.logger import setup_logger
+from app.utils.logger import logger
 from app.utils.error_handler import register_error_handlers
 
 # Load environment variables
 load_dotenv()
-
-# Setup logging
-logger = setup_logger('stock_analysis_app')
 
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
