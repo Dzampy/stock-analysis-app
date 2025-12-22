@@ -16817,8 +16817,7 @@
                                     <strong>Current Ratio:</strong> Krátkodobá aktiva / krátkodobé závazky (&gt;1 = může splatit krátkodobé dluhy)
                                 </span>
                             </span>
-                        </div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
                 `;
                 
                 console.log('[Financials] Checking cash:', bs.cash, 'is not null:', bs.cash !== null, 'is not undefined:', bs.cash !== undefined);
@@ -16945,13 +16944,13 @@
                 }
                 
                 html += `
-                        </div>
-                        <div style="margin-top: 20px; padding: 15px; background: ${bsVerdictBg}; border-radius: 10px; border-left: 4px solid ${bsVerdictColor};">
-                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">${bsVerdictEmoji} Balance sheet: ${bsVerdict}</div>
-                            <div style="font-size: 0.9em; color: var(--text-secondary);">${bsVerdictDesc}</div>
+                            </div>
+                            <div style="margin-top: 20px; padding: 15px; background: ${bsVerdictBg}; border-radius: 10px; border-left: 4px solid ${bsVerdictColor};">
+                                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 5px;">${bsVerdictEmoji} Balance sheet: ${bsVerdict}</div>
+                                <div style="font-size: 0.9em; color: var(--text-secondary);">${bsVerdictDesc}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
                 `;
                 console.log('[Financials] Balance Sheet HTML created, length after:', html.length);
                 console.log('[Financials] Balance Sheet HTML snippet:', html.substring(html.length - 500));
