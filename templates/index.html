@@ -16782,7 +16782,9 @@
             // Balance Sheet (in same section)
             const bs = data.balance_sheet || {};
             console.log('[Financials] Balance Sheet data:', bs);
+            console.log('[Financials] Balance Sheet data type:', typeof bs, 'keys:', Object.keys(bs));
             
+            // Always show Balance Sheet section, even if data is missing
             // Show Balance Sheet section if we have at least one value (including 0)
             const hasBalanceSheetData = (bs.cash !== null && bs.cash !== undefined) || 
                                        (bs.total_debt !== null && bs.total_debt !== undefined) || 
@@ -16798,7 +16800,8 @@
                 net_debt: bs.net_debt
             });
             
-            if (hasBalanceSheetData) {
+            // Always show Balance Sheet section (even if no data)
+            if (true) {
                 html += `
                         <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid var(--border-color);">
                             <h4 style="margin: 0 0 15px 0; font-size: 1.1em; color: var(--text-primary);">Balance Sheet – jen to důležité</h4>
@@ -18590,15 +18593,8 @@
                                 lineWidth: 1,
                                 drawBorder: false
                             },
-                            // Use logarithmic scale if values vary greatly
-                            type: (() => {
-                                const allValues = [...operating, ...investing, ...financing].filter(v => v !== 0);
-                                if (allValues.length === 0) return 'linear';
-                                const maxVal = Math.max(...allValues.map(Math.abs));
-                                const minVal = Math.min(...allValues.map(Math.abs).filter(v => v > 0));
-                                // Use log scale if max/min ratio > 100
-                                return (maxVal / minVal > 100) ? 'logarithmic' : 'linear';
-                            })()
+                            // Always use linear scale for better visibility
+                            type: 'linear'
                         },
                         x: {
                             stacked: false,
