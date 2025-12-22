@@ -31,23 +31,39 @@ try:
 except Exception as e:
     logger.warning(f"Could not create directories: {e}")
 
-# Flask root_path defaults to the package directory (app/), but we need it to be the project root
-# IMPORTANT: Use absolute path for template_folder to ensure Flask finds it regardless of root_path
-# Convert to absolute path explicitly
-template_abs_path = str(template_dir.absolute())
-static_abs_path = str(static_dir.absolute())
+# Flask root_path defaults to the package directory (app/), which we can't easily override
+# SOLUTION: Use absolute path for template_folder - Flask will use it as-is if absolute
+template_abs_path = str(template_dir.resolve())  # Use resolve() to get absolute path
+static_abs_path = str(static_dir.resolve())
+
+logger.info(f"Setting template_folder to absolute path: {template_abs_path}")
+logger.info(f"Setting static_folder to absolute path: {static_abs_path}")
 
 app = Flask(__name__, 
-            root_path=str(base_dir),
             template_folder=template_abs_path, 
             static_folder=static_abs_path)
 
-# Verify paths after Flask initialization
-logger.info(f"Flask root_path: {app.root_path}")
-logger.info(f"Flask template_folder: {app.template_folder}")
+# Verify paths after Flask initialization - Flask may modify them
+logger.info(f"Flask root_path (after init): {app.root_path}")
+logger.info(f"Flask template_folder (after init): {app.template_folder}")
 logger.info(f"Is template_folder absolute: {Path(app.template_folder).is_absolute()}")
-logger.info(f"Expected template path: {Path(app.template_folder) / 'index.html'}")
-logger.info(f"Template path exists: {(Path(app.template_folder) / 'index.html').exists()}")
+expected_template_path = Path(app.template_folder) / 'index.html'
+logger.info(f"Expected template path: {expected_template_path}")
+logger.info(f"Template path exists: {expected_template_path.exists()}")
+if not expected_template_path.exists():
+    # Try alternative paths
+    alt_paths = [
+        base_dir / 'templates' / 'index.html',
+        Path('/opt/render/project/src/templates/index.html'),
+        Path('/opt/render/project/src') / 'templates' / 'index.html',
+    ]
+    for alt_path in alt_paths:
+        if alt_path.exists():
+            logger.warning(f"Found template at alternative path: {alt_path}")
+            # Override template_folder after init
+            app.template_folder = str(alt_path.parent)
+            logger.info(f"Updated template_folder to: {app.template_folder}")
+            break
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
