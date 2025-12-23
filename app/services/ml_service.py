@@ -1116,31 +1116,49 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         }
         # Calculate Entry, TP, and DCA levels using ML predictions and technical analysis
         # Entry point based on current price, support levels, and ML confidence
+        # Less strict: entry should be close to current price, not far away
         entry_price = current_price
         entry_confidence = 'medium'
         recent_low = current_price * 0.95  # Default fallback
         recent_high = current_price * 1.05  # Default fallback
         
-        if price_prediction and price_prediction.get('predictions'):
-            # Use 1M prediction as entry guidance
-            pred_1m = price_prediction['predictions'].get('1m', {})
-            if isinstance(pred_1m, dict) and 'price' in pred_1m:
-                entry_price = pred_1m['price']
-            elif isinstance(pred_1m, (int, float)):
-                entry_price = pred_1m
-        
-        # Adjust entry based on support/resistance
+        # Calculate support/resistance first
         if len(df) >= 20:
             recent_low = float(df['Low'].iloc[-20:].min())
             recent_high = float(df['High'].iloc[-20:].max())
+        
+        # Use ML prediction as guidance, but keep entry close to current price
+        if price_prediction and price_prediction.get('predictions'):
+            pred_1m = price_prediction['predictions'].get('1m', {})
+            ml_pred_price = None
+            if isinstance(pred_1m, dict) and 'price' in pred_1m:
+                ml_pred_price = pred_1m['price']
+            elif isinstance(pred_1m, (int, float)):
+                ml_pred_price = pred_1m
+            
+            if ml_pred_price:
+                # Use weighted average: 70% current price, 30% ML prediction
+                # This keeps entry close to current price while considering ML direction
+                entry_price = current_price * 0.7 + ml_pred_price * 0.3
+                
+                # Ensure entry is within reasonable range (±10% of current price)
+                entry_price = max(current_price * 0.90, min(current_price * 1.10, entry_price))
+        
+        # Adjust entry based on support/resistance (fine-tuning)
+        if len(df) >= 20:
             # If current price is near recent low, it's a good entry
             if current_price <= recent_low * 1.05:
                 entry_confidence = 'high'
-                entry_price = min(entry_price, current_price * 1.02)  # Slightly above current
+                # Entry can be slightly above current (up to 2%)
+                entry_price = min(entry_price, current_price * 1.02)
             elif current_price >= recent_high * 0.95:
                 entry_confidence = 'low'
+                # Entry can be slightly below current (up to 3% discount)
+                entry_price = max(entry_price, current_price * 0.97)
             else:
                 entry_confidence = 'medium'
+                # Keep entry within 2% of current price in medium confidence scenarios
+                entry_price = max(current_price * 0.98, min(current_price * 1.02, entry_price))
         
         # Take Profit levels based on ML predictions
         tp1_price = current_price * 1.10
