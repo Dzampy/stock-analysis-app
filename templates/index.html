@@ -10538,7 +10538,14 @@
             // #region agent log
             if (data.ml_models && data.ml_models.price_prediction) {
                 const pp = data.ml_models.price_prediction;
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:7606',message:'displayAIRecommendations entry','data':{'has_ml_models':!!data.ml_models,'has_price_prediction':!!pp,'12m_prediction':pp.predictions?.['12m'],'12m_return':pp.expected_returns?.['12m'],'12m_ci_lower':pp.confidence_intervals?.['12m']?.lower,'12m_ci_upper':pp.confidence_intervals?.['12m']?.upper,'12m_prediction_type':typeof pp.predictions?.['12m'],'12m_is_finite':isFinite(pp.predictions?.['12m'])},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+                try {
+                    const pred12m = pp.predictions?.['12m'];
+                    const ret12m = pp.expected_returns?.['12m'];
+                    const ci12m = pp.confidence_intervals?.['12m'];
+                    fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:7606',message:'displayAIRecommendations entry','data':{'has_ml_models':!!data.ml_models,'has_price_prediction':!!pp,'12m_prediction':pred12m,'12m_return':ret12m,'12m_ci_lower':ci12m?.lower,'12m_ci_upper':ci12m?.upper,'12m_prediction_type':typeof pred12m,'12m_is_finite':isFinite(pred12m)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+                } catch (e) {
+                    // Silently ignore debug log errors
+                }
             }
             // #endregion
             
