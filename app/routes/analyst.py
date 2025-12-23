@@ -16,8 +16,6 @@ bp = Blueprint('analyst', __name__)
 def get_analyst_data(ticker):
     """Get analyst ratings and price targets"""
     try:
-        from app.services.analyst_service import get_benzinga_analyst_ratings, get_marketbeat_analyst_ratings
-        
         ticker_upper = ticker.upper()
         stock = yf.Ticker(ticker_upper)
         time.sleep(0.3)
@@ -35,21 +33,16 @@ def get_analyst_data(ticker):
                 recommendations = finviz_recs
                 logger.info(f"Found {len(recommendations)} recommendations from Finviz for {ticker}")
             else:
-                # Try MarketBeat
-                mb_recs = get_marketbeat_analyst_ratings(ticker_upper)
-                if mb_recs and len(mb_recs) > 0:
-                    recommendations = mb_recs
-                    logger.info(f"Found {len(recommendations)} recommendations from MarketBeat for {ticker}")
-                else:
-                    # Try Benzinga (if function exists)
-                    try:
-                        bz_recs = get_benzinga_analyst_ratings(ticker_upper)
-                        if bz_recs and len(bz_recs) > 0:
-                            recommendations = bz_recs
-                            logger.info(f"Found {len(recommendations)} recommendations from Benzinga for {ticker}")
-                    except (ImportError, AttributeError, NameError) as e:
-                        logger.debug(f"Benzinga analyst ratings not available: {str(e)}")
-                        pass
+                # Try MarketBeat (if function exists)
+                try:
+                    from app.services.analyst_service import get_marketbeat_analyst_ratings
+                    mb_recs = get_marketbeat_analyst_ratings(ticker_upper)
+                    if mb_recs and len(mb_recs) > 0:
+                        recommendations = mb_recs
+                        logger.info(f"Found {len(recommendations)} recommendations from MarketBeat for {ticker}")
+                except (ImportError, AttributeError, NameError) as e:
+                    logger.debug(f"MarketBeat analyst ratings not available: {str(e)}")
+                    pass
         except Exception as e:
             logger.warning(f"Error getting recommendations: {str(e)}")
             recommendations = []
