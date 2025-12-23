@@ -373,9 +373,9 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         
         # Build training dataset using walk-forward approach
         # For each day, extract features and predict next day's price
-        X_hist = []
-        y_hist = []
-        
+            X_hist = []
+            y_hist = []
+            
         # Use at least 60 days lookback for feature calculation
         lookback_days = 60
         
@@ -405,15 +405,15 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             return None, None
         
         # Convert to numpy arrays
-        X_train = np.array(X_hist)
-        y_train = np.array(y_hist)
+                X_train = np.array(X_hist)
+                y_train = np.array(y_hist)
         
         logger.info(f"Training Random Forest model with {len(X_train)} samples and {len(feature_names)} features")
-        
-        # Scale features
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        
+                
+                # Scale features
+                scaler = StandardScaler()
+                X_train_scaled = scaler.fit_transform(X_train)
+                
         # Cross-validation for model validation (TimeSeriesSplit for time series data)
         from sklearn.model_selection import TimeSeriesSplit, cross_val_score
         
@@ -496,8 +496,8 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             )
         
         # Train final model on all training data
-        model.fit(X_train_scaled, y_train)
-        
+                model.fit(X_train_scaled, y_train)
+                
         # Calculate training score for logging
         train_score = model.score(X_train_scaled, y_train)
         logger.info(f"Model trained successfully for {ticker}. Training R² score: {train_score:.4f}")
@@ -516,7 +516,7 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             model.feature_names_ = feature_names
             model.feature_importances_dict_ = feature_importance_dict
         
-        return model, scaler
+                return model, scaler
         
     except Exception as e:
         logger.exception(f"Error training model for {ticker}: {e}")
@@ -610,8 +610,8 @@ def predict_price(features, current_price, df=None):
             model, scaler = _train_random_forest_model(ticker, features, current_price, df)
             if model:
                 _model_cache[cache_key] = model
-        if scaler:
-            _scaler_cache[cache_key] = scaler
+                if scaler:
+                    _scaler_cache[cache_key] = scaler
         logger.info(f"Model trained and cached for {ticker}")
         
         if not model:
@@ -639,23 +639,23 @@ def predict_price(features, current_price, df=None):
             momentum_12m = ((df['Close'].iloc[-1] - df['Close'].iloc[-252]) / df['Close'].iloc[-252]) * 100
             
             return {
-        'current_price': current_price,
-        'predictions': {
+                'current_price': current_price,
+                'predictions': {
         '1m': {'price': current_price * (1 + momentum_1m * 0.5 / 100), 'confidence': 0.3},
         '3m': {'price': current_price * (1 + momentum_3m * 0.5 / 100), 'confidence': 0.25},
         '6m': {'price': current_price * (1 + momentum_6m * 0.5 / 100), 'confidence': 0.2},
         '12m': {'price': current_price * (1 + momentum_12m * 0.5 / 100), 'confidence': 0.15}
-        },
-        'expected_returns': {
+                },
+                'expected_returns': {
         '1m': momentum_1m * 0.5,
         '3m': momentum_3m * 0.5,
         '6m': momentum_6m * 0.5,
         '12m': momentum_12m * 0.5
-        },
-        'confidence_intervals': {
+                },
+                'confidence_intervals': {
         '6m': {'lower': current_price * 0.80, 'upper': current_price * 1.30},
         '12m': {'lower': current_price * 0.70, 'upper': current_price * 1.50}
-        },
+                },
         'model_used': 'momentum_estimate',
         'warning': 'ML model training failed. Using momentum-based estimates. These are NOT ML predictions.'
             }
@@ -988,7 +988,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
     Generate AI-powered stock recommendations (cached)
     
     NOTE: This is a stub implementation. Full implementation requires:
-        - classify_trend() function
+    - classify_trend() function
     - calculate_entry_tp_dca() function  
     - calculate_position_sizing() function
     
@@ -1156,12 +1156,12 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
                 tp1_price = pred_3m['price']
             elif isinstance(pred_3m, (int, float)):
                 tp1_price = pred_3m
-        
+                
             if isinstance(pred_6m, dict) and 'price' in pred_6m:
                 tp2_price = pred_6m['price']
             elif isinstance(pred_6m, (int, float)):
                 tp2_price = pred_6m
-        
+                
             if isinstance(pred_12m, dict) and 'price' in pred_12m:
                 tp3_price = pred_12m['price']
             elif isinstance(pred_12m, (int, float)):
@@ -1188,58 +1188,58 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         
         entry_tp_dca = {
             'entry': {
-        'price': round(entry_price, 2),
-        'confidence': entry_confidence,
-        'reason': f'Entry based on ML prediction and technical analysis. Current price: ${current_price:.2f}',
-        'conditions': [
-        f'ML 1M prediction: ${tp1_price:.2f}',
-        f'Support level: ${recent_low:.2f}' if len(df) >= 20 else 'Support analysis available'
-        ]
+                'price': round(entry_price, 2),
+                'confidence': entry_confidence,
+                'reason': f'Entry based on ML prediction and technical analysis. Current price: ${current_price:.2f}',
+                'conditions': [
+                    f'ML 1M prediction: ${tp1_price:.2f}',
+                    f'Support level: ${recent_low:.2f}' if len(df) >= 20 else 'Support analysis available'
+                ]
             },
             'take_profit': {
-        'tp1': {
-        'price': round(tp1_price, 2),
-        'gain_pct': round(tp1_gain, 1),
-        'timeframe': '3 months',
-        'ml_confidence': round(price_prediction.get('predictions', {}).get('3m', {}).get('confidence', 0.5) * 100, 1) if price_prediction else 50
-        },
-        'tp2': {
-        'price': round(tp2_price, 2),
-        'gain_pct': round(tp2_gain, 1),
-        'timeframe': '6 months',
-        'ml_confidence': round(price_prediction.get('predictions', {}).get('6m', {}).get('confidence', 0.4) * 100, 1) if price_prediction else 40
-        },
-        'tp3': {
-        'price': round(tp3_price, 2),
-        'gain_pct': round(tp3_gain, 1),
-        'timeframe': '12 months',
-        'ml_confidence': round(price_prediction.get('predictions', {}).get('12m', {}).get('confidence', 0.3) * 100, 1) if price_prediction else 30
-        }
+                'tp1': {
+                    'price': round(tp1_price, 2),
+                    'gain_pct': round(tp1_gain, 1),
+                    'timeframe': '3 months',
+                    'ml_confidence': round(price_prediction.get('predictions', {}).get('3m', {}).get('confidence', 0.5) * 100, 1) if price_prediction else 50
+                },
+                'tp2': {
+                    'price': round(tp2_price, 2),
+                    'gain_pct': round(tp2_gain, 1),
+                    'timeframe': '6 months',
+                    'ml_confidence': round(price_prediction.get('predictions', {}).get('6m', {}).get('confidence', 0.4) * 100, 1) if price_prediction else 40
+                },
+                'tp3': {
+                    'price': round(tp3_price, 2),
+                    'gain_pct': round(tp3_gain, 1),
+                    'timeframe': '12 months',
+                    'ml_confidence': round(price_prediction.get('predictions', {}).get('12m', {}).get('confidence', 0.3) * 100, 1) if price_prediction else 30
+                }
             },
             'dca_levels': [
-        {
-        'price': round(dca1_price, 2),
-        'reason': 'First DCA level - 5% below entry',
-        'confidence': 'medium',
-        'ml_probability': 60
-        },
-        {
-        'price': round(dca2_price, 2),
-        'reason': 'Second DCA level - 10% below entry',
-        'confidence': 'medium',
-        'ml_probability': 40
-        },
-        {
-        'price': round(dca3_price, 2),
-        'reason': 'Third DCA level - 15% below entry',
-        'confidence': 'low',
-        'ml_probability': 20
-        }
+                {
+                    'price': round(dca1_price, 2),
+                    'reason': 'First DCA level - 5% below entry',
+                    'confidence': 'medium',
+                    'ml_probability': 60
+                },
+                {
+                    'price': round(dca2_price, 2),
+                    'reason': 'Second DCA level - 10% below entry',
+                    'confidence': 'medium',
+                    'ml_probability': 40
+                },
+                {
+                    'price': round(dca3_price, 2),
+                    'reason': 'Third DCA level - 15% below entry',
+                    'confidence': 'low',
+                    'ml_probability': 20
+                }
             ],
             'risk_reward_ratio': round(risk_reward_ratio, 2),
             'ml_enhancements': {
-        'volatility_pct': round(volatility_pct, 2),
-        'adaptive_factor': round(adaptive_factor, 2)
+                'volatility_pct': round(volatility_pct, 2),
+                'adaptive_factor': round(adaptive_factor, 2)
             }
         }
         # Calculate position sizing with proper structure
@@ -1292,23 +1292,23 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             'size_category': size_category,
             'size_color': size_color,
             'range': {
-        'conservative': round(conservative_pct, 1),
-        'aggressive': round(aggressive_pct, 1)
+                'conservative': round(conservative_pct, 1),
+                'aggressive': round(aggressive_pct, 1)
             },
             'risk_score': round(risk_score, 1),
             'ml_confidence': round(ml_confidence, 1),
             'volatility_pct': round(volatility_pct, 2),
             'reasoning': f'Position size based on risk score ({risk_score:.1f}/100) and ML confidence ({ml_confidence:.1f}%). Lower risk and higher confidence allow for larger positions.',
             'confidence_factors': [
-        f"Risk Score: {risk_score:.1f}/100",
-        f"ML Confidence: {ml_confidence:.1f}%",
-        f"Volatility: {volatility_pct:.2f}%"
+                f"Risk Score: {risk_score:.1f}/100",
+                f"ML Confidence: {ml_confidence:.1f}%",
+                f"Volatility: {volatility_pct:.2f}%"
             ],
             'adjustments': {
-        'risk': round(risk_score / 50.0, 2),
-        'confidence': round(ml_confidence / 50.0, 2),
-        'volatility': round(volatility_pct / 2.0, 2),
-        'risk_reward': 1.0
+                'risk': round(risk_score / 50.0, 2),
+                'confidence': round(ml_confidence / 50.0, 2),
+                'volatility': round(volatility_pct / 2.0, 2),
+                'risk_reward': 1.0
             }
         }
         
@@ -1416,20 +1416,34 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
                 reasons.append(f"Low volatility ({volatility:.1f}%) - more stable")
         
         # Enhance recommendation with ML model outputs
-        # Adjust score based on price prediction
+        # ML predictions should have significant weight to avoid "Buy" when ML is negative
         expected_return_6m = price_prediction.get('expected_returns', {}).get('6m', 0) if price_prediction else 0
+        expected_return_1m = price_prediction.get('expected_returns', {}).get('1m', 0) if price_prediction else 0
+        expected_return_3m = price_prediction.get('expected_returns', {}).get('3m', 0) if price_prediction else 0
+        expected_return_12m = price_prediction.get('expected_returns', {}).get('12m', 0) if price_prediction else 0
+        
+        # Check if all ML predictions are negative (strong bearish signal)
+        all_ml_negative = all(r < 0 for r in [expected_return_1m, expected_return_3m, expected_return_6m, expected_return_12m])
+        if all_ml_negative:
+            technical_score -= 25  # Heavy penalty if all timeframes are negative
+            warnings.append(f"ML model predicts negative returns across all timeframes (1M: {expected_return_1m:.1f}%, 3M: {expected_return_3m:.1f}%, 6M: {expected_return_6m:.1f}%, 12M: {expected_return_12m:.1f}%)")
+        else:
+            # Individual ML prediction impact (increased penalties/bonuses)
         if expected_return_6m > 20:
-            technical_score += 15
+                technical_score += 20  # Increased from 15
             reasons.append(f"ML model predicts strong 6-month return (+{expected_return_6m:.1f}%)")
         elif expected_return_6m > 10:
-            technical_score += 10
+                technical_score += 15  # Increased from 10
             reasons.append(f"ML model predicts positive 6-month return (+{expected_return_6m:.1f}%)")
         elif expected_return_6m < -10:
-            technical_score -= 15
+                technical_score -= 25  # Increased from 15
             warnings.append(f"ML model predicts negative 6-month return ({expected_return_6m:.1f}%)")
         elif expected_return_6m < -5:
-            technical_score -= 10
+                technical_score -= 20  # Increased from 10
             warnings.append(f"ML model predicts weak 6-month return ({expected_return_6m:.1f}%)")
+            elif expected_return_6m < 0:
+                technical_score -= 10  # New: small penalty for any negative return
+                warnings.append(f"ML model predicts slight decline ({expected_return_6m:.1f}%)")
         
         # Adjust score based on trend classification
         trend_class = trend_classification.get('trend_class', 'Neutral')
@@ -1510,16 +1524,16 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             'warnings': warnings[:5],
             'summary': summary,
             'technical_indicators': {
-        'rsi': rsi_values[-1] if rsi_values and len(rsi_values) > 0 else None,
-        'macd_bullish': macd_values[-1] > macd_signal[-1] if macd_values and macd_signal and len(macd_values) > 0 and len(macd_signal) > 0 else None,
-        'price_vs_sma20': current_price > sma_20[-1] if sma_20 and len(sma_20) > 0 else None,
-        'price_vs_sma50': current_price > sma_50[-1] if sma_50 and len(sma_50) > 0 else None,
+                'rsi': rsi_values[-1] if rsi_values and len(rsi_values) > 0 else None,
+                'macd_bullish': macd_values[-1] > macd_signal[-1] if macd_values and macd_signal and len(macd_values) > 0 and len(macd_signal) > 0 else None,
+                'price_vs_sma20': current_price > sma_20[-1] if sma_20 and len(sma_20) > 0 else None,
+                'price_vs_sma50': current_price > sma_50[-1] if sma_50 and len(sma_50) > 0 else None,
             },
             'news_sentiment': news_sentiment,
             'ml_models': {
-        'price_prediction': price_prediction,
-        'trend_classification': trend_classification,
-        'risk_analysis': risk_analysis
+                'price_prediction': price_prediction,
+                'trend_classification': trend_classification,
+                'risk_analysis': risk_analysis
             },
             'trading_strategy': entry_tp_dca,
             'position_sizing': position_sizing,
