@@ -1160,30 +1160,58 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
                 # Keep entry within 2% of current price in medium confidence scenarios
                 entry_price = max(current_price * 0.98, min(current_price * 1.02, entry_price))
         
-        # Take Profit levels based on ML predictions
-        tp1_price = current_price * 1.10
-        tp2_price = current_price * 1.20
-        tp3_price = current_price * 1.35
+        # Take Profit levels - less strict: use reasonable defaults with ML guidance
+        # Default TP levels (conservative targets)
+        default_tp1 = entry_price * 1.10  # 10% gain from entry
+        default_tp2 = entry_price * 1.20  # 20% gain from entry
+        default_tp3 = entry_price * 1.35  # 35% gain from entry
+        
+        tp1_price = default_tp1
+        tp2_price = default_tp2
+        tp3_price = default_tp3
         
         if price_prediction and price_prediction.get('predictions'):
             pred_3m = price_prediction['predictions'].get('3m', {})
             pred_6m = price_prediction['predictions'].get('6m', {})
             pred_12m = price_prediction['predictions'].get('12m', {})
             
+            # Get ML prediction prices
+            ml_tp1 = None
+            ml_tp2 = None
+            ml_tp3 = None
+            
             if isinstance(pred_3m, dict) and 'price' in pred_3m:
-                tp1_price = pred_3m['price']
+                ml_tp1 = pred_3m['price']
             elif isinstance(pred_3m, (int, float)):
-                tp1_price = pred_3m
+                ml_tp1 = pred_3m
                 
             if isinstance(pred_6m, dict) and 'price' in pred_6m:
-                tp2_price = pred_6m['price']
+                ml_tp2 = pred_6m['price']
             elif isinstance(pred_6m, (int, float)):
-                tp2_price = pred_6m
+                ml_tp2 = pred_6m
                 
             if isinstance(pred_12m, dict) and 'price' in pred_12m:
-                tp3_price = pred_12m['price']
+                ml_tp3 = pred_12m['price']
             elif isinstance(pred_12m, (int, float)):
-                tp3_price = pred_12m
+                ml_tp3 = pred_12m
+            
+            # Use weighted average: 60% default (reasonable target), 40% ML prediction
+            # This keeps TP realistic while considering ML direction
+            if ml_tp1 and ml_tp1 > entry_price:
+                # Only use ML if it's higher than entry (makes sense for TP)
+                tp1_price = default_tp1 * 0.6 + ml_tp1 * 0.4
+                # Ensure TP1 is at least 5% above entry
+                tp1_price = max(entry_price * 1.05, tp1_price)
+            
+            if ml_tp2 and ml_tp2 > entry_price:
+                tp2_price = default_tp2 * 0.6 + ml_tp2 * 0.4
+                # Ensure TP2 is at least 10% above entry and higher than TP1
+                tp2_price = max(entry_price * 1.10, tp1_price * 1.05, tp2_price)
+            
+            if ml_tp3 and ml_tp3 > entry_price:
+                tp3_price = default_tp3 * 0.6 + ml_tp3 * 0.4
+                # Ensure TP3 is at least 20% above entry and higher than TP2
+                tp3_price = max(entry_price * 1.20, tp2_price * 1.05, tp3_price)
         
         # Calculate gains
         tp1_gain = ((tp1_price - entry_price) / entry_price * 100) if entry_price > 0 else 10
