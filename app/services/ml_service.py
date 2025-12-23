@@ -373,9 +373,9 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         
         # Build training dataset using walk-forward approach
         # For each day, extract features and predict next day's price
-        X_hist = []
-        y_hist = []
-        
+            X_hist = []
+            y_hist = []
+            
         # Use at least 60 days lookback for feature calculation
         lookback_days = 60
         
@@ -388,13 +388,19 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
                 if hist_features is None:
                     continue
                 
-                # Get target (next day's close price)
-                target_price = df['Close'].iloc[i + 1]
+                # IMPORTANT CHANGE: Predict percentage return instead of absolute price
+                # This makes the model more generalizable and reduces overfitting
+                current_price_at_idx = df['Close'].iloc[i]
+                next_day_price = df['Close'].iloc[i + 1]
+                
+                # Calculate percentage return (annualized for next day)
+                # This normalizes the target and makes it easier to predict
+                target_return_pct = ((next_day_price - current_price_at_idx) / current_price_at_idx) * 100
                 
                 # Build feature vector
                 feature_vector = [hist_features.get(name, 0.0) for name in feature_names]
                 X_hist.append(feature_vector)
-                y_hist.append(target_price)
+                y_hist.append(target_return_pct)  # Changed from absolute price to percentage return
                 
             except Exception as e:
                 logger.debug(f"Error extracting features for index {i}: {e}")
@@ -405,15 +411,15 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             return None, None
         
         # Convert to numpy arrays
-        X_train = np.array(X_hist)
-        y_train = np.array(y_hist)
+                X_train = np.array(X_hist)
+                y_train = np.array(y_hist)
         
         logger.info(f"Training Random Forest model with {len(X_train)} samples and {len(feature_names)} features")
-        
-        # Scale features
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        
+                
+                # Scale features
+                scaler = StandardScaler()
+                X_train_scaled = scaler.fit_transform(X_train)
+                
         # Cross-validation for model validation (TimeSeriesSplit for time series data)
         from sklearn.model_selection import TimeSeriesSplit, cross_val_score
         
@@ -421,27 +427,28 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         # This prevents data leakage from future to past
         tscv = TimeSeriesSplit(n_splits=min(5, len(X_train) // 50))  # At least 50 samples per fold
         
-        # Try different hyperparameter sets and choose best based on CV score
+        # Try different hyperparameter sets - MORE REGULARIZATION to reduce overfitting
+        # Increased min_samples_split and min_samples_leaf, reduced max_depth for better generalization
         hyperparameter_sets = [
             {
-        'n_estimators': 200,
-        'max_depth': 15,
-        'min_samples_split': 10,
-        'min_samples_leaf': 5,
+        'n_estimators': 150,  # Reduced from 200
+        'max_depth': 10,  # Reduced from 15 for less overfitting
+        'min_samples_split': 20,  # Increased from 10 for more regularization
+        'min_samples_leaf': 10,  # Increased from 5 for more regularization
         'max_features': 'sqrt'  # Feature sampling to reduce overfitting
             },
             {
-        'n_estimators': 150,
-        'max_depth': 12,
-        'min_samples_split': 15,
-        'min_samples_leaf': 7,
+        'n_estimators': 100,
+        'max_depth': 8,  # Even more conservative
+        'min_samples_split': 25,
+        'min_samples_leaf': 12,
         'max_features': 'sqrt'
             },
             {
-        'n_estimators': 250,
-        'max_depth': 18,
-        'min_samples_split': 8,
-        'min_samples_leaf': 4,
+        'n_estimators': 200,
+        'max_depth': 12,
+        'min_samples_split': 15,
+        'min_samples_leaf': 8,
         'max_features': 'log2'
             }
         ]
@@ -496,8 +503,8 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             )
         
         # Train final model on all training data
-        model.fit(X_train_scaled, y_train)
-        
+                model.fit(X_train_scaled, y_train)
+                
         # Calculate training score for logging
         train_score = model.score(X_train_scaled, y_train)
         logger.info(f"Model trained successfully for {ticker}. Training R² score: {train_score:.4f}")
@@ -524,8 +531,8 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             # If no CV was performed, use training score as approximation
             model.cv_r2_score = float(train_score)
             model.train_r2_score = float(train_score)
-        
-        return model, scaler
+                
+                return model, scaler
         
     except Exception as e:
         logger.exception(f"Error training model for {ticker}: {e}")
@@ -686,18 +693,24 @@ def predict_price(features, current_price, df=None):
             tree_predictions.append(tree_pred)
         
         tree_predictions = np.array(tree_predictions)
-        prediction_mean = np.mean(tree_predictions)  # Mean prediction from ensemble
+        prediction_mean = np.mean(tree_predictions)  # Mean prediction from ensemble (this is now percentage return, not price)
         prediction_std = np.std(tree_predictions)  # Standard deviation across trees
         
-        # Calculate short-term prediction (next day) - this is what the model actually predicts
-        next_day_prediction = prediction_mean
+        # IMPORTANT: Model now predicts percentage return for next day, not absolute price
+        # prediction_mean is already a percentage return (e.g., 0.5 = 0.5% return)
+        next_day_return_pct = prediction_mean
         
-        # Calculate annualized return expectation from next-day prediction
+        # Calculate annualized return expectation from next-day return
+        # Convert daily percentage return to annualized
         if current_price > 0:
-            next_day_return = (next_day_prediction - current_price) / current_price
-            annualized_return = next_day_return * 252  # Annualize daily return
+            # If model predicts return as percentage (e.g., 0.5 for 0.5%), convert to decimal
+            daily_return_decimal = next_day_return_pct / 100.0  # Convert percentage to decimal
+            annualized_return = daily_return_decimal * 252 * 100  # Annualize and convert back to percentage
         else:
             annualized_return = 0.0
+        
+        # For backward compatibility, calculate what the predicted next day price would be
+        next_day_prediction = current_price * (1 + next_day_return_pct / 100.0)
         
         # Calculate historical volatility for dynamic capping
         historical_volatility = 0.0
@@ -1598,18 +1611,18 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             warnings.append(f"ML model predicts negative returns across all timeframes (1M: {expected_return_1m:.1f}%, 3M: {expected_return_3m:.1f}%, 6M: {expected_return_6m:.1f}%, 12M: {expected_return_12m:.1f}%)")
         else:
             # Individual ML prediction impact (increased penalties/bonuses)
-            if expected_return_6m > 20:
+        if expected_return_6m > 20:
                 technical_score += 20  # Increased from 15
-                reasons.append(f"ML model predicts strong 6-month return (+{expected_return_6m:.1f}%)")
-            elif expected_return_6m > 10:
+            reasons.append(f"ML model predicts strong 6-month return (+{expected_return_6m:.1f}%)")
+        elif expected_return_6m > 10:
                 technical_score += 15  # Increased from 10
-                reasons.append(f"ML model predicts positive 6-month return (+{expected_return_6m:.1f}%)")
-            elif expected_return_6m < -10:
+            reasons.append(f"ML model predicts positive 6-month return (+{expected_return_6m:.1f}%)")
+        elif expected_return_6m < -10:
                 technical_score -= 25  # Increased from 15
-                warnings.append(f"ML model predicts negative 6-month return ({expected_return_6m:.1f}%)")
-            elif expected_return_6m < -5:
+            warnings.append(f"ML model predicts negative 6-month return ({expected_return_6m:.1f}%)")
+        elif expected_return_6m < -5:
                 technical_score -= 20  # Increased from 10
-                warnings.append(f"ML model predicts weak 6-month return ({expected_return_6m:.1f}%)")
+            warnings.append(f"ML model predicts weak 6-month return ({expected_return_6m:.1f}%)")
             elif expected_return_6m < 0:
                 technical_score -= 10  # New: small penalty for any negative return
                 warnings.append(f"ML model predicts slight decline ({expected_return_6m:.1f}%)")
