@@ -2323,11 +2323,11 @@ def run_backtest(
                 # Training data: everything up to current point
                 train_df = df_test.iloc[:i + 1]
 
-        # Test point: next day
-        test_date = df_test.index[i + 1]
-        actual_price = df_test['Close'].iloc[i + 1]
+                # Test point: next day
+                test_date = df_test.index[i + 1]
+                actual_price = df_test['Close'].iloc[i + 1]
 
-        # Get features for current point
+                # Get features for current point
         from app.analysis.technical import calculate_technical_indicators
         from app.analysis.fundamental import calculate_metrics
 
