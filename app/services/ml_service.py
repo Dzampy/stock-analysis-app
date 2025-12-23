@@ -357,7 +357,7 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             df = _download_extended_historical_data(ticker, years=2)
             if df is None or len(df) < 100:
                 logger.warning(f"Insufficient historical data for {ticker} to train model")
-        return None, None
+                return None, None
         
         # Prepare features
         feature_names = sorted([k for k in features_dict.keys() if k != 'ticker'])
