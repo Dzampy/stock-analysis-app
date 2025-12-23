@@ -10663,12 +10663,25 @@
                                         // Handle both formats: {price: X, confidence: Y} or direct number
                                         let predObj = data.ml_models?.price_prediction?.predictions?.[period];
                                         let pred = null;
-                                        if (predObj !== null && predObj !== undefined) {
-                                            if (typeof predObj === 'object' && predObj !== null && 'price' in predObj && typeof predObj.price === 'number') {
-                                                pred = predObj.price;
-                                            } else if (typeof predObj === 'number') {
-                                                pred = predObj;
+                                        
+                                        // Safely extract price from predObj
+                                        try {
+                                            if (predObj !== null && predObj !== undefined) {
+                                                // Check if it's an object with 'price' property
+                                                if (typeof predObj === 'object' && !Array.isArray(predObj) && predObj !== null && 'price' in predObj) {
+                                                    const priceValue = predObj.price;
+                                                    if (typeof priceValue === 'number' && isFinite(priceValue)) {
+                                                        pred = priceValue;
+                                                    }
+                                                } 
+                                                // Check if it's a direct number
+                                                else if (typeof predObj === 'number' && isFinite(predObj)) {
+                                                    pred = predObj;
+                                                }
                                             }
+                                        } catch (e) {
+                                            console.error(`Error extracting prediction for ${period}:`, e);
+                                            pred = null;
                                         }
                                         let ret = data.ml_models?.price_prediction?.expected_returns?.[period] ?? null;
                                         let ci = data.ml_models?.price_prediction?.confidence_intervals?.[period] ?? null;
