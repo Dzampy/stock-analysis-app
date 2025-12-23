@@ -2468,13 +2468,13 @@ def run_backtest(
 
             strategy_returns = np.array(strategy_returns)
 
-        # Sharpe ratio (annualized)
-        if len(strategy_returns) > 0 and np.std(strategy_returns) > 0:
-            sharpe_ratio = (np.mean(strategy_returns) /
-                            np.std(strategy_returns)) * np.sqrt(252)
+            # Sharpe ratio (annualized)
+            if len(strategy_returns) > 0 and np.std(strategy_returns) > 0:
+                sharpe_ratio = (np.mean(strategy_returns) /
+                                np.std(strategy_returns)) * np.sqrt(252)
 
-    else:
-        sharpe_ratio = 0.0
+            else:
+                sharpe_ratio = 0.0
 
         # Maximum drawdown
         cumulative_returns = np.cumprod(1 + strategy_returns / 100)
