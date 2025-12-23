@@ -1439,9 +1439,8 @@ def get_prediction_accuracy(
             except Exception as e:
 
                 logger.debug(
-                f"Error evaluating prediction from {entry.get('date')}: {e}")
-
-        continue
+                    f"Error evaluating prediction from {entry.get('date')}: {e}")
+                continue
 
         if len(accuracy_results) < 3:
                 return None
