@@ -2328,24 +2328,24 @@ def run_backtest(
                 actual_price = df_test['Close'].iloc[i + 1]
 
                 # Get features for current point
-        from app.analysis.technical import calculate_technical_indicators
-        from app.analysis.fundamental import calculate_metrics
+                from app.analysis.technical import calculate_technical_indicators
+                from app.analysis.fundamental import calculate_metrics
 
-        indicators = calculate_technical_indicators(train_df)
+                indicators = calculate_technical_indicators(train_df)
 
-        # Note: Historical info and news would require point-in-time data
-        # For now, we use empty structures which means backtest uses fewer features
-        # This may reduce accuracy but prevents data leakage
-        info = {}  # Historical fundamentals would require point-in-time data
-        metrics = calculate_metrics(train_df, info)
-        news_list = []  # Historical news sentiment would require time-series data
+                # Note: Historical info and news would require point-in-time data
+                # For now, we use empty structures which means backtest uses fewer features
+                # This may reduce accuracy but prevents data leakage
+                info = {}  # Historical fundamentals would require point-in-time data
+                metrics = calculate_metrics(train_df, info)
+                news_list = []  # Historical news sentiment would require time-series data
 
-        # Extract features
-        features = extract_ml_features(
-            ticker, train_df, info, indicators, metrics, news_list)
-        features['ticker'] = ticker.upper()
+                # Extract features
+                features = extract_ml_features(
+                    ticker, train_df, info, indicators, metrics, news_list)
+                features['ticker'] = ticker.upper()
 
-        # Decide if we need to retrain model
+                # Decide if we need to retrain model
         should_retrain = (
             cached_model is None or  # First iteration
             (i - last_retrain_idx) >= retrain_interval_days or  # Interval reached
