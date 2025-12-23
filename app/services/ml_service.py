@@ -503,8 +503,8 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             )
         
         # Train final model on all training data
-                model.fit(X_train_scaled, y_train)
-                
+        model.fit(X_train_scaled, y_train)
+        
         # Calculate training score for logging
         train_score = model.score(X_train_scaled, y_train)
         logger.info(f"Model trained successfully for {ticker}. Training R² score: {train_score:.4f}")
