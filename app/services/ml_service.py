@@ -1403,8 +1403,8 @@ def get_prediction_accuracy(
                 if not pred_date_str:
                     continue
 
-        pred_date = pd.to_datetime(pred_date_str)
-        pred_price = entry.get(f'prediction_{timeframe}')
+                    pred_date = pd.to_datetime(pred_date_str)
+                    pred_price = entry.get(f'prediction_{timeframe}')
 
         if pred_price is None or not isinstance(pred_price, (int, float)):
                     continue
