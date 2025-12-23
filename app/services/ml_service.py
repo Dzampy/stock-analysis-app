@@ -105,15 +105,11 @@ def extract_ml_features(ticker: str, df: pd.DataFrame, info: Dict, indicators: D
         features['macd_signal'] = float(macd_signal[-1]) if not pd.isna(macd_signal[-1]) else 0.0
         features['macd_diff'] = features['macd'] - features['macd_signal']
         features['macd_bullish'] = 1.0 if features['macd_diff'] > 0 else 0.0
-        else:
-
-            features['macd'] = 0.0
-
-            features['macd_signal'] = 0.0
-
-            features['macd_diff'] = 0.0
-
-            features['macd_bullish'] = 0.0
+    else:
+        features['macd'] = 0.0
+        features['macd_signal'] = 0.0
+        features['macd_diff'] = 0.0
+        features['macd_bullish'] = 0.0
 
     
     # Moving Average features
