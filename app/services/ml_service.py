@@ -494,7 +494,7 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         if len(X_train) >= 100 and len(hyperparameter_sets) > 1:
             logger.info(f"Performing hyperparameter tuning with {tscv.get_n_splits()} folds")
             for params in hyperparameter_sets:
-                        try:
+                try:
                     model_cv = RandomForestRegressor(
                         random_state=42,
                         n_jobs=-1,
