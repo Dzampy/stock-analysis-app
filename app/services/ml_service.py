@@ -787,9 +787,6 @@ def predict_price(features, current_price, df=None):
             # Also factor in timeframe (longer = lower confidence)
             confidence = max(0.2, confidence * (1 - (days / 252) * 0.3))  # Reduce for longer timeframes
             
-            # Calculate timeframe std for confidence intervals
-            timeframe_std = prediction_std * np.sqrt(days)  # Uncertainty grows with time
-            
             predictions[timeframe] = {
         'price': float(predicted_price),
         'confidence': float(confidence)
@@ -799,11 +796,32 @@ def predict_price(features, current_price, df=None):
             expected_return = ((predicted_price - current_price) / current_price) * 100 if current_price > 0 else 0
             expected_returns[timeframe] = float(expected_return)
             
-            # Confidence intervals (wider for longer timeframes)
-            if timeframe in ['6m', '12m']:
-                confidence_intervals[timeframe] = {
-        'lower': max(0, predicted_price - 2*timeframe_std),
-        'upper': predicted_price + 2*timeframe_std,
+            # Confidence intervals using percentage-based ranges (more realistic than std-based)
+            # Use timeframe-specific percentage ranges that scale reasonably
+            timeframe_ranges = {
+                '1m': 0.15,  # ±15% for 1 month
+                '3m': 0.20,  # ±20% for 3 months
+                '6m': 0.25,  # ±25% for 6 months
+                '12m': 0.35  # ±35% for 12 months
+            }
+            
+            # Optionally use historical volatility to adjust range (more dynamic)
+            range_multiplier = 1.0
+            if historical_volatility > 0:
+                # Adjust based on volatility: high vol stocks get wider ranges
+                # Normalize: 30% annual vol = 1.0x, scale from there
+                vol_factor = historical_volatility / 30.0
+                range_multiplier = min(1.5, max(0.7, vol_factor))  # Between 0.7x and 1.5x
+            
+            range_pct = timeframe_ranges.get(timeframe, 0.25) * range_multiplier
+            # Apply percentage range to predicted price (not current price)
+            lower_bound = predicted_price * (1 - range_pct)
+            upper_bound = predicted_price * (1 + range_pct)
+            
+            # Store confidence intervals for all timeframes
+            confidence_intervals[timeframe] = {
+        'lower': max(0.01 * current_price, lower_bound),  # Ensure lower is at least 1% of current price
+        'upper': upper_bound,
         'confidence_level': 0.95
         }
         
