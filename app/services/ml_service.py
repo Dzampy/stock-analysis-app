@@ -631,22 +631,182 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             }
         }
         
-        # Calculate technical score
-        technical_score = 50.0
+        # Analyze news sentiment
+        news_sentiment = 'neutral'
+        if news_list:
+            sentiments = [article.get('sentiment', 'neutral') for article in news_list[:10]]
+            positive_count = sentiments.count('positive')
+            negative_count = sentiments.count('negative')
+            if positive_count > negative_count * 1.5:
+                news_sentiment = 'positive'
+            elif negative_count > positive_count * 1.5:
+                news_sentiment = 'negative'
+        
+        # Get technical indicator values
+        rsi_values = indicators.get('rsi', [])
+        macd_values = indicators.get('macd', [])
+        macd_signal = indicators.get('macd_signal', [])
+        sma_20 = indicators.get('sma_20', [])
+        sma_50 = indicators.get('sma_50', [])
+        
+        # Calculate technical score (0-100, higher is better)
+        technical_score = 50  # Base score
         reasons = []
         warnings = []
         
-        # Basic RSI analysis
-        rsi_values = indicators.get('rsi', [])
+        # RSI Analysis
         if rsi_values and len(rsi_values) > 0:
             current_rsi = rsi_values[-1]
             if current_rsi is not None and not pd.isna(current_rsi):
                 if current_rsi < 30:
                     technical_score += 15
-                    reasons.append("RSI indicates oversold conditions")
+                    reasons.append("RSI indicates oversold conditions - potential buying opportunity")
+                elif current_rsi < 40:
+                    technical_score += 8
+                    reasons.append("RSI suggests stock may be undervalued")
                 elif current_rsi > 70:
                     technical_score -= 15
-                    warnings.append("RSI indicates overbought conditions")
+                    warnings.append("RSI indicates overbought conditions - stock may be overvalued")
+                elif current_rsi > 60:
+                    technical_score -= 8
+                    warnings.append("RSI suggests stock may be overvalued")
+        
+        # MACD Analysis
+        if macd_values and macd_signal and len(macd_values) > 0 and len(macd_signal) > 0:
+            current_macd = macd_values[-1]
+            current_signal = macd_signal[-1]
+            if current_macd is not None and current_signal is not None and not pd.isna(current_macd) and not pd.isna(current_signal):
+                if current_macd > current_signal:
+                    technical_score += 10
+                    reasons.append("MACD shows bullish momentum")
+                else:
+                    technical_score -= 5
+                    warnings.append("MACD shows bearish momentum")
+        
+        # Moving Average Analysis
+        if sma_20 and sma_50 and len(sma_20) > 0 and len(sma_50) > 0:
+            current_sma20 = sma_20[-1]
+            current_sma50 = sma_50[-1]
+            if current_sma20 is not None and current_sma50 is not None and not pd.isna(current_sma20) and not pd.isna(current_sma50):
+                if current_price > current_sma20 > current_sma50:
+                    technical_score += 12
+                    reasons.append("Price above both 20-day and 50-day moving averages - strong uptrend")
+                elif current_price > current_sma20:
+                    technical_score += 5
+                    reasons.append("Price above 20-day moving average - short-term bullish")
+                elif current_price < current_sma20 < current_sma50:
+                    technical_score -= 12
+                    warnings.append("Price below both moving averages - downtrend")
+                elif current_price < current_sma20:
+                    technical_score -= 5
+                    warnings.append("Price below 20-day moving average - short-term bearish")
+        
+        # Price Momentum (30-day)
+        if len(df) >= 30:
+            price_30d_ago = df['Close'].iloc[-30]
+            price_change_30d = ((current_price - price_30d_ago) / price_30d_ago) * 100
+            if price_change_30d > 10:
+                technical_score += 8
+                reasons.append(f"Strong 30-day price momentum (+{price_change_30d:.1f}%)")
+            elif price_change_30d > 5:
+                technical_score += 4
+                reasons.append(f"Positive 30-day price momentum (+{price_change_30d:.1f}%)")
+            elif price_change_30d < -10:
+                technical_score -= 8
+                warnings.append(f"Negative 30-day price momentum ({price_change_30d:.1f}%)")
+            elif price_change_30d < -5:
+                technical_score -= 4
+                warnings.append(f"Weak 30-day price momentum ({price_change_30d:.1f}%)")
+        
+        # News Sentiment Impact
+        if news_sentiment == 'positive':
+            technical_score += 5
+            reasons.append("Recent news sentiment is positive")
+        elif news_sentiment == 'negative':
+            technical_score -= 5
+            warnings.append("Recent news sentiment is negative")
+        
+        # Volatility Analysis
+        volatility = metrics.get('volatility')
+        if volatility is not None:
+            if volatility > 40:
+                warnings.append(f"High volatility ({volatility:.1f}%) - higher risk")
+            elif volatility < 15:
+                reasons.append(f"Low volatility ({volatility:.1f}%) - more stable")
+        
+        # Enhance recommendation with ML model outputs
+        # Adjust score based on price prediction
+        expected_return_6m = price_prediction.get('expected_returns', {}).get('6m', 0) if price_prediction else 0
+        if expected_return_6m > 20:
+            technical_score += 15
+            reasons.append(f"ML model predicts strong 6-month return (+{expected_return_6m:.1f}%)")
+        elif expected_return_6m > 10:
+            technical_score += 10
+            reasons.append(f"ML model predicts positive 6-month return (+{expected_return_6m:.1f}%)")
+        elif expected_return_6m < -10:
+            technical_score -= 15
+            warnings.append(f"ML model predicts negative 6-month return ({expected_return_6m:.1f}%)")
+        elif expected_return_6m < -5:
+            technical_score -= 10
+            warnings.append(f"ML model predicts weak 6-month return ({expected_return_6m:.1f}%)")
+        
+        # Adjust score based on trend classification
+        trend_class = trend_classification.get('trend_class', 'Neutral')
+        if trend_class == 'Strong Uptrend':
+            technical_score += 12
+            reasons.append("ML trend classification: Strong Uptrend")
+        elif trend_class == 'Moderate Uptrend':
+            technical_score += 6
+            reasons.append("ML trend classification: Moderate Uptrend")
+        elif trend_class == 'Strong Downtrend':
+            technical_score -= 12
+            warnings.append("ML trend classification: Strong Downtrend")
+        elif trend_class == 'Moderate Downtrend':
+            technical_score -= 6
+            warnings.append("ML trend classification: Moderate Downtrend")
+        
+        # Adjust score based on risk
+        risk_score = risk_analysis.get('risk_score', 50)
+        if risk_score > 75:
+            technical_score -= 10
+            warnings.append(f"High risk score ({risk_score:.1f}/100)")
+        elif risk_score < 25:
+            technical_score += 5
+            reasons.append(f"Low risk score ({risk_score:.1f}/100)")
+        
+        # Re-determine recommendation with ML-enhanced score
+        final_score = min(100, max(0, technical_score))
+        
+        # Determine recommendation
+        if final_score >= 75:
+            recommendation = "Strong Buy"
+            confidence = "High"
+            color = "#10b981"  # Green
+        elif final_score >= 60:
+            recommendation = "Buy"
+            confidence = "Medium-High"
+            color = "#34d399"  # Light green
+        elif final_score >= 45:
+            recommendation = "Hold"
+            confidence = "Medium"
+            color = "#fbbf24"  # Yellow
+        elif final_score >= 30:
+            recommendation = "Sell"
+            confidence = "Medium"
+            color = "#f87171"  # Light red
+        else:
+            recommendation = "Strong Sell"
+            confidence = "High"
+            color = "#ef4444"  # Red
+        
+        # Generate summary
+        summary_parts = []
+        if reasons:
+            summary_parts.append(f"Key positives: {', '.join(reasons[:2])}")
+        if warnings:
+            summary_parts.append(f"Key concerns: {', '.join(warnings[:2])}")
+        
+        summary = ". ".join(summary_parts) if summary_parts else "Mixed signals - consider additional research"
         
         # Prepare chart data
         dates = df.index.strftime('%Y-%m-%d').tolist()
@@ -661,14 +821,26 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         
         return {
             'ticker': ticker.upper(),
-            'current_price': current_price,
-            'technical_score': max(0, min(100, technical_score)),
-            'reasons': reasons,
-            'warnings': warnings,
-            'price_prediction': price_prediction,
-            'trend_classification': trend_classification,
-            'risk_analysis': risk_analysis,
-            'entry_tp_dca': entry_tp_dca,
+            'recommendation': recommendation,
+            'confidence': confidence,
+            'score': final_score,
+            'color': color,
+            'reasons': reasons[:5],
+            'warnings': warnings[:5],
+            'summary': summary,
+            'technical_indicators': {
+                'rsi': rsi_values[-1] if rsi_values and len(rsi_values) > 0 else None,
+                'macd_bullish': macd_values[-1] > macd_signal[-1] if macd_values and macd_signal and len(macd_values) > 0 and len(macd_signal) > 0 else None,
+                'price_vs_sma20': current_price > sma_20[-1] if sma_20 and len(sma_20) > 0 else None,
+                'price_vs_sma50': current_price > sma_50[-1] if sma_50 and len(sma_50) > 0 else None,
+            },
+            'news_sentiment': news_sentiment,
+            'ml_models': {
+                'price_prediction': price_prediction,
+                'trend_classification': trend_classification,
+                'risk_analysis': risk_analysis
+            },
+            'trading_strategy': entry_tp_dca,
             'position_sizing': position_sizing,
             'chart_data': chart_data
         }
