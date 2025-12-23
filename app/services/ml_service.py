@@ -213,21 +213,21 @@ def extract_ml_features(ticker: str, df: pd.DataFrame, info: Dict, indicators: D
     # These capture recent price movements which are often predictive
     if len(df) >= 1:
         features['price_lag_1'] = float(df['Close'].iloc[-1]) / current_price if current_price > 0 else 1.0
-        else:
+    else:
 
             features['price_lag_1'] = 1.0
 
     
     if len(df) >= 5:
         features['price_lag_5'] = float(df['Close'].iloc[-5]) / current_price if current_price > 0 else 1.0
-        else:
+    else:
 
             features['price_lag_5'] = 1.0
 
     
     if len(df) >= 10:
         features['price_lag_10'] = float(df['Close'].iloc[-10]) / current_price if current_price > 0 else 1.0
-        else:
+    else:
 
             features['price_lag_10'] = 1.0
 
@@ -238,7 +238,7 @@ def extract_ml_features(ticker: str, df: pd.DataFrame, info: Dict, indicators: D
         rolling_std_20 = df['Close'].tail(20).std()
         features['price_vs_rolling_mean_20'] = ((current_price - rolling_mean_20) / rolling_mean_20) * 100 if rolling_mean_20 > 0 else 0.0
         features['rolling_std_20_pct'] = (rolling_std_20 / rolling_mean_20) * 100 if rolling_mean_20 > 0 else 0.0
-        else:
+    else:
 
             features['price_vs_rolling_mean_20'] = 0.0
 
@@ -390,7 +390,7 @@ def _download_extended_historical_data(ticker: str, years: int = 3) -> Optional[
 
                 period = '5y'
 
-        else:
+    else:
             period = 'max'
         
         # Download data
@@ -666,7 +666,7 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         logger.info(f"Feature selection: Keeping top {len(top_features)}/{len(feature_names)} features")
                 # Store selected features for future use
         model.selected_features_ = top_features
-        else:
+    else:
             model.selected_features_ = feature_names
             
             # Attach to model for later retrieval
@@ -786,7 +786,7 @@ def predict_price(features, current_price, df=None):
             model = _model_cache[cache_key]
             scaler = _scaler_cache.get(cache_key)
             logger.debug(f"Using cached model for {ticker}")
-        else:
+    else:
 
             # Train new model with extended historical data
             logger.info(f"Training new ML model for {ticker}")
@@ -852,7 +852,7 @@ def predict_price(features, current_price, df=None):
         # Scale features
         if scaler:
             X_scaled = scaler.transform(X)
-        else:
+    else:
 
             X_scaled = X
         
@@ -962,7 +962,7 @@ def predict_price(features, current_price, df=None):
                 daily_return = annualized_return / 252
 
         ml_return_pct = ((1 + daily_return) ** days - 1) * 100
-        else:
+    else:
                 # If ML is worse than baseline, use 0% ML prediction (will use only momentum)
         ml_return_pct = 0.0
             
@@ -1005,7 +1005,7 @@ def predict_price(features, current_price, df=None):
                 # Allow more movement for longer timeframes
         max_down = min(0.5, vol_factor * np.sqrt(days / 252) * 3)  # Max 50% down
         max_up = min(2.0, vol_factor * np.sqrt(days / 252) * 4)    # Max 200% up
-        else:
+    else:
             max_down = 0.3  # Conservative 30% down
 
             max_up = 1.5    # Conservative 50% up
@@ -1019,7 +1019,7 @@ def predict_price(features, current_price, df=None):
                 alignment = 1 - abs(blended_return_pct - momentum_pct) / max(abs(momentum_pct), 10)
 
         confidence = 0.5 + 0.3 * max(0, alignment)  # 0.5 to 0.8
-        else:
+    else:
             confidence = 0.5  # Lower confidence if no clear momentum
 
             
@@ -1090,7 +1090,7 @@ def predict_price(features, current_price, df=None):
 
                 # Use cached dict if available
         feature_importance_dict = model.feature_importances_dict_
-        else:
+    else:
                 # Create dict from feature_importances_
         feature_importance_dict = dict(zip(feature_names, model.feature_importances_))
             
@@ -1107,7 +1107,7 @@ def predict_price(features, current_price, df=None):
                 model_quality['cv_r2_score'] = float(model.cv_r2_score)
 
         model_quality['train_r2_score'] = float(getattr(model, 'train_r2_score', model.cv_r2_score))
-        else:
+    else:
                 # Fallback if model doesn't have CV score
         model_quality['cv_r2_score'] = None
         model_quality['train_r2_score'] = None
@@ -1481,7 +1481,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
 
             trend_class = 'Moderate Downtrend'
             confidence = 0.60
-        else:
+    else:
 
             trend_class = 'Sideways'
 
@@ -1741,7 +1741,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
 
         elif risk_score >= 30:
             base_position = 5.0
-        else:
+    else:
 
             base_position = 7.0
 
@@ -1768,7 +1768,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             size_category = 'Medium'
 
             size_color = '#fbbf24'
-        else:
+    else:
 
             size_category = 'Small'
 
@@ -2008,7 +2008,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
 
             confidence = "Medium"
             color = "#f87171"  # Light red
-        else:
+    else:
 
             recommendation = "Strong Sell"
 
@@ -2288,7 +2288,7 @@ def run_backtest(ticker: str, start_date: Optional[str] = None, end_date: Option
 
                 momentum_predictions.append(actuals[0])
 
-        else:
+    else:
                 # Simple momentum: assume same return as previous day
         prev_return = (actuals[i] - actuals[i-1]) / actuals[i-1] if actuals[i-1] > 0 else 0
         momentum_pred = actuals[i-1] * (1 + prev_return)
@@ -2310,7 +2310,7 @@ def run_backtest(ticker: str, start_date: Optional[str] = None, end_date: Option
         if i < len(predicted_returns):
                     # Simple strategy: follow prediction direction
         strategy_returns.append(actual_returns[i])
-        else:
+    else:
             strategy_returns.append(0)
 
             
@@ -2320,7 +2320,7 @@ def run_backtest(ticker: str, start_date: Optional[str] = None, end_date: Option
             if len(strategy_returns) > 0 and np.std(strategy_returns) > 0:
                 sharpe_ratio = (np.mean(strategy_returns) / np.std(strategy_returns)) * np.sqrt(252)
 
-        else:
+    else:
             sharpe_ratio = 0.0
 
             
