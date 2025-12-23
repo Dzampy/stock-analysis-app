@@ -716,12 +716,13 @@ def predict_price(features, current_price, df=None):
             '12m': 252  # ~1 year
         }
         
-        # Hybrid weights: more ML for short-term, more momentum for long-term
+        # Hybrid weights: more conservative - favor momentum over ML to avoid extreme predictions
+        # Momentum is more stable and realistic, especially for short-term where ML can be too volatile
         timeframe_weights = {
-            '1m': {'ml': 0.8, 'momentum': 0.2},
-            '3m': {'ml': 0.5, 'momentum': 0.5},
-            '6m': {'ml': 0.3, 'momentum': 0.7},
-            '12m': {'ml': 0.2, 'momentum': 0.8}
+            '1m': {'ml': 0.4, 'momentum': 0.6},   # Changed from 80/20 to 40/60
+            '3m': {'ml': 0.3, 'momentum': 0.7},   # Changed from 50/50 to 30/70
+            '6m': {'ml': 0.25, 'momentum': 0.75}, # Changed from 30/70 to 25/75
+            '12m': {'ml': 0.15, 'momentum': 0.85} # Changed from 20/80 to 15/85
         }
         
         predictions = {}
