@@ -479,21 +479,20 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
                 hist_features = _extract_historical_features(df, i)
                 if hist_features is None:
                     continue
-
                 
                 # Predict absolute price (not percentage return)
                 # Percentage return caused worse CV R² scores, reverting to absolute price
-        current_price_at_idx = df['Close'].iloc[i]
-        next_day_price = df['Close'].iloc[i + 1]
+                current_price_at_idx = df['Close'].iloc[i]
+                next_day_price = df['Close'].iloc[i + 1]
                 
                 # Use absolute price as target (normalized by current price for better scaling)
                 # Normalize target to reduce impact of price scale differences
-        target_price_normalized = next_day_price / current_price_at_idx if current_price_at_idx > 0 else 1.0
+                target_price_normalized = next_day_price / current_price_at_idx if current_price_at_idx > 0 else 1.0
                 
                 # Build feature vector
-        feature_vector = [hist_features.get(name, 0.0) for name in feature_names]
-        X_hist.append(feature_vector)
-        y_hist.append(target_price_normalized)  # Normalized price (ratio to current price)
+                feature_vector = [hist_features.get(name, 0.0) for name in feature_names]
+                X_hist.append(feature_vector)
+                y_hist.append(target_price_normalized)  # Normalized price (ratio to current price)
                 
         except Exception as e:
             logger.debug(f"Error extracting features for index {i}: {e}")
