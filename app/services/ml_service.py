@@ -384,27 +384,27 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         for i in range(lookback_days, len(df) - 1):  # -1 because we predict next day
             try:
                 # Extract features for this historical point
-        hist_features = _extract_historical_features(df, i)
-        if hist_features is None:
-            continue
+                hist_features = _extract_historical_features(df, i)
+                if hist_features is None:
+                    continue
                 
                 # IMPORTANT CHANGE: Predict percentage return instead of absolute price
                 # This makes the model more generalizable and reduces overfitting
-        current_price_at_idx = df['Close'].iloc[i]
-        next_day_price = df['Close'].iloc[i + 1]
+                current_price_at_idx = df['Close'].iloc[i]
+                next_day_price = df['Close'].iloc[i + 1]
                 
                 # Calculate percentage return (annualized for next day)
                 # This normalizes the target and makes it easier to predict
-        target_return_pct = ((next_day_price - current_price_at_idx) / current_price_at_idx) * 100
+                target_return_pct = ((next_day_price - current_price_at_idx) / current_price_at_idx) * 100
                 
                 # Build feature vector
-        feature_vector = [hist_features.get(name, 0.0) for name in feature_names]
-        X_hist.append(feature_vector)
-        y_hist.append(target_return_pct)  # Changed from absolute price to percentage return
+                feature_vector = [hist_features.get(name, 0.0) for name in feature_names]
+                X_hist.append(feature_vector)
+                y_hist.append(target_return_pct)  # Changed from absolute price to percentage return
                 
             except Exception as e:
-        logger.debug(f"Error extracting features for index {i}: {e}")
-        continue
+                logger.debug(f"Error extracting features for index {i}: {e}")
+                continue
         
         if len(X_hist) < 50:
             logger.warning(f"Insufficient training samples: {len(X_hist)}, need at least 50")
