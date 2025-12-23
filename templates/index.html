@@ -10807,7 +10807,7 @@
                                         }
                                         if (!isFinite(ret) || ret === null || ret === undefined || currentPrice <= 0) {
                                             ret = ((pred - currentPrice) / currentPrice) * 100;
-                                            ret = Math.max(-80, Math.min(200, ret));
+                                            ret = Math.max(-80, ret);  // Cap only negative side
                                         }
                                         
                                         // Format values safely - add extra validation
