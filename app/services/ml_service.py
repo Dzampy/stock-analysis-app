@@ -384,18 +384,27 @@ def predict_price(features, current_price, df=None):
         # In production, use prediction intervals from ensemble
         std_dev = current_price * 0.15  # Simplified
         
+        # Calculate price change ratio with bounds
+        if current_price > 0:
+            price_change_ratio = (prediction - current_price) / current_price
+        else:
+            price_change_ratio = 0
+        
+        # Limit the price change ratio to reasonable bounds (-50% to +100% for 6M)
+        price_change_ratio = max(-0.5, min(1.0, price_change_ratio))
+        
         predictions = {
-            '1m': {'price': current_price * (1 + (prediction - current_price) / current_price * 0.25), 'confidence': 0.6},
-            '3m': {'price': current_price * (1 + (prediction - current_price) / current_price * 0.5), 'confidence': 0.5},
-            '6m': {'price': prediction, 'confidence': 0.4},
-            '12m': {'price': current_price * (1 + (prediction - current_price) / current_price * 1.5), 'confidence': 0.3}
+            '1m': {'price': current_price * (1 + price_change_ratio * 0.15), 'confidence': 0.6},
+            '3m': {'price': current_price * (1 + price_change_ratio * 0.4), 'confidence': 0.5},
+            '6m': {'price': current_price * (1 + price_change_ratio * 0.7), 'confidence': 0.4},
+            '12m': {'price': current_price * (1 + price_change_ratio * 1.0), 'confidence': 0.3}
         }
         
         expected_returns = {
-            '1m': ((predictions['1m']['price'] - current_price) / current_price) * 100,
-            '3m': ((predictions['3m']['price'] - current_price) / current_price) * 100,
-            '6m': ((predictions['6m']['price'] - current_price) / current_price) * 100,
-            '12m': ((predictions['12m']['price'] - current_price) / current_price) * 100
+            '1m': price_change_ratio * 15,  # Max ~15%
+            '3m': price_change_ratio * 40,  # Max ~40%
+            '6m': price_change_ratio * 70,  # Max ~70%
+            '12m': price_change_ratio * 100  # Max ~100%
         }
         
         confidence_intervals = {
