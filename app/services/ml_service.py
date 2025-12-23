@@ -1423,8 +1423,8 @@ def get_prediction_accuracy(
                 # price in range)
                 actual_price = float(hist['Close'].iloc[-1]) if len(hist) > 0 else None
 
-        if actual_price is None or actual_price <= 0:
-                continue
+                if actual_price is None or actual_price <= 0:
+                    continue
 
                 # Calculate error
                 error_pct = ((actual_price - pred_price) / pred_price) * 100
