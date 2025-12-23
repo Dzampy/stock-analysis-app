@@ -41,11 +41,15 @@ def get_analyst_data(ticker):
                     recommendations = mb_recs
                     logger.info(f"Found {len(recommendations)} recommendations from MarketBeat for {ticker}")
                 else:
-                    # Try Benzinga
-                    bz_recs = get_benzinga_analyst_ratings(ticker_upper)
-                    if bz_recs and len(bz_recs) > 0:
-                        recommendations = bz_recs
-                        logger.info(f"Found {len(recommendations)} recommendations from Benzinga for {ticker}")
+                    # Try Benzinga (if function exists)
+                    try:
+                        bz_recs = get_benzinga_analyst_ratings(ticker_upper)
+                        if bz_recs and len(bz_recs) > 0:
+                            recommendations = bz_recs
+                            logger.info(f"Found {len(recommendations)} recommendations from Benzinga for {ticker}")
+                    except (ImportError, AttributeError, NameError) as e:
+                        logger.debug(f"Benzinga analyst ratings not available: {str(e)}")
+                        pass
         except Exception as e:
             logger.warning(f"Error getting recommendations: {str(e)}")
             recommendations = []
