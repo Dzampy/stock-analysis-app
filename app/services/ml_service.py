@@ -2438,15 +2438,13 @@ def run_backtest(
         momentum_predictions = []
         for i in range(len(actuals)):
             if i == 0:
-
                 momentum_predictions.append(actuals[0])
-
-    else:
-        # Simple momentum: assume same return as previous day
-        prev_return = (actuals[i] - actuals[i - 1]) / \
-            actuals[i - 1] if actuals[i - 1] > 0 else 0
-        momentum_pred = actuals[i - 1] * (1 + prev_return)
-        momentum_predictions.append(momentum_pred)
+            else:
+                # Simple momentum: assume same return as previous day
+                prev_return = (actuals[i] - actuals[i - 1]) / \
+                    actuals[i - 1] if actuals[i - 1] > 0 else 0
+                momentum_pred = actuals[i - 1] * (1 + prev_return)
+                momentum_predictions.append(momentum_pred)
         momentum_predictions = np.array(momentum_predictions)
 
         momentum_mae = mean_absolute_error(actuals, momentum_predictions)
