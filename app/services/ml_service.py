@@ -971,8 +971,8 @@ def predict_price(features, current_price, df=None):
             threshold = extreme_thresholds.get(timeframe, -50)
             if blended_return_pct < threshold and abs(momentum_pct) > 1:
                 # Use 90% momentum, 10% ML if prediction is too extreme
-        logger.debug(f"Extreme prediction ({blended_return_pct:.1f}%) for {timeframe}, using mostly momentum")
-        blended_return_pct = 0.1 * ml_return_pct + 0.9 * momentum_pct
+                logger.debug(f"Extreme prediction ({blended_return_pct:.1f}%) for {timeframe}, using mostly momentum")
+                blended_return_pct = 0.1 * ml_return_pct + 0.9 * momentum_pct
             
             # Calculate predicted price
             predicted_price = current_price * (1 + blended_return_pct / 100)
