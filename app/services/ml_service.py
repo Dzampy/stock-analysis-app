@@ -546,9 +546,9 @@ def _train_random_forest_model(ticker: str,
                 feature_vector = [
     hist_features.get(
         name, 0.0) for name in feature_names]
-                X_hist.append(feature_vector)
-                # Normalized price (ratio to current price)
-                y_hist.append(target_price_normalized)
+        X_hist.append(feature_vector)
+        # Normalized price (ratio to current price)
+        y_hist.append(target_price_normalized)
 
             except Exception as e:
                 logger.debug(f"Error extracting features for index {i}: {e}")
@@ -686,7 +686,7 @@ def _train_random_forest_model(ticker: str,
             )
 
         # Train final model on all training data
-                model.fit(X_train_scaled, y_train)
+        model.fit(X_train_scaled, y_train)
 
         # Calculate training score for logging
         train_score = model.score(X_train_scaled, y_train)
@@ -741,7 +741,7 @@ def _train_random_forest_model(ticker: str,
         # Store flag indicating if model is better than baseline
         model.is_better_than_baseline = model.cv_r2_score > 0.0
                 
-                return model, scaler
+        return model, scaler
         
     except Exception as e:
         logger.exception(f"Error training model for {ticker}: {e}")
@@ -894,17 +894,17 @@ def predict_price(features, current_price, df=None):
         '3m': {'price': current_price * (1 + momentum_3m * 0.5 / 100), 'confidence': 0.25},
         '6m': {'price': current_price * (1 + momentum_6m * 0.5 / 100), 'confidence': 0.2},
         '12m': {'price': current_price * (1 + momentum_12m * 0.5 / 100), 'confidence': 0.15}
-                },
-                'expected_returns': {
+        },
+        'expected_returns': {
         '1m': momentum_1m * 0.5,
         '3m': momentum_3m * 0.5,
         '6m': momentum_6m * 0.5,
         '12m': momentum_12m * 0.5
-                },
-                'confidence_intervals': {
+        },
+        'confidence_intervals': {
         '6m': {'lower': current_price * 0.80, 'upper': current_price * 1.30},
         '12m': {'lower': current_price * 0.70, 'upper': current_price * 1.50}
-                },
+        },
         'model_used': 'momentum_estimate',
         'warning': 'ML model training failed. Using momentum-based estimates. These are NOT ML predictions.'
             }
@@ -1409,7 +1409,7 @@ def get_prediction_accuracy(
         # Add buffer for weekends/holidays
         target_date = pred_date + timedelta(days=days + 30)
 
-                # Download historical data for that period
+        # Download historical data for that period
         hist = stock.history(start=pred_date, end=target_date)
 
         if hist.empty or len(hist) == 0:
@@ -1659,8 +1659,8 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
                 # price for more realistic entry points
         entry_price = current_price * 0.8 + ml_pred_price * 0.2
 
-                # Ensure entry is within tighter range (±8% of current price
-                # for more realistic entry)
+        # Ensure entry is within tighter range (±8% of current price
+        # for more realistic entry)
         entry_price = max(current_price * 0.92,
                           min(current_price * 1.08, entry_price))
 
@@ -1725,7 +1725,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             if ml_tp1 and ml_tp1 > entry_price:
                 # Only use ML if it's higher than entry (makes sense for TP)
         tp1_price = default_tp1 * 0.6 + ml_tp1 * 0.4
-                # Ensure TP1 is at least 5% above entry
+        # Ensure TP1 is at least 5% above entry
         tp1_price = max(entry_price * 1.05, tp1_price)
 
             if ml_tp2 and ml_tp2 > entry_price:
@@ -2062,22 +2062,22 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             # Individual ML prediction impact (increased penalties/bonuses)
         if expected_return_6m > 20:
 
-                technical_score += 20  # Increased from 15
+        technical_score += 20  # Increased from 15
 
             reasons.append(f"ML model predicts strong 6-month return (+{expected_return_6m:.1f}%)")
         elif expected_return_6m > 10:
 
-                technical_score += 15  # Increased from 10
+        technical_score += 15  # Increased from 10
 
             reasons.append(f"ML model predicts positive 6-month return (+{expected_return_6m:.1f}%)")
         elif expected_return_6m < -10:
 
-                technical_score -= 25  # Increased from 15
+        technical_score -= 25  # Increased from 15
 
             warnings.append(f"ML model predicts negative 6-month return ({expected_return_6m:.1f}%)")
         elif expected_return_6m < -5:
 
-                technical_score -= 20  # Increased from 10
+        technical_score -= 20  # Increased from 10
 
             warnings.append(f"ML model predicts weak 6-month return ({expected_return_6m:.1f}%)")
             elif expected_return_6m < 0:
@@ -2263,7 +2263,7 @@ def run_backtest(ticker: str, start_date: Optional[str] = None, end_date: Option
 
         else:
 
-                end = df.index[-1]
+        end = df.index[-1]
 
         
         if start_date:
@@ -2312,28 +2312,28 @@ def run_backtest(ticker: str, start_date: Optional[str] = None, end_date: Option
                 # Training data: everything up to current point
         train_df = df_test.iloc[:i+1]
                 
-                # Test point: next day
+        # Test point: next day
         test_date = df_test.index[i + 1]
         actual_price = df_test['Close'].iloc[i + 1]
         
-                # Get features for current point
+        # Get features for current point
         from app.analysis.technical import calculate_technical_indicators
         from app.analysis.fundamental import calculate_metrics
                 
         indicators = calculate_technical_indicators(train_df)
                 
-                # Note: Historical info and news would require point-in-time data
-                # For now, we use empty structures which means backtest uses fewer features
-                # This may reduce accuracy but prevents data leakage
+        # Note: Historical info and news would require point-in-time data
+        # For now, we use empty structures which means backtest uses fewer features
+        # This may reduce accuracy but prevents data leakage
         info = {}  # Historical fundamentals would require point-in-time data
         metrics = calculate_metrics(train_df, info)
         news_list = []  # Historical news sentiment would require time-series data
                 
-                # Extract features
+        # Extract features
         features = extract_ml_features(ticker, train_df, info, indicators, metrics, news_list)
         features['ticker'] = ticker.upper()
                 
-                # Decide if we need to retrain model
+        # Decide if we need to retrain model
         should_retrain = (
         cached_model is None or  # First iteration
             (i - last_retrain_idx) >= retrain_interval_days or  # Interval reached
