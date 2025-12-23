@@ -53,7 +53,7 @@ def clear_ml_cache():
         'success': True,
         'message': f'ML cache cleared (removed {cache_size_before} cached models)',
         'cache_version': MODEL_CACHE_VERSION
-        }
+    }
 
 
 
@@ -71,7 +71,7 @@ def extract_ml_features(ticker: str, df: pd.DataFrame, info: Dict, indicators: D
         
     Returns:
         Dict with extracted features
-        """
+    """
     features = {}
     
     current_price = df['Close'].iloc[-1]
@@ -116,21 +116,19 @@ def extract_ml_features(ticker: str, df: pd.DataFrame, info: Dict, indicators: D
     if sma_20 and len(sma_20) > 0:
         features['sma_20'] = float(sma_20[-1]) if not pd.isna(sma_20[-1]) else current_price
         features['price_vs_sma20'] = ((current_price - features['sma_20']) / features['sma_20']) * 100 if features['sma_20'] > 0 else 0.0
-        else:
-
-            features['sma_20'] = current_price
-
-            features['price_vs_sma20'] = 0.0
+    else:
+        features['sma_20'] = current_price
+        features['price_vs_sma20'] = 0.0
 
     
     if sma_50 and len(sma_50) > 0:
         features['sma_50'] = float(sma_50[-1]) if not pd.isna(sma_50[-1]) else current_price
         features['price_vs_sma50'] = ((current_price - features['sma_50']) / features['sma_50']) * 100 if features['sma_50'] > 0 else 0.0
-        else:
+    else:
 
-            features['sma_50'] = current_price
+        features['sma_50'] = current_price
 
-            features['price_vs_sma50'] = 0.0
+        features['price_vs_sma50'] = 0.0
 
     
     # Bollinger Bands features
@@ -140,25 +138,25 @@ def extract_ml_features(ticker: str, df: pd.DataFrame, info: Dict, indicators: D
         features['bb_mid'] = float(bb_mid[-1]) if not pd.isna(bb_mid[-1]) else current_price
         features['bb_width'] = ((features['bb_high'] - features['bb_low']) / features['bb_mid']) * 100 if features['bb_mid'] > 0 else 0.0
         features['bb_position'] = ((current_price - features['bb_low']) / (features['bb_high'] - features['bb_low'])) * 100 if (features['bb_high'] - features['bb_low']) > 0 else 50.0
-        else:
+    else:
 
-            features['bb_high'] = current_price * 1.1
+        features['bb_high'] = current_price * 1.1
 
-            features['bb_low'] = current_price * 0.9
+        features['bb_low'] = current_price * 0.9
 
-            features['bb_mid'] = current_price
+        features['bb_mid'] = current_price
 
-            features['bb_width'] = 20.0
+        features['bb_width'] = 20.0
 
-            features['bb_position'] = 50.0
+        features['bb_position'] = 50.0
 
     
     # ADX features
     if adx_values and len(adx_values) > 0:
         features['adx'] = float(adx_values[-1]) if not pd.isna(adx_values[-1]) else 25.0
-        else:
+    else:
 
-            features['adx'] = 25.0
+        features['adx'] = 25.0
 
     
     # Stochastic features
@@ -167,48 +165,48 @@ def extract_ml_features(ticker: str, df: pd.DataFrame, info: Dict, indicators: D
         features['stoch_d'] = float(stoch_d_values[-1]) if not pd.isna(stoch_d_values[-1]) else 50.0
         features['stoch_oversold'] = 1.0 if features['stoch_k'] < 20 else 0.0
         features['stoch_overbought'] = 1.0 if features['stoch_k'] > 80 else 0.0
-        else:
+    else:
 
-            features['stoch_k'] = 50.0
+        features['stoch_k'] = 50.0
 
-            features['stoch_d'] = 50.0
+        features['stoch_d'] = 50.0
 
-            features['stoch_oversold'] = 0.0
+        features['stoch_oversold'] = 0.0
 
-            features['stoch_overbought'] = 0.0
+        features['stoch_overbought'] = 0.0
 
     
     # ATR features
     if atr_values and len(atr_values) > 0:
         features['atr'] = float(atr_values[-1]) if not pd.isna(atr_values[-1]) else current_price * 0.02
         features['atr_pct'] = (features['atr'] / current_price) * 100 if current_price > 0 else 2.0
-        else:
+    else:
 
-            features['atr'] = current_price * 0.02
+        features['atr'] = current_price * 0.02
 
-            features['atr_pct'] = 2.0
+        features['atr_pct'] = 2.0
 
     
     # Price momentum features
     if len(df) >= 5:
         features['price_change_5d'] = ((current_price - df['Close'].iloc[-5]) / df['Close'].iloc[-5]) * 100
-        else:
+    else:
 
-            features['price_change_5d'] = 0.0
+        features['price_change_5d'] = 0.0
 
     
     if len(df) >= 10:
         features['price_change_10d'] = ((current_price - df['Close'].iloc[-10]) / df['Close'].iloc[-10]) * 100
-        else:
+    else:
 
-            features['price_change_10d'] = 0.0
+        features['price_change_10d'] = 0.0
 
     
     if len(df) >= 30:
         features['price_change_30d'] = ((current_price - df['Close'].iloc[-30]) / df['Close'].iloc[-30]) * 100
-        else:
+    else:
 
-            features['price_change_30d'] = 0.0
+        features['price_change_30d'] = 0.0
 
     
     # Lag features for time series prediction (important for price prediction)
@@ -252,9 +250,9 @@ def extract_ml_features(ticker: str, df: pd.DataFrame, info: Dict, indicators: D
         avg_volume = df['Volume'].tail(20).mean() if len(df) >= 20 else df['Volume'].mean()
         current_volume = df['Volume'].iloc[-1]
         features['volume_ratio'] = (current_volume / avg_volume) if avg_volume > 0 else 1.0
-        else:
+    else:
 
-            features['volume_ratio'] = 1.0
+        features['volume_ratio'] = 1.0
 
     
     # Fundamental features
@@ -283,20 +281,20 @@ def extract_ml_features(ticker: str, df: pd.DataFrame, info: Dict, indicators: D
         sentiments = [article.get('sentiment_score', 0.0) for article in news_list[:10]]
         features['news_sentiment_avg'] = float(np.mean(sentiments)) if sentiments else 0.0
         features['news_count'] = len(news_list[:10])
-        else:
+    else:
 
-            features['news_sentiment_avg'] = 0.0
+        features['news_sentiment_avg'] = 0.0
 
-            features['news_count'] = 0
+        features['news_count'] = 0
 
     
     # Volatility features
     if len(df) >= 20:
         returns = df['Close'].pct_change().dropna()
         features['volatility'] = float(returns.std() * np.sqrt(252) * 100) if len(returns) > 0 else 0.0
-        else:
+    else:
 
-            features['volatility'] = 0.0
+        features['volatility'] = 0.0
 
     
     return features
@@ -314,10 +312,10 @@ def _extract_historical_features(df, idx):
         Dict with features or None
         """
 
-        if idx < 0 or idx >= len(df):
+    if idx < 0 or idx >= len(df):
 
-            return None
-
+        return None
+    
     
     # CRITICAL: Get data ONLY up to and including idx (no future data)
     # We use idx+1 because we want data including idx, but features should
@@ -443,9 +441,9 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         Tuple of (model, scaler) or (None, None) if training fails
         """
 
-        if not ML_AVAILABLE:
+    if not ML_AVAILABLE:
 
-            return None, None
+        return None, None
 
     
     try:
@@ -707,7 +705,7 @@ def predict_price(features, current_price, df=None):
         
     Returns:
         Dict with price predictions and confidence intervals
-        """
+    """
 
     # Check cache first
     ticker = features.get('ticker', '')
@@ -788,7 +786,7 @@ def predict_price(features, current_price, df=None):
             model = _model_cache[cache_key]
             scaler = _scaler_cache.get(cache_key)
             logger.debug(f"Using cached model for {ticker}")
-            else:
+        else:
 
             # Train new model with extended historical data
             logger.info(f"Training new ML model for {ticker}")
@@ -854,10 +852,10 @@ def predict_price(features, current_price, df=None):
         # Scale features
         if scaler:
             X_scaled = scaler.transform(X)
-            else:
+        else:
 
-                X_scaled = X
-
+            X_scaled = X
+        
         
         # Predict using all trees in ensemble for proper confidence intervals
         tree_predictions = []
@@ -1122,7 +1120,7 @@ def predict_price(features, current_price, df=None):
             'model_used': 'random_forest',
             'feature_importance': top_features if top_features else None,
             'model_quality': model_quality if model_quality else None
-            }
+        }
 
         
         # Cache the result
@@ -1197,7 +1195,7 @@ def predict_price(features, current_price, df=None):
             'model_used': 'momentum_estimate',
             'warning': f'ML prediction error: {str(e)}. Using momentum-based estimates. These are NOT ML predictions.',
             'error': str(e)
-            }
+        }
 
 
 
@@ -1224,7 +1222,7 @@ def _save_prediction_history(ticker: str, current_price: float, prediction_resul
             'expected_return_6m': prediction_result.get('expected_returns', {}).get('6m'),
             'expected_return_12m': prediction_result.get('expected_returns', {}).get('12m'),
             'score': score
-            }
+        }
 
         
         history.append(entry)
@@ -1268,11 +1266,11 @@ def get_prediction_history(ticker: str, days: int = 30) -> List[Dict]:
             history = filtered_history
         
         return history
-        except Exception as e:
+    except Exception as e:
 
-            logger.exception(f"Error loading prediction history: {e}")
+        logger.exception(f"Error loading prediction history: {e}")
 
-            return []
+        return []
 
 
 
@@ -1397,11 +1395,11 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
     Generate AI-powered stock recommendations (cached)
     
     NOTE: This is a stub implementation. Full implementation requires:
-        - classify_trend() function
+    - classify_trend() function
 
-        - calculate_entry_tp_dca() function  
+    - calculate_entry_tp_dca() function  
 
-        - calculate_position_sizing() function
+    - calculate_position_sizing() function
 
     
     These functions should be moved from app.py or reimplemented.
@@ -1469,11 +1467,11 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         elif price_momentum_30d > 5:
             trend_class = 'Moderate Uptrend'
             confidence = 0.60
-            elif price_momentum_30d < -15 and sma_20 and sma_50 and len(sma_20) > 0 and len(sma_50) > 0:
+        elif price_momentum_30d < -15 and sma_20 and sma_50 and len(sma_20) > 0 and len(sma_50) > 0:
 
-                if current_price < sma_20[-1] < sma_50[-1]:
+            if current_price < sma_20[-1] < sma_50[-1]:
 
-                    trend_class = 'Strong Downtrend'
+                trend_class = 'Strong Downtrend'
 
                 confidence = 0.75
             else:
@@ -1483,9 +1481,9 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
 
             trend_class = 'Moderate Downtrend'
             confidence = 0.60
-            else:
+        else:
 
-                trend_class = 'Sideways'
+            trend_class = 'Sideways'
 
             confidence = 0.50
         
@@ -1496,7 +1494,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             'Sideways': 0.0,
             'Moderate Downtrend': 0.0,
             'Strong Downtrend': 0.0
-            }
+        }
 
         
         # Assign probabilities based on trend_class
@@ -1505,31 +1503,31 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             probabilities['Moderate Uptrend'] = (1 - confidence) * 0.6
             probabilities['Sideways'] = (1 - confidence) * 0.3
             probabilities['Moderate Downtrend'] = (1 - confidence) * 0.1
-            elif trend_class == 'Moderate Uptrend':
+        elif trend_class == 'Moderate Uptrend':
 
-                probabilities['Moderate Uptrend'] = confidence
+            probabilities['Moderate Uptrend'] = confidence
 
             probabilities['Strong Uptrend'] = (1 - confidence) * 0.3
             probabilities['Sideways'] = (1 - confidence) * 0.5
             probabilities['Moderate Downtrend'] = (1 - confidence) * 0.2
-            elif trend_class == 'Sideways':
+        elif trend_class == 'Sideways':
 
-                probabilities['Sideways'] = confidence
+            probabilities['Sideways'] = confidence
 
             probabilities['Moderate Uptrend'] = (1 - confidence) * 0.3
             probabilities['Moderate Downtrend'] = (1 - confidence) * 0.3
             probabilities['Strong Uptrend'] = (1 - confidence) * 0.2
             probabilities['Strong Downtrend'] = (1 - confidence) * 0.2
-            elif trend_class == 'Moderate Downtrend':
+        elif trend_class == 'Moderate Downtrend':
 
-                probabilities['Moderate Downtrend'] = confidence
+            probabilities['Moderate Downtrend'] = confidence
 
             probabilities['Sideways'] = (1 - confidence) * 0.5
             probabilities['Strong Downtrend'] = (1 - confidence) * 0.3
             probabilities['Moderate Uptrend'] = (1 - confidence) * 0.2
-            elif trend_class == 'Strong Downtrend':
+        elif trend_class == 'Strong Downtrend':
 
-                probabilities['Strong Downtrend'] = confidence
+            probabilities['Strong Downtrend'] = confidence
 
             probabilities['Moderate Downtrend'] = (1 - confidence) * 0.6
             probabilities['Sideways'] = (1 - confidence) * 0.3
@@ -1539,7 +1537,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             'trend_class': trend_class,
             'confidence': confidence,
             'probabilities': probabilities
-            }
+        }
 
         # Calculate Entry, TP, and DCA levels using ML predictions and technical analysis
         # Entry point based on current price, support levels, and ML confidence
@@ -1725,7 +1723,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
                 'volatility_pct': round(volatility_pct, 2),
                 'adaptive_factor': round(adaptive_factor, 2)
             }
-            }
+        }
 
         # Calculate position sizing with proper structure
         risk_score = risk_analysis.get('risk_score', 50)
@@ -1737,15 +1735,15 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         # Adjust based on risk score (higher risk = smaller position)
         if risk_score >= 70:
             base_position = 1.0
-            elif risk_score >= 50:
+        elif risk_score >= 50:
 
-                base_position = 3.0
+            base_position = 3.0
 
         elif risk_score >= 30:
             base_position = 5.0
-            else:
+        else:
 
-                base_position = 7.0
+            base_position = 7.0
 
         
         # Adjust based on ML confidence (higher confidence = larger position)
@@ -1765,14 +1763,14 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         if recommended_pct >= 10:
             size_category = 'Large'
             size_color = '#10b981'
-            elif recommended_pct >= 5:
+        elif recommended_pct >= 5:
 
-                size_category = 'Medium'
+            size_category = 'Medium'
 
             size_color = '#fbbf24'
-            else:
+        else:
 
-                size_category = 'Small'
+            size_category = 'Small'
 
             size_color = '#ef4444'
         
@@ -1803,7 +1801,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
                 'volatility': round(volatility_pct / 2.0, 2),
                 'risk_reward': 1.0
             }
-            }
+        }
 
         
         # Analyze news sentiment
@@ -1897,9 +1895,9 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         if news_sentiment == 'positive':
             technical_score += 5
             reasons.append("Recent news sentiment is positive")
-            elif news_sentiment == 'negative':
+        elif news_sentiment == 'negative':
 
-                technical_score -= 5
+            technical_score -= 5
 
             warnings.append("Recent news sentiment is negative")
         
@@ -1927,22 +1925,22 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             else:
 
             # Individual ML prediction impact (increased penalties/bonuses)
-            if expected_return_6m > 20:
+        if expected_return_6m > 20:
 
                 technical_score += 20  # Increased from 15
 
             reasons.append(f"ML model predicts strong 6-month return (+{expected_return_6m:.1f}%)")
-            elif expected_return_6m > 10:
+        elif expected_return_6m > 10:
 
                 technical_score += 15  # Increased from 10
 
             reasons.append(f"ML model predicts positive 6-month return (+{expected_return_6m:.1f}%)")
-            elif expected_return_6m < -10:
+        elif expected_return_6m < -10:
 
                 technical_score -= 25  # Increased from 15
 
             warnings.append(f"ML model predicts negative 6-month return ({expected_return_6m:.1f}%)")
-            elif expected_return_6m < -5:
+        elif expected_return_6m < -5:
 
                 technical_score -= 20  # Increased from 10
 
@@ -1957,19 +1955,19 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         if trend_class == 'Strong Uptrend':
             technical_score += 12
             reasons.append("ML trend classification: Strong Uptrend")
-            elif trend_class == 'Moderate Uptrend':
+        elif trend_class == 'Moderate Uptrend':
 
-                technical_score += 6
+            technical_score += 6
 
             reasons.append("ML trend classification: Moderate Uptrend")
-            elif trend_class == 'Strong Downtrend':
+        elif trend_class == 'Strong Downtrend':
 
-                technical_score -= 12
+            technical_score -= 12
 
             warnings.append("ML trend classification: Strong Downtrend")
-            elif trend_class == 'Moderate Downtrend':
+        elif trend_class == 'Moderate Downtrend':
 
-                technical_score -= 6
+            technical_score -= 6
 
             warnings.append("ML trend classification: Moderate Downtrend")
         
@@ -1978,9 +1976,9 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         if risk_score > 75:
             technical_score -= 10
             warnings.append(f"High risk score ({risk_score:.1f}/100)")
-            elif risk_score < 25:
+        elif risk_score < 25:
 
-                technical_score += 5
+            technical_score += 5
 
             reasons.append(f"Low risk score ({risk_score:.1f}/100)")
         
@@ -1992,27 +1990,27 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             recommendation = "Strong Buy"
             confidence = "High"
             color = "#10b981"  # Green
-            elif final_score >= 60:
+        elif final_score >= 60:
 
-                recommendation = "Buy"
+            recommendation = "Buy"
 
             confidence = "Medium-High"
             color = "#34d399"  # Light green
-            elif final_score >= 45:
+        elif final_score >= 45:
 
-                recommendation = "Hold"
+            recommendation = "Hold"
 
             confidence = "Medium"
             color = "#fbbf24"  # Yellow
-            elif final_score >= 30:
+        elif final_score >= 30:
 
-                recommendation = "Sell"
+            recommendation = "Sell"
 
             confidence = "Medium"
             color = "#f87171"  # Light red
-            else:
+        else:
 
-                recommendation = "Strong Sell"
+            recommendation = "Strong Sell"
 
             confidence = "High"
             color = "#ef4444"  # Red
@@ -2021,9 +2019,9 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         summary_parts = []
         if reasons:
             summary_parts.append(f"Key positives: {', '.join(reasons[:2])}")
-            if warnings:
+        if warnings:
 
-                summary_parts.append(f"Key concerns: {', '.join(warnings[:2])}")
+            summary_parts.append(f"Key concerns: {', '.join(warnings[:2])}")
 
         
         summary = ". ".join(summary_parts) if summary_parts else "Mixed signals - consider additional research"
@@ -2037,7 +2035,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             'low': [float(x) for x in df['Low'].round(2).fillna(0).tolist()],
             'close': [float(x) for x in df['Close'].round(2).fillna(0).tolist()],
             'volume': [int(x) for x in df['Volume'].fillna(0).astype(int).tolist()],
-            }
+        }
 
         
         return {
@@ -2064,7 +2062,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             'trading_strategy': entry_tp_dca,
             'position_sizing': position_sizing,
             'chart_data': chart_data
-            }
+        }
 
         
         # Cache the result
