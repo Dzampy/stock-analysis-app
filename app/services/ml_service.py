@@ -674,6 +674,9 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         # Entry point based on current price, support levels, and ML confidence
         entry_price = current_price
         entry_confidence = 'medium'
+        recent_low = current_price * 0.95  # Default fallback
+        recent_high = current_price * 1.05  # Default fallback
+        
         if price_prediction and price_prediction.get('predictions'):
             # Use 1M prediction as entry guidance
             pred_1m = price_prediction['predictions'].get('1m', {})
@@ -684,8 +687,8 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         
         # Adjust entry based on support/resistance
         if len(df) >= 20:
-            recent_low = df['Low'].iloc[-20:].min()
-            recent_high = df['High'].iloc[-20:].max()
+            recent_low = float(df['Low'].iloc[-20:].min())
+            recent_high = float(df['High'].iloc[-20:].max())
             # If current price is near recent low, it's a good entry
             if current_price <= recent_low * 1.05:
                 entry_confidence = 'high'
