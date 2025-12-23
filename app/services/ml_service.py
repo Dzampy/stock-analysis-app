@@ -1414,20 +1414,20 @@ def get_prediction_accuracy(
                 target_date = pred_date + timedelta(days=days + 30)
 
         # Download historical data for that period
-        hist = stock.history(start=pred_date, end=target_date)
+                hist = stock.history(start=pred_date, end=target_date)
 
         if hist.empty or len(hist) == 0:
-            continue
+                continue
 
-            # Get actual price closest to target date (use last available
-            # price in range)
-        actual_price = float(hist['Close'].iloc[-1]) if len(hist) > 0 else None
+                # Get actual price closest to target date (use last available
+                # price in range)
+                actual_price = float(hist['Close'].iloc[-1]) if len(hist) > 0 else None
 
         if actual_price is None or actual_price <= 0:
-            continue
+                continue
 
-            # Calculate error
-        error_pct = ((actual_price - pred_price) / pred_price) * 100
+                # Calculate error
+                error_pct = ((actual_price - pred_price) / pred_price) * 100
         error_abs = abs(error_pct)
 
         accuracy_results.append({
