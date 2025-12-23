@@ -1429,18 +1429,18 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             warnings.append(f"ML model predicts negative returns across all timeframes (1M: {expected_return_1m:.1f}%, 3M: {expected_return_3m:.1f}%, 6M: {expected_return_6m:.1f}%, 12M: {expected_return_12m:.1f}%)")
         else:
             # Individual ML prediction impact (increased penalties/bonuses)
-        if expected_return_6m > 20:
+            if expected_return_6m > 20:
                 technical_score += 20  # Increased from 15
-            reasons.append(f"ML model predicts strong 6-month return (+{expected_return_6m:.1f}%)")
-        elif expected_return_6m > 10:
+                reasons.append(f"ML model predicts strong 6-month return (+{expected_return_6m:.1f}%)")
+            elif expected_return_6m > 10:
                 technical_score += 15  # Increased from 10
-            reasons.append(f"ML model predicts positive 6-month return (+{expected_return_6m:.1f}%)")
-        elif expected_return_6m < -10:
+                reasons.append(f"ML model predicts positive 6-month return (+{expected_return_6m:.1f}%)")
+            elif expected_return_6m < -10:
                 technical_score -= 25  # Increased from 15
-            warnings.append(f"ML model predicts negative 6-month return ({expected_return_6m:.1f}%)")
-        elif expected_return_6m < -5:
+                warnings.append(f"ML model predicts negative 6-month return ({expected_return_6m:.1f}%)")
+            elif expected_return_6m < -5:
                 technical_score -= 20  # Increased from 10
-            warnings.append(f"ML model predicts weak 6-month return ({expected_return_6m:.1f}%)")
+                warnings.append(f"ML model predicts weak 6-month return ({expected_return_6m:.1f}%)")
             elif expected_return_6m < 0:
                 technical_score -= 10  # New: small penalty for any negative return
                 warnings.append(f"ML model predicts slight decline ({expected_return_6m:.1f}%)")
