@@ -366,10 +366,8 @@ def _download_extended_historical_data(ticker: str, years: int = 3) -> Optional[
     Returns:
         DataFrame with historical price data or None
         """
-
-        try:
-
-            import yfinance as yf
+    try:
+        import yfinance as yf
 
             from datetime import datetime, timedelta
 
