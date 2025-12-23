@@ -215,9 +215,49 @@ def get_insider_trading(ticker):
                     except Exception as yf_error:
                         logger.warning(f"Error getting yfinance insider data: {str(yf_error)}")
         
+        # Process transactions into purchases and sales
+        purchases = []
+        sales = []
+        total_purchases = 0.0
+        total_sales = 0.0
+        
+        for transaction in insider_transactions:
+            transaction_type = transaction.get('transaction_type', '').lower()
+            value = transaction.get('value', 0) or 0
+            
+            if transaction_type == 'buy' or transaction_type == 'purchase':
+                purchases.append({
+                    'date': transaction.get('date', 'N/A'),
+                    'insider': transaction.get('insider', 'N/A'),
+                    'value': float(value),
+                    'shares': transaction.get('shares', 0) or 0,
+                    'position': transaction.get('position', 'N/A')
+                })
+                total_purchases += float(value)
+            elif transaction_type == 'sell' or transaction_type == 'sale':
+                sales.append({
+                    'date': transaction.get('date', 'N/A'),
+                    'insider': transaction.get('insider', 'N/A'),
+                    'value': float(value),
+                    'shares': transaction.get('shares', 0) or 0,
+                    'position': transaction.get('position', 'N/A')
+                })
+                total_sales += float(value)
+        
+        # Sort by date (newest first)
+        purchases.sort(key=lambda x: x['date'], reverse=True)
+        sales.sort(key=lambda x: x['date'], reverse=True)
+        
+        net_activity = total_purchases - total_sales
+        
         return jsonify(clean_for_json({
             'ticker': ticker_upper,
             'transactions': insider_transactions[:30] if insider_transactions else [],
+            'purchases': purchases[:30],
+            'sales': sales[:30],
+            'total_purchases': total_purchases,
+            'total_sales': total_sales,
+            'net_activity': net_activity,
             'total': len(insider_transactions) if insider_transactions else 0
         }))
         
