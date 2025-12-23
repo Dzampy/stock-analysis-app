@@ -643,13 +643,12 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             # This reduces noise and improves generalization
             if len(sorted_importance) > 10:
                 threshold_idx = max(10, int(len(sorted_importance) * 0.7))
-
-        top_features = [name for name, _ in sorted_importance[:threshold_idx]]
-        logger.info(f"Feature selection: Keeping top {len(top_features)}/{len(feature_names)} features")
+                top_features = [name for name, _ in sorted_importance[:threshold_idx]]
+                logger.info(f"Feature selection: Keeping top {len(top_features)}/{len(feature_names)} features")
                 # Store selected features for future use
-        model.selected_features_ = top_features
-    else:
-            model.selected_features_ = feature_names
+                model.selected_features_ = top_features
+            else:
+                model.selected_features_ = feature_names
             
             # Attach to model for later retrieval
             model.feature_names_ = feature_names
