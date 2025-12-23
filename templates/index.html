@@ -10837,8 +10837,8 @@
                                             if (val === null || val === undefined || !isFinite(val) || val === Infinity || val === -Infinity || isNaN(val)) {
                                                 return '0.0';
                                             }
-                                            // Cap at -80% to +400%
-                                            const capped = Math.max(-80, Math.min(400, val));
+                                            // Cap at -80% to +200%
+                                            const capped = Math.max(-80, Math.min(200, val));
                                             if (!isFinite(capped) || capped === Infinity || capped === -Infinity) {
                                                 return '0.0';
                                             }
@@ -11028,7 +11028,7 @@
                         ` : ''}
                         
                         <!-- Trend Classification Section -->
-                        ${data.ml_models.trend_classification ? `
+                        ${data.ml_models?.trend_classification ? `
                             <div style="margin-top: 20px; padding: 20px; background: var(--bg-card); border-radius: 12px; border: 2px solid var(--border-color);">
                                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
                                     <h4 style="margin: 0; color: var(--text-primary);">📊 Trend Classification (ML Model)</h4>
@@ -11041,14 +11041,14 @@
                                 </div>
                                 <div style="margin-bottom: 15px;">
                                     <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                                        <span style="font-size: 1.2em; font-weight: 600; color: var(--text-primary);">${data.ml_models.trend_classification.trend_class}</span>
-                                        <span style="font-size: 0.9em; color: var(--text-secondary);">(Confidence: ${(data.ml_models.trend_classification.confidence * 100).toFixed(0)}%)</span>
+                                        <span style="font-size: 1.2em; font-weight: 600; color: var(--text-primary);">${data.ml_models?.trend_classification?.trend_class || 'N/A'}</span>
+                                        <span style="font-size: 0.9em; color: var(--text-secondary);">(Confidence: ${data.ml_models?.trend_classification?.confidence ? (data.ml_models.trend_classification.confidence * 100).toFixed(0) : '0'}%)</span>
                                     </div>
                                 </div>
                                 <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
                                     ${(data.ml_models?.trend_classification?.probabilities && typeof data.ml_models.trend_classification.probabilities === 'object') ? Object.entries(data.ml_models.trend_classification.probabilities).map(([trend, prob]) => {
                                         const probPct = (prob * 100).toFixed(0);
-                                        const isActive = trend === data.ml_models.trend_classification.trend_class;
+                                        const isActive = trend === (data.ml_models?.trend_classification?.trend_class || '');
                                         const trendColors = {
                                             'Strong Uptrend': '#10b981',
                                             'Moderate Uptrend': '#34d399',
@@ -11068,7 +11068,7 @@
                         ` : ''}
                         
                         <!-- Risk Analysis Section -->
-                        ${data.ml_models.risk_analysis ? `
+                        ${data.ml_models?.risk_analysis ? `
                             <div style="margin-top: 20px; padding: 20px; background: var(--bg-card); border-radius: 12px; border: 2px solid var(--border-color);">
                                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
                                     <h4 style="margin: 0; color: var(--text-primary);">⚠️ Risk Analysis (ML Model)</h4>
@@ -11086,19 +11086,19 @@
                                     <div style="display: flex; align-items: center; gap: 15px;">
                                         <div style="flex: 1;">
                                             <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 5px;">Risk Score</div>
-                                            <div style="font-size: 2em; font-weight: 600; color: ${data.ml_models.risk_analysis.risk_score < 25 ? '#10b981' : data.ml_models.risk_analysis.risk_score < 50 ? '#fbbf24' : data.ml_models.risk_analysis.risk_score < 75 ? '#f87171' : '#ef4444'};">
-                                                ${data.ml_models.risk_analysis.risk_score}/100
+                                            <div style="font-size: 2em; font-weight: 600; color: ${(data.ml_models?.risk_analysis?.risk_score || 50) < 25 ? '#10b981' : (data.ml_models?.risk_analysis?.risk_score || 50) < 50 ? '#fbbf24' : (data.ml_models?.risk_analysis?.risk_score || 50) < 75 ? '#f87171' : '#ef4444'};">
+                                                ${data.ml_models?.risk_analysis?.risk_score || 0}/100
                                             </div>
                                         </div>
                                         <div style="flex: 1;">
                                             <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 5px;">Risk Category</div>
                                             <div style="font-size: 1.5em; font-weight: 600; color: var(--text-primary);">
-                                                ${data.ml_models.risk_analysis.risk_category}
+                                                ${data.ml_models?.risk_analysis?.risk_category || 'N/A'}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                ${data.ml_models.risk_analysis.key_risk_factors && data.ml_models.risk_analysis.key_risk_factors.length > 0 ? `
+                                ${data.ml_models?.risk_analysis?.key_risk_factors && data.ml_models.risk_analysis.key_risk_factors.length > 0 ? `
                                     <div style="margin-top: 15px;">
                                         <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 10px;">Key Risk Factors:</div>
                                         <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -11140,16 +11140,16 @@
                                     </h4>
                                     <div style="text-align: center; margin-bottom: 15px;">
                                         <div style="font-size: 2.5em; font-weight: 800; color: #667eea; margin-bottom: 5px;">
-                                            $${data.trading_strategy.entry.price.toFixed(2)}
+                                            $${(data.trading_strategy?.entry?.price && typeof data.trading_strategy.entry.price === 'number') ? data.trading_strategy.entry.price.toFixed(2) : 'N/A'}
                                         </div>
-                                        <div style="display: inline-block; padding: 4px 12px; background: ${data.trading_strategy.entry.confidence === 'high' ? 'rgba(16, 185, 129, 0.2)' : data.trading_strategy.entry.confidence === 'medium' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; border-radius: 12px; font-size: 0.85em; font-weight: 600; color: ${data.trading_strategy.entry.confidence === 'high' ? '#10b981' : data.trading_strategy.entry.confidence === 'medium' ? '#f59e0b' : '#ef4444'};">
-                                            ${data.trading_strategy.entry.confidence.toUpperCase()} Confidence
+                                        <div style="display: inline-block; padding: 4px 12px; background: ${(data.trading_strategy?.entry?.confidence || 'low') === 'high' ? 'rgba(16, 185, 129, 0.2)' : (data.trading_strategy?.entry?.confidence || 'low') === 'medium' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; border-radius: 12px; font-size: 0.85em; font-weight: 600; color: ${(data.trading_strategy?.entry?.confidence || 'low') === 'high' ? '#10b981' : (data.trading_strategy?.entry?.confidence || 'low') === 'medium' ? '#f59e0b' : '#ef4444'};">
+                                            ${(data.trading_strategy?.entry?.confidence || 'low').toUpperCase()} Confidence
                                         </div>
                                     </div>
                                     <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 10px; text-align: center;">
-                                        ${data.trading_strategy.entry.reason}
+                                        ${data.trading_strategy?.entry?.reason || 'N/A'}
                                     </div>
-                                    ${data.trading_strategy.entry.conditions && data.trading_strategy.entry.conditions.some(c => c.includes('ML:') || c.includes('AI:')) ? `
+                                    ${data.trading_strategy?.entry?.conditions && Array.isArray(data.trading_strategy.entry.conditions) && data.trading_strategy.entry.conditions.some(c => c && (c.includes('ML:') || c.includes('AI:'))) ? `
                                         <div style="margin-top: 10px; padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 6px; font-size: 0.8em; color: var(--text-primary);">
                                             <div style="font-weight: 600; margin-bottom: 4px; color: #667eea;">🤖 ML/AI Enhanced</div>
                                             <div style="color: var(--text-secondary); font-size: 0.85em;">
@@ -11157,11 +11157,11 @@
                                             </div>
                                         </div>
                                     ` : ''}
-                                    ${data.trading_strategy.entry.conditions && data.trading_strategy.entry.conditions.length > 0 ? `
+                                    ${data.trading_strategy?.entry?.conditions && Array.isArray(data.trading_strategy.entry.conditions) && data.trading_strategy.entry.conditions.length > 0 ? `
                                         <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
                                             <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600;">Conditions Met:</div>
                                             <ul style="list-style: none; padding: 0; margin: 0;">
-                                                ${data.trading_strategy.entry.conditions.map(condition => `
+                                                ${data.trading_strategy.entry.conditions.map(condition => condition || '').filter(c => c).map(condition => `
                                                     <li style="padding: 5px 0; padding-left: 20px; position: relative; color: var(--text-primary); font-size: 0.85em;">
                                                         <span style="position: absolute; left: 0; color: #10b981;">✓</span>${condition}
                                                     </li>
@@ -11178,9 +11178,9 @@
                                     </h4>
                                     <div style="display: flex; flex-direction: column; gap: 12px;">
                                         ${['tp1', 'tp2', 'tp3'].map(tpKey => {
-                                            const tp = data.trading_strategy.take_profit[tpKey];
-                                            if (!tp) return '';
-                                            const gainColor = tp.gain_pct >= 0 ? '#10b981' : '#ef4444';
+                                            const tp = data.trading_strategy?.take_profit?.[tpKey];
+                                            if (!tp || !tp.price || typeof tp.price !== 'number') return '';
+                                            const gainColor = (tp.gain_pct || 0) >= 0 ? '#10b981' : '#ef4444';
                                             return `
                                                 <div style="padding: 12px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border-left: 3px solid #10b981;">
                                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
@@ -11190,12 +11190,12 @@
                                                         </span>
                                                     </div>
                                                     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85em;">
-                                                        <span style="color: var(--text-secondary);">${tp.timeframe}</span>
+                                                        <span style="color: var(--text-secondary);">${tp.timeframe || 'N/A'}</span>
                                                         <span style="color: ${gainColor}; font-weight: 600;">
-                                                            ${tp.gain_pct >= 0 ? '+' : ''}${tp.gain_pct}%
+                                                            ${(tp.gain_pct || 0) >= 0 ? '+' : ''}${tp.gain_pct || 0}%
                                                         </span>
                                                     </div>
-                                                    ${tp.ml_confidence !== undefined ? `
+                                                    ${tp.ml_confidence !== undefined && tp.ml_confidence !== null ? `
                                                         <div style="font-size: 0.75em; color: var(--text-tertiary); margin-top: 3px; text-align: right;">
                                                             ML confidence: ${tp.ml_confidence}%
                                                         </div>
@@ -11204,7 +11204,7 @@
                                             `;
                                         }).join('')}
                                     </div>
-                                    ${data.trading_strategy.risk_reward_ratio ? `
+                                    ${data.trading_strategy?.risk_reward_ratio && typeof data.trading_strategy.risk_reward_ratio === 'number' ? `
                                         <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); text-align: center;">
                                             <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Risk/Reward Ratio</div>
                                             <div style="font-size: 1.5em; font-weight: 700; color: ${data.trading_strategy.risk_reward_ratio >= 2 ? '#10b981' : data.trading_strategy.risk_reward_ratio >= 1 ? '#f59e0b' : '#ef4444'};">
@@ -11212,17 +11212,17 @@
                                             </div>
                                         </div>
                                     ` : ''}
-                                    ${data.trading_strategy.ml_enhancements ? `
+                                    ${data.trading_strategy?.ml_enhancements ? `
                                         <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color); padding: 12px; background: rgba(102, 126, 234, 0.05); border-radius: 8px;">
                                             <div style="font-size: 0.8em; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600;">🤖 ML/AI Adjustments</div>
                                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.75em;">
                                                 <div>
                                                     <span style="color: var(--text-secondary);">Volatility:</span>
-                                                    <span style="color: var(--text-primary); font-weight: 600; margin-left: 5px;">${data.trading_strategy.ml_enhancements.volatility_pct}%</span>
+                                                    <span style="color: var(--text-primary); font-weight: 600; margin-left: 5px;">${data.trading_strategy.ml_enhancements?.volatility_pct || 'N/A'}%</span>
                                                 </div>
                                                 <div>
                                                     <span style="color: var(--text-secondary);">Adaptive Factor:</span>
-                                                    <span style="color: var(--text-primary); font-weight: 600; margin-left: 5px;">${data.trading_strategy.ml_enhancements.adaptive_factor}x</span>
+                                                    <span style="color: var(--text-primary); font-weight: 600; margin-left: 5px;">${data.trading_strategy.ml_enhancements?.adaptive_factor || 'N/A'}x</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -11238,8 +11238,9 @@
                                         Dollar Cost Averaging - dokupování při poklesu
                                     </div>
                                     <div style="display: flex; flex-direction: column; gap: 10px;">
-                                        ${data.trading_strategy.dca_levels.map((level, idx) => {
-                                            const confidenceColor = level.confidence === 'high' ? '#10b981' : level.confidence === 'medium' ? '#f59e0b' : '#ef4444';
+                                        ${(data.trading_strategy?.dca_levels && Array.isArray(data.trading_strategy.dca_levels) ? data.trading_strategy.dca_levels : []).map((level, idx) => {
+                                            if (!level || !level.price || typeof level.price !== 'number') return '';
+                                            const confidenceColor = (level.confidence || 'low') === 'high' ? '#10b981' : (level.confidence || 'low') === 'medium' ? '#f59e0b' : '#ef4444';
                                             return `
                                                 <div style="padding: 10px; background: rgba(245, 158, 11, 0.1); border-radius: 6px; border-left: 3px solid ${confidenceColor};">
                                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
@@ -11249,12 +11250,12 @@
                                                         </span>
                                                     </div>
                                                     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8em;">
-                                                        <span style="color: var(--text-secondary);">${level.reason}</span>
+                                                        <span style="color: var(--text-secondary);">${level.reason || 'N/A'}</span>
                                                         <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
                                                             <span style="color: ${confidenceColor}; font-weight: 600; font-size: 0.75em;">
-                                                                ${level.confidence.toUpperCase()}
+                                                                ${(level.confidence || 'low').toUpperCase()}
                                                             </span>
-                                                            ${level.ml_probability !== undefined ? `
+                                                            ${level.ml_probability !== undefined && level.ml_probability !== null ? `
                                                                 <span style="color: var(--text-tertiary); font-size: 0.7em;">
                                                                     ML: ${level.ml_probability}% prob.
                                                                 </span>
