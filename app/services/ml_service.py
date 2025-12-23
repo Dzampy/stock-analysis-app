@@ -681,7 +681,6 @@ def predict_price(features, current_price, df=None):
         prediction_std = np.std(tree_predictions)  # Standard deviation across trees
         
         # Calculate short-term prediction (next day) - this is what the model actually predicts
-        # For longer timeframes, we need separate models or use compounding
         next_day_prediction = prediction_mean
         
         # Calculate annualized return expectation from next-day prediction
@@ -691,9 +690,25 @@ def predict_price(features, current_price, df=None):
         else:
             annualized_return = 0.0
         
-        # For different timeframes, we compound the daily return
-        # This is still an approximation - ideally we'd train separate models
-        # But it's better than arbitrary multipliers
+        # Calculate historical volatility for dynamic capping
+        historical_volatility = 0.0
+        if df is not None and len(df) >= 60:
+            returns = df['Close'].pct_change().dropna()
+            historical_volatility = returns.std() * np.sqrt(252) * 100  # Annualized volatility in %
+        
+        # Calculate historical momentum for each timeframe (for hybrid approach)
+        momentum_pcts = {}
+        if df is not None:
+            if len(df) >= 21:
+                momentum_pcts['1m'] = ((df['Close'].iloc[-1] - df['Close'].iloc[-21]) / df['Close'].iloc[-21]) * 100
+            if len(df) >= 63:
+                momentum_pcts['3m'] = ((df['Close'].iloc[-1] - df['Close'].iloc[-63]) / df['Close'].iloc[-63]) * 100
+            if len(df) >= 126:
+                momentum_pcts['6m'] = ((df['Close'].iloc[-1] - df['Close'].iloc[-126]) / df['Close'].iloc[-126]) * 100
+            if len(df) >= 252:
+                momentum_pcts['12m'] = ((df['Close'].iloc[-1] - df['Close'].iloc[-252]) / df['Close'].iloc[-252]) * 100
+        
+        # Timeframe configuration
         timeframe_days = {
             '1m': 21,   # ~1 month (trading days)
             '3m': 63,   # ~3 months
@@ -701,29 +716,63 @@ def predict_price(features, current_price, df=None):
             '12m': 252  # ~1 year
         }
         
+        # Hybrid weights: more ML for short-term, more momentum for long-term
+        timeframe_weights = {
+            '1m': {'ml': 0.8, 'momentum': 0.2},
+            '3m': {'ml': 0.5, 'momentum': 0.5},
+            '6m': {'ml': 0.3, 'momentum': 0.7},
+            '12m': {'ml': 0.2, 'momentum': 0.8}
+        }
+        
         predictions = {}
         expected_returns = {}
         confidence_intervals = {}
         
         for timeframe, days in timeframe_days.items():
-            # Compound the daily return over the timeframe
+            # ML-based prediction (compound next-day return)
             if annualized_return != 0:
                 daily_return = annualized_return / 252
-                compounded_return = (1 + daily_return) ** days - 1
-                predicted_price = current_price * (1 + compounded_return)
+                ml_return_pct = ((1 + daily_return) ** days - 1) * 100
             else:
-                predicted_price = current_price
+                ml_return_pct = 0.0
             
-            # Cap predictions at reasonable bounds based on volatility
-            # Use more conservative bounds: -30% to +100% instead of -50% to +200%
-            # This prevents unrealistic predictions like -50% for all timeframes
-            predicted_price = max(current_price * 0.7, min(current_price * 2.0, predicted_price))
+            # Get historical momentum for this timeframe
+            momentum_pct = momentum_pcts.get(timeframe, 0.0)
             
-            # Calculate confidence based on prediction std (wider for longer timeframes)
+            # Blend ML and momentum using timeframe-specific weights
+            weights = timeframe_weights[timeframe]
+            blended_return_pct = (weights['ml'] * ml_return_pct + 
+                                 weights['momentum'] * momentum_pct)
+            
+            # Calculate predicted price
+            predicted_price = current_price * (1 + blended_return_pct / 100)
+            
+            # Dynamic volatility-based cap (instead of fixed -30%)
+            # Use historical volatility to set reasonable bounds
+            if historical_volatility > 0:
+                vol_factor = historical_volatility / 100  # Convert to decimal
+                # Allow more movement for longer timeframes
+                max_down = min(0.5, vol_factor * np.sqrt(days / 252) * 3)  # Max 50% down
+                max_up = min(2.0, vol_factor * np.sqrt(days / 252) * 4)    # Max 200% up
+            else:
+                max_down = 0.3  # Conservative 30% down
+                max_up = 1.5    # Conservative 50% up
+            
+            predicted_price = max(current_price * (1 - max_down), 
+                                 min(current_price * (1 + max_up), predicted_price))
+            
+            # Calculate confidence based on alignment between ML and momentum
+            if abs(momentum_pct) > 1:
+                alignment = 1 - abs(blended_return_pct - momentum_pct) / max(abs(momentum_pct), 10)
+                confidence = 0.5 + 0.3 * max(0, alignment)  # 0.5 to 0.8
+            else:
+                confidence = 0.5  # Lower confidence if no clear momentum
+            
+            # Also factor in timeframe (longer = lower confidence)
+            confidence = max(0.2, confidence * (1 - (days / 252) * 0.3))  # Reduce for longer timeframes
+            
+            # Calculate timeframe std for confidence intervals
             timeframe_std = prediction_std * np.sqrt(days)  # Uncertainty grows with time
-            
-            # Confidence decreases with longer timeframes
-            confidence = max(0.2, 0.7 - (days / 252) * 0.5)  # 0.7 for 1m, ~0.2 for 12m
             
             predictions[timeframe] = {
         'price': float(predicted_price),
