@@ -1125,14 +1125,10 @@ def predict_price(features, current_price, df=None):
             # Confidence intervals using percentage-based ranges (more realistic than std-based)
             # Use timeframe-specific percentage ranges that scale reasonably
             timeframe_ranges = {
-            '1m': 0.15,  # ±15% for 1 month
-
-            '3m': 0.20,  # ±20% for 3 months
-
-            '6m': 0.25,  # ±25% for 6 months
-
-            '12m': 0.35  # ±35% for 12 months
-
+                '1m': 0.15,  # ±15% for 1 month
+                '3m': 0.20,  # ±20% for 3 months
+                '6m': 0.25,  # ±25% for 6 months
+                '12m': 0.35  # ±35% for 12 months
             }
 
             # Optionally use historical volatility to adjust range (more
