@@ -10678,22 +10678,25 @@
                                             const confidenceIntervals = data.ml_models?.price_prediction?.confidence_intervals;
                                             
                                             // Extract prediction price - handle both {price: X} and direct number formats
-                                            if (predictions && predictions[period] !== null && predictions[period] !== undefined) {
+                                            if (predictions && typeof predictions === 'object' && predictions[period] !== null && predictions[period] !== undefined) {
                                                 const predObj = predictions[period];
                                                 try {
-                                                    if (typeof predObj === 'object' && !Array.isArray(predObj) && predObj !== null) {
-                                                        // Check if it has 'price' property safely
-                                                        if ('price' in predObj && predObj.price !== null && predObj.price !== undefined) {
+                                                    // Check if predObj is an object with 'price' property
+                                                    if (predObj !== null && typeof predObj === 'object' && !Array.isArray(predObj)) {
+                                                        // Safely check for 'price' property
+                                                        if (Object.prototype.hasOwnProperty.call(predObj, 'price') || 'price' in predObj) {
                                                             const priceValue = predObj.price;
-                                                            if (typeof priceValue === 'number' && isFinite(priceValue)) {
+                                                            if (priceValue !== null && priceValue !== undefined && typeof priceValue === 'number' && isFinite(priceValue)) {
                                                                 pred = priceValue;
                                                             }
                                                         }
-                                                    } else if (typeof predObj === 'number' && isFinite(predObj)) {
+                                                    } 
+                                                    // Check if predObj is a direct number
+                                                    else if (typeof predObj === 'number' && isFinite(predObj)) {
                                                         pred = predObj;
                                                     }
                                                 } catch (priceError) {
-                                                    console.error(`Error accessing price for ${period}:`, priceError);
+                                                    console.error(`Error accessing price for ${period}:`, priceError, {predObj, predictions});
                                                     pred = null;
                                                 }
                                             }
