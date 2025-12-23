@@ -582,11 +582,11 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         )
                     
                     # Cross-validation score (negative because we want to maximize R²)
-        cv_scores = cross_val_score(
-        model_cv, X_train_scaled, y_train,
-        cv=tscv, scoring='r2', n_jobs=-1
-        )
-        avg_score = np.mean(cv_scores)
+                    cv_scores = cross_val_score(
+                        model_cv, X_train_scaled, y_train,
+                        cv=tscv, scoring='r2', n_jobs=-1
+                    )
+                    avg_score = np.mean(cv_scores)
                     
         logger.debug(f"CV R² score: {avg_score:.4f} (+/- {np.std(cv_scores):.4f}) for params {params}")
                     
