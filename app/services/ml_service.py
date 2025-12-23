@@ -2367,18 +2367,18 @@ def run_backtest(
                 if cached_model and cached_scaler:
                     # Make prediction using cached model
                     feature_names = sorted([k for k in features.keys() if k != 'ticker'])
-        X = np.array([[features.get(name, 0.0) for name in feature_names]])
-        X_scaled = cached_scaler.transform(X)
+                    X = np.array([[features.get(name, 0.0) for name in feature_names]])
+                    X_scaled = cached_scaler.transform(X)
 
-        # Get predictions from all trees for proper confidence
-        # intervals
-        tree_preds = [tree.predict(X_scaled)[0]
-                      for tree in cached_model.estimators_]
-        predicted_price = np.mean(tree_preds)
+                    # Get predictions from all trees for proper confidence
+                    # intervals
+                    tree_preds = [tree.predict(X_scaled)[0]
+                                  for tree in cached_model.estimators_]
+                    predicted_price = np.mean(tree_preds)
 
-        predictions.append(predicted_price)
-        actuals.append(actual_price)
-        dates.append(test_date)
+                    predictions.append(predicted_price)
+                    actuals.append(actual_price)
+                    dates.append(test_date)
 
         except Exception as e:
             logger.debug(f"Error in backtest iteration {i}: {e}")
