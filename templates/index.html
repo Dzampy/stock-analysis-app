@@ -10647,7 +10647,7 @@
                     
                     ${data.ml_models ? `
                         <!-- Price Prediction Section -->
-                        ${data.ml_models.price_prediction ? `
+                        ${data.ml_models.price_prediction && data.ml_models.price_prediction.predictions ? `
                             <div style="margin-top: 20px; padding: 20px; background: var(--bg-card); border-radius: 12px; border: 2px solid var(--border-color);">
                                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
                                     <h4 style="margin: 0; color: var(--text-primary);">📈 Price Prediction (ML Model)</h4>
