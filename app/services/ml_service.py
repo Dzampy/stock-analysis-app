@@ -1445,7 +1445,7 @@ def get_prediction_accuracy(
 
         continue
 
-            if len(accuracy_results) < 3:
+        if len(accuracy_results) < 3:
                 return None
 
                 # Calculate aggregate metrics
