@@ -561,7 +561,7 @@ def _train_random_forest_model(ticker: str,
             return None, None
 
         # Convert to numpy arrays
-                X_train = np.array(X_hist)
+        X_train = np.array(X_hist)
                 y_train = np.array(y_hist)
                 
         logger.info(
