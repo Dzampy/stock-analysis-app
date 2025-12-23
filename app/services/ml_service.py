@@ -666,8 +666,6 @@ def _train_random_forest_model(ticker: str,
                     logger.debug(f"Error in CV for params {params}: {e}")
                     continue
 
-            continue
-
         # Use best model from CV or default if CV failed
         if best_model is not None and best_params:
             logger.info(
