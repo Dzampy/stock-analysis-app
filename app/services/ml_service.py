@@ -1080,14 +1080,13 @@ def predict_price(features, current_price, df=None):
         model_quality = {}
         if model:
             if hasattr(model, 'cv_r2_score'):
-
                 model_quality['cv_r2_score'] = float(model.cv_r2_score)
-
-        model_quality['train_r2_score'] = float(getattr(model, 'train_r2_score', model.cv_r2_score))
-    else:
+                model_quality['train_r2_score'] = float(getattr(model, 'train_r2_score', model.cv_r2_score))
+            else:
                 # Fallback if model doesn't have CV score
                 model_quality['cv_r2_score'] = None
                 model_quality['train_r2_score'] = None
+                model_quality['is_better_than_baseline'] = False
         
         result = {
             'current_price': current_price,
