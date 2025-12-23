@@ -2460,13 +2460,13 @@ def run_backtest(
             strategy_returns = []
             for i in range(len(actual_returns)):
                 # If we predicted increase, we would buy/hold
-        if i < len(predicted_returns):
-            # Simple strategy: follow prediction direction
-        strategy_returns.append(actual_returns[i])
-    else:
-        strategy_returns.append(0)
+                if i < len(predicted_returns):
+                    # Simple strategy: follow prediction direction
+                    strategy_returns.append(actual_returns[i])
+                else:
+                    strategy_returns.append(0)
 
-        strategy_returns = np.array(strategy_returns)
+            strategy_returns = np.array(strategy_returns)
 
         # Sharpe ratio (annualized)
         if len(strategy_returns) > 0 and np.std(strategy_returns) > 0:
