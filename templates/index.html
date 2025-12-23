@@ -10660,7 +10660,11 @@
                                 </div>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                                     ${['1m', '3m', '6m', '12m'].map(period => {
-                                        let pred = data.ml_models.price_prediction.predictions[period];
+                                        // Handle both formats: {price: X, confidence: Y} or direct number
+                                        let predObj = data.ml_models.price_prediction.predictions[period];
+                                        let pred = (predObj && typeof predObj === 'object' && 'price' in predObj) 
+                                            ? predObj.price 
+                                            : (typeof predObj === 'number' ? predObj : null);
                                         let ret = data.ml_models.price_prediction.expected_returns[period];
                                         let ci = data.ml_models.price_prediction.confidence_intervals[period];
                                         
