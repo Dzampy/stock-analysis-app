@@ -2380,10 +2380,10 @@ def run_backtest(
                     actuals.append(actual_price)
                     dates.append(test_date)
 
-        except Exception as e:
-            logger.debug(f"Error in backtest iteration {i}: {e}")
+            except Exception as e:
+                logger.debug(f"Error in backtest iteration {i}: {e}")
 
-            continue
+                continue
 
         if len(predictions) < 10:
             return {
