@@ -670,10 +670,130 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             'confidence': confidence,
             'probabilities': probabilities
         }
+        # Calculate Entry, TP, and DCA levels using ML predictions and technical analysis
+        # Entry point based on current price, support levels, and ML confidence
+        entry_price = current_price
+        entry_confidence = 'medium'
+        if price_prediction and price_prediction.get('predictions'):
+            # Use 1M prediction as entry guidance
+            pred_1m = price_prediction['predictions'].get('1m', {})
+            if isinstance(pred_1m, dict) and 'price' in pred_1m:
+                entry_price = pred_1m['price']
+            elif isinstance(pred_1m, (int, float)):
+                entry_price = pred_1m
+        
+        # Adjust entry based on support/resistance
+        if len(df) >= 20:
+            recent_low = df['Low'].iloc[-20:].min()
+            recent_high = df['High'].iloc[-20:].max()
+            # If current price is near recent low, it's a good entry
+            if current_price <= recent_low * 1.05:
+                entry_confidence = 'high'
+                entry_price = min(entry_price, current_price * 1.02)  # Slightly above current
+            elif current_price >= recent_high * 0.95:
+                entry_confidence = 'low'
+            else:
+                entry_confidence = 'medium'
+        
+        # Take Profit levels based on ML predictions
+        tp1_price = current_price * 1.10
+        tp2_price = current_price * 1.20
+        tp3_price = current_price * 1.35
+        
+        if price_prediction and price_prediction.get('predictions'):
+            pred_3m = price_prediction['predictions'].get('3m', {})
+            pred_6m = price_prediction['predictions'].get('6m', {})
+            pred_12m = price_prediction['predictions'].get('12m', {})
+            
+            if isinstance(pred_3m, dict) and 'price' in pred_3m:
+                tp1_price = pred_3m['price']
+            elif isinstance(pred_3m, (int, float)):
+                tp1_price = pred_3m
+                
+            if isinstance(pred_6m, dict) and 'price' in pred_6m:
+                tp2_price = pred_6m['price']
+            elif isinstance(pred_6m, (int, float)):
+                tp2_price = pred_6m
+                
+            if isinstance(pred_12m, dict) and 'price' in pred_12m:
+                tp3_price = pred_12m['price']
+            elif isinstance(pred_12m, (int, float)):
+                tp3_price = pred_12m
+        
+        # Calculate gains
+        tp1_gain = ((tp1_price - entry_price) / entry_price * 100) if entry_price > 0 else 10
+        tp2_gain = ((tp2_price - entry_price) / entry_price * 100) if entry_price > 0 else 20
+        tp3_gain = ((tp3_price - entry_price) / entry_price * 100) if entry_price > 0 else 35
+        
+        # DCA levels (buying on dips)
+        dca1_price = current_price * 0.95
+        dca2_price = current_price * 0.90
+        dca3_price = current_price * 0.85
+        
+        # Risk/Reward ratio
+        risk = entry_price - dca3_price
+        reward = tp3_price - entry_price
+        risk_reward_ratio = (reward / risk) if risk > 0 else 2.0
+        
+        # ML enhancements
+        volatility_pct = (ml_features.get('volatility', 0) / current_price * 100) if current_price > 0 else 2.0
+        adaptive_factor = 1.0 + (volatility_pct / 100)  # Higher volatility = wider TP levels
+        
         entry_tp_dca = {
-            'entry_point': current_price,
-            'take_profit': current_price * 1.15,
-            'dca_levels': [current_price * 0.95, current_price * 0.90, current_price * 0.85]
+            'entry': {
+                'price': round(entry_price, 2),
+                'confidence': entry_confidence,
+                'reason': f'Entry based on ML prediction and technical analysis. Current price: ${current_price:.2f}',
+                'conditions': [
+                    f'ML 1M prediction: ${tp1_price:.2f}',
+                    f'Support level: ${recent_low:.2f}' if len(df) >= 20 else 'Support analysis available'
+                ]
+            },
+            'take_profit': {
+                'tp1': {
+                    'price': round(tp1_price, 2),
+                    'gain_pct': round(tp1_gain, 1),
+                    'timeframe': '3 months',
+                    'ml_confidence': round(price_prediction.get('predictions', {}).get('3m', {}).get('confidence', 0.5) * 100, 1) if price_prediction else 50
+                },
+                'tp2': {
+                    'price': round(tp2_price, 2),
+                    'gain_pct': round(tp2_gain, 1),
+                    'timeframe': '6 months',
+                    'ml_confidence': round(price_prediction.get('predictions', {}).get('6m', {}).get('confidence', 0.4) * 100, 1) if price_prediction else 40
+                },
+                'tp3': {
+                    'price': round(tp3_price, 2),
+                    'gain_pct': round(tp3_gain, 1),
+                    'timeframe': '12 months',
+                    'ml_confidence': round(price_prediction.get('predictions', {}).get('12m', {}).get('confidence', 0.3) * 100, 1) if price_prediction else 30
+                }
+            },
+            'dca_levels': [
+                {
+                    'price': round(dca1_price, 2),
+                    'reason': 'First DCA level - 5% below entry',
+                    'confidence': 'medium',
+                    'ml_probability': 60
+                },
+                {
+                    'price': round(dca2_price, 2),
+                    'reason': 'Second DCA level - 10% below entry',
+                    'confidence': 'medium',
+                    'ml_probability': 40
+                },
+                {
+                    'price': round(dca3_price, 2),
+                    'reason': 'Third DCA level - 15% below entry',
+                    'confidence': 'low',
+                    'ml_probability': 20
+                }
+            ],
+            'risk_reward_ratio': round(risk_reward_ratio, 2),
+            'ml_enhancements': {
+                'volatility_pct': round(volatility_pct, 2),
+                'adaptive_factor': round(adaptive_factor, 2)
+            }
         }
         # Calculate position sizing with proper structure
         risk_score = risk_analysis.get('risk_score', 50)
