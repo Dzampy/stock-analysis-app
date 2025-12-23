@@ -339,9 +339,8 @@ def _extract_historical_features(df, idx):
         if values and len(values) > 0:
             # Take the last value (which corresponds to idx)
             validated_indicators[key] = [values[-1]] if isinstance(values, list) else values
-            else:
-
-                validated_indicators[key] = []
+        else:
+            validated_indicators[key] = []
 
     
     # Get info (would need to be passed in, but for now use empty dict)
@@ -786,7 +785,7 @@ def predict_price(features, current_price, df=None):
             model = _model_cache[cache_key]
             scaler = _scaler_cache.get(cache_key)
             logger.debug(f"Using cached model for {ticker}")
-    else:
+        else:
 
             # Train new model with extended historical data
             logger.info(f"Training new ML model for {ticker}")
@@ -852,7 +851,7 @@ def predict_price(features, current_price, df=None):
         # Scale features
         if scaler:
             X_scaled = scaler.transform(X)
-    else:
+        else:
 
             X_scaled = X
         
@@ -1481,7 +1480,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
 
             trend_class = 'Moderate Downtrend'
             confidence = 0.60
-    else:
+        else:
 
             trend_class = 'Sideways'
 
@@ -1741,7 +1740,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
 
         elif risk_score >= 30:
             base_position = 5.0
-    else:
+        else:
 
             base_position = 7.0
 
@@ -1768,7 +1767,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             size_category = 'Medium'
 
             size_color = '#fbbf24'
-    else:
+        else:
 
             size_category = 'Small'
 
@@ -2008,7 +2007,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
 
             confidence = "Medium"
             color = "#f87171"  # Light red
-    else:
+        else:
 
             recommendation = "Strong Sell"
 
