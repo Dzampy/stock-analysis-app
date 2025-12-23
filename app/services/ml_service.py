@@ -1661,7 +1661,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
                 # Use weighted average: 80% current price, 20% ML prediction
                 # More conservative - entry should be even closer to current
                 # price for more realistic entry points
-        entry_price = current_price * 0.8 + ml_pred_price * 0.2
+                entry_price = current_price * 0.8 + ml_pred_price * 0.2
 
         # Ensure entry is within tighter range (±8% of current price
         # for more realistic entry)
