@@ -373,9 +373,9 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         
         # Build training dataset using walk-forward approach
         # For each day, extract features and predict next day's price
-            X_hist = []
-            y_hist = []
-            
+        X_hist = []
+        y_hist = []
+        
         # Use at least 60 days lookback for feature calculation
         lookback_days = 60
         
