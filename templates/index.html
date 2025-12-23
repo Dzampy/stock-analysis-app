@@ -10660,31 +10660,47 @@
                                 </div>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                                     ${['1m', '3m', '6m', '12m'].map(period => {
-                                        // Handle both formats: {price: X, confidence: Y} or direct number
-                                        let predObj = data.ml_models?.price_prediction?.predictions?.[period];
+                                        // Safely extract prediction value
                                         let pred = null;
+                                        let ret = null;
+                                        let ci = null;
                                         
-                                        // Safely extract price from predObj
                                         try {
+                                            const predictions = data.ml_models?.price_prediction?.predictions;
+                                            const expectedReturns = data.ml_models?.price_prediction?.expected_returns;
+                                            const confidenceIntervals = data.ml_models?.price_prediction?.confidence_intervals;
+                                            
+                                            // Extract prediction price
+                                            const predObj = predictions?.[period];
                                             if (predObj !== null && predObj !== undefined) {
-                                                // Check if it's an object with 'price' property
-                                                if (typeof predObj === 'object' && !Array.isArray(predObj) && predObj !== null && 'price' in predObj) {
-                                                    const priceValue = predObj.price;
-                                                    if (typeof priceValue === 'number' && isFinite(priceValue)) {
-                                                        pred = priceValue;
-                                                    }
-                                                } 
-                                                // Check if it's a direct number
-                                                else if (typeof predObj === 'number' && isFinite(predObj)) {
+                                                if (typeof predObj === 'object' && !Array.isArray(predObj) && 'price' in predObj) {
+                                                    pred = typeof predObj.price === 'number' && isFinite(predObj.price) ? predObj.price : null;
+                                                } else if (typeof predObj === 'number' && isFinite(predObj)) {
                                                     pred = predObj;
                                                 }
                                             }
+                                            
+                                            // Extract expected return
+                                            ret = expectedReturns?.[period];
+                                            if (ret !== null && ret !== undefined && typeof ret === 'number' && isFinite(ret)) {
+                                                // Keep ret as is
+                                            } else {
+                                                ret = null;
+                                            }
+                                            
+                                            // Extract confidence interval
+                                            ci = confidenceIntervals?.[period];
+                                            if (ci !== null && ci !== undefined && typeof ci === 'object' && !Array.isArray(ci)) {
+                                                // Keep ci as is
+                                            } else {
+                                                ci = null;
+                                            }
                                         } catch (e) {
-                                            console.error(`Error extracting prediction for ${period}:`, e);
+                                            console.error(`Error extracting data for ${period}:`, e, {predObj, ret, ci});
                                             pred = null;
+                                            ret = null;
+                                            ci = null;
                                         }
-                                        let ret = data.ml_models?.price_prediction?.expected_returns?.[period] ?? null;
-                                        let ci = data.ml_models?.price_prediction?.confidence_intervals?.[period] ?? null;
                                         
                                         // Validate and fix Infinity/NaN values
                                         // Ensure pred, ret, ci are numbers (handle null/undefined)
