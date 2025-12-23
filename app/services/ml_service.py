@@ -477,8 +477,8 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             try:
                 # Extract features for this historical point
                 hist_features = _extract_historical_features(df, i)
-        if hist_features is None:
-            continue
+                if hist_features is None:
+                    continue
 
                 
                 # Predict absolute price (not percentage return)
