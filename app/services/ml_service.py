@@ -2064,9 +2064,9 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         else:
 
             # Individual ML prediction impact (increased penalties/bonuses)
-        if expected_return_6m > 20:
+            if expected_return_6m > 20:
 
-        technical_score += 20  # Increased from 15
+            technical_score += 20  # Increased from 15
 
         reasons.append(
             f"ML model predicts strong 6-month return (+{expected_return_6m:.1f}%)")
