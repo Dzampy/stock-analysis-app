@@ -497,7 +497,6 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             except Exception as e:
                 logger.debug(f"Error extracting features for index {i}: {e}")
                 continue
-
         
         if len(X_hist) < 50:
             logger.warning(f"Insufficient training samples: {len(X_hist)}, need at least 50")
