@@ -1406,7 +1406,7 @@ def get_prediction_accuracy(
                     pred_date = pd.to_datetime(pred_date_str)
                     pred_price = entry.get(f'prediction_{timeframe}')
 
-        if pred_price is None or not isinstance(pred_price, (int, float)):
+                if pred_price is None or not isinstance(pred_price, (int, float)):
                     continue
 
             # Get actual price 'days' days after prediction
