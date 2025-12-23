@@ -11,14 +11,25 @@ bp = Blueprint('search', __name__)
 # Import cache for route caching
 try:
     from app import cache
-    CACHE_AVAILABLE = True
-except (ImportError, RuntimeError):
+    CACHE_AVAILABLE = cache is not None
+except (ImportError, RuntimeError, AttributeError):
     CACHE_AVAILABLE = False
     cache = None
 
+# Helper function to conditionally apply cache decorator
+def cache_if_available(timeout):
+    """Return cache decorator if cache is available, else return no-op decorator"""
+    if CACHE_AVAILABLE and cache:
+        return cache.cached(timeout=timeout)
+    else:
+        # Return no-op decorator that does nothing
+        def noop_decorator(func):
+            return func
+        return noop_decorator
+
 
 @bp.route('/api/search/<query>')
-@cache.cached(timeout=600, unless=lambda: not CACHE_AVAILABLE)  # 10 min cache for search
+@cache_if_available(600)  # 10 min cache for search
 def search_stocks(query):
     """Advanced stock search with company name matching and fuzzy search"""
     import json

@@ -16,10 +16,21 @@ bp = Blueprint('stock', __name__)
 # Import cache for route caching
 try:
     from app import cache
-    CACHE_AVAILABLE = True
-except (ImportError, RuntimeError):
+    CACHE_AVAILABLE = cache is not None
+except (ImportError, RuntimeError, AttributeError):
     CACHE_AVAILABLE = False
     cache = None
+
+# Helper function to conditionally apply cache decorator
+def cache_if_available(timeout):
+    """Return cache decorator if cache is available, else return no-op decorator"""
+    if CACHE_AVAILABLE and cache:
+        return cache.cached(timeout=timeout)
+    else:
+        # Return no-op decorator that does nothing
+        def noop_decorator(func):
+            return func
+        return noop_decorator
 
 
 @bp.route('/')
@@ -119,7 +130,7 @@ def index():
 
 
 @bp.route('/api/stock/<ticker>')
-@cache.cached(timeout=CACHE_TIMEOUTS['yfinance'], unless=lambda: not CACHE_AVAILABLE)
+@cache_if_available(CACHE_TIMEOUTS['yfinance'])
 def get_stock(ticker):
     """Get stock data with technical indicators and metrics"""
     period = request.args.get('period', '1y')
