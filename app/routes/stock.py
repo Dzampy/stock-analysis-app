@@ -9,14 +9,23 @@ from app.services.ai_service import generate_news_summary
 from app.utils.json_utils import clean_for_json
 from app.utils.logger import logger
 from app.utils.error_handler import NotFoundError, ExternalAPIError, create_error_response
+from app.config import CACHE_TIMEOUTS
 
 bp = Blueprint('stock', __name__)
+
+# Import cache for route caching
+try:
+    from app import cache
+    CACHE_AVAILABLE = True
+except (ImportError, RuntimeError):
+    CACHE_AVAILABLE = False
+    cache = None
 
 
 @bp.route('/')
 def index():
     """Main page - render index.html"""
-    from flask import current_app
+    from flask import current_app, make_response
     from pathlib import Path
     import os
     
@@ -30,7 +39,12 @@ def index():
         if template_path.exists():
             logger.info(f"Found template at Flask template_folder: {template_path}")
             try:
-                return render_template('index.html')
+                response = make_response(render_template('index.html'))
+                # Don't cache HTML - always serve fresh
+                response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                response.headers['Pragma'] = 'no-cache'
+                response.headers['Expires'] = '0'
+                return response
             except Exception as e:
                 logger.warning(f"render_template failed: {e}")
     
@@ -39,12 +53,17 @@ def index():
     alt_template_path = base_dir / 'templates' / 'index.html'
     if alt_template_path.exists():
         logger.info(f"Found template at alternative path: {alt_template_path}")
-        try:
-            # Read template directly and use render_template_string
-            with open(alt_template_path, 'r', encoding='utf-8') as f:
-                template_content = f.read()
-            from flask import render_template_string
-            return render_template_string(template_content)
+            try:
+                # Read template directly and use render_template_string
+                with open(alt_template_path, 'r', encoding='utf-8') as f:
+                    template_content = f.read()
+                from flask import render_template_string, make_response
+                response = make_response(render_template_string(template_content))
+                # Don't cache HTML - always serve fresh
+                response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                response.headers['Pragma'] = 'no-cache'
+                response.headers['Expires'] = '0'
+                return response
         except Exception as e:
             logger.warning(f"Direct template read failed: {e}")
     
@@ -60,8 +79,13 @@ def index():
             try:
                 with open(render_path, 'r', encoding='utf-8') as f:
                     template_content = f.read()
-                from flask import render_template_string
-                return render_template_string(template_content)
+                from flask import render_template_string, make_response
+                response = make_response(render_template_string(template_content))
+                # Don't cache HTML - always serve fresh
+                response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                response.headers['Pragma'] = 'no-cache'
+                response.headers['Expires'] = '0'
+                return response
             except Exception as e:
                 logger.warning(f"Render path template read failed: {e}")
     
@@ -95,6 +119,7 @@ def index():
 
 
 @bp.route('/api/stock/<ticker>')
+@cache.cached(timeout=CACHE_TIMEOUTS['yfinance'], unless=lambda: not CACHE_AVAILABLE)
 def get_stock(ticker):
     """Get stock data with technical indicators and metrics"""
     period = request.args.get('period', '1y')

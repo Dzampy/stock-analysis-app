@@ -5,14 +5,24 @@ from app.services.analyst_service import get_marketbeat_insider_trading, get_tip
 from app.utils.json_utils import clean_for_json
 from app.utils.logger import logger
 from app.utils.error_handler import NotFoundError, ExternalAPIError
+from app.config import CACHE_TIMEOUTS
 import yfinance as yf
 import pandas as pd
 import time
 
 bp = Blueprint('analyst', __name__)
 
+# Import cache for route caching
+try:
+    from app import cache
+    CACHE_AVAILABLE = True
+except (ImportError, RuntimeError):
+    CACHE_AVAILABLE = False
+    cache = None
+
 
 @bp.route('/api/analyst-data/<ticker>')
+@cache.cached(timeout=CACHE_TIMEOUTS['analyst'], unless=lambda: not CACHE_AVAILABLE)
 def get_analyst_data(ticker):
     """Get analyst ratings and price targets"""
     try:
@@ -122,8 +132,17 @@ def get_analyst_data(ticker):
 
 @bp.route('/api/insider-trading/<ticker>')
 def get_insider_trading(ticker):
-    """Get insider trading activity from SEC API (primary), Finviz/MarketBeat (fallback), yfinance (last resort)"""
+    """Get insider trading activity from SEC API (primary), Finviz/MarketBeat (fallback), yfinance (last resort) (with pagination)"""
     try:
+        from flask import request
+        
+        # Get pagination parameters
+        page = request.args.get('page', 1, type=int)
+        limit = request.args.get('limit', 20, type=int)
+        
+        # Validate pagination
+        page = max(1, page)
+        limit = max(1, min(100, limit))  # Limit to 100
         ticker_upper = ticker.upper()
         time.sleep(0.3)  # Rate limiting
         
@@ -250,15 +269,25 @@ def get_insider_trading(ticker):
         
         net_activity = total_purchases - total_sales
         
+        # Apply pagination to transactions
+        total = len(insider_transactions) if insider_transactions else 0
+        offset = (page - 1) * limit
+        paginated_transactions = insider_transactions[offset:offset + limit] if insider_transactions else []
+        paginated_purchases = purchases[offset:offset + limit]
+        paginated_sales = sales[offset:offset + limit]
+        
         return jsonify(clean_for_json({
             'ticker': ticker_upper,
-            'transactions': insider_transactions[:30] if insider_transactions else [],
-            'purchases': purchases[:30],
-            'sales': sales[:30],
+            'transactions': paginated_transactions,
+            'purchases': paginated_purchases,
+            'sales': paginated_sales,
             'total_purchases': total_purchases,
             'total_sales': total_sales,
             'net_activity': net_activity,
-            'total': len(insider_transactions) if insider_transactions else 0
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'total_pages': (total + limit - 1) // limit if limit > 0 else 0
         }))
         
     except Exception as e:

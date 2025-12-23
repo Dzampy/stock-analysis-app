@@ -4,6 +4,25 @@ Configuration module - API keys, feature flags, constants
 import os
 from app.utils.logger import logger
 
+# Cache configuration
+CACHE_CONFIG = {
+    'CACHE_TYPE': 'simple',  # Use simple in-memory cache (can upgrade to Redis later)
+    'CACHE_DEFAULT_TIMEOUT': 300,  # Default 5 minutes
+    'CACHE_THRESHOLD': 1000,  # Maximum number of items in cache
+}
+
+# Cache timeouts for different data types (in seconds)
+CACHE_TIMEOUTS = {
+    'yfinance': 300,  # 5 minutes - prices change frequently
+    'finviz': 900,  # 15 minutes - analyst ratings, insider trading
+    'ml_predictions': 600,  # 10 minutes - computationally expensive
+    'news': 1800,  # 30 minutes - less frequent changes
+    'financials': 3600,  # 1 hour - quarterly data changes rarely
+    'analyst': 900,  # 15 minutes
+    'insider': 900,  # 15 minutes
+    'institutional': 1800,  # 30 minutes
+}
+
 # SEC API configuration
 SEC_API_KEY = os.getenv('SEC_API_KEY')
 

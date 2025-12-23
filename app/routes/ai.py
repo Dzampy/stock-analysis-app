@@ -16,11 +16,21 @@ from app.services.ml_service import get_prediction_history
 from app.utils.json_utils import clean_for_json
 from app.utils.logger import logger
 from app.utils.error_handler import NotFoundError, ExternalAPIError
+from app.config import CACHE_TIMEOUTS
 
 bp = Blueprint('ai', __name__)
 
+# Import cache for route caching
+try:
+    from app import cache
+    CACHE_AVAILABLE = True
+except (ImportError, RuntimeError):
+    CACHE_AVAILABLE = False
+    cache = None
+
 
 @bp.route('/api/ai-recommendations/<ticker>')
+@cache.cached(timeout=CACHE_TIMEOUTS['ml_predictions'], unless=lambda: not CACHE_AVAILABLE)
 def get_ai_recommendations(ticker):
     """Get AI-powered stock recommendations"""
     try:

@@ -4,11 +4,21 @@ import yfinance as yf
 from app.utils.json_utils import clean_for_json
 from app.utils.logger import logger
 from app.utils.error_handler import ExternalAPIError
+from app.config import CACHE_TIMEOUTS
 
 bp = Blueprint('search', __name__)
 
+# Import cache for route caching
+try:
+    from app import cache
+    CACHE_AVAILABLE = True
+except (ImportError, RuntimeError):
+    CACHE_AVAILABLE = False
+    cache = None
+
 
 @bp.route('/api/search/<query>')
+@cache.cached(timeout=600, unless=lambda: not CACHE_AVAILABLE)  # 10 min cache for search
 def search_stocks(query):
     """Advanced stock search with company name matching and fuzzy search"""
     import json

@@ -5,28 +5,64 @@ from app.services.ai_service import analyze_news_impact_with_ai
 from app.utils.json_utils import clean_for_json
 from app.utils.logger import logger
 from app.utils.error_handler import ValidationError, ExternalAPIError
+from app.config import CACHE_TIMEOUTS
 
 bp = Blueprint('news', __name__)
 
+# Import cache for route caching
+try:
+    from app import cache
+    CACHE_AVAILABLE = True
+except (ImportError, RuntimeError):
+    CACHE_AVAILABLE = False
+    cache = None
+
 
 @bp.route('/api/news/<ticker>')
+@cache.cached(timeout=CACHE_TIMEOUTS['news'], unless=lambda: not CACHE_AVAILABLE)
 def get_news_for_ticker(ticker):
-    """Get news with impact analysis for a ticker"""
+    """Get news with impact analysis for a ticker (with pagination)"""
     try:
         from app.services.news_service import calculate_historical_news_impact_patterns
         
         ticker = ticker.upper()
-        news_list = get_stock_news(ticker, max_news=20)
+        
+        # Get pagination parameters
+        page = request.args.get('page', 1, type=int)
+        limit = request.args.get('limit', 20, type=int)
+        
+        # Validate pagination
+        page = max(1, page)
+        limit = max(1, min(100, limit))  # Limit to 100
+        
+        # Fetch all news (we'll paginate after)
+        news_list = get_stock_news(ticker, max_news=100)  # Fetch more for pagination
         
         if not news_list:
-            return jsonify({'news': [], 'historical_patterns': None})
+            return jsonify({
+                'news': [],
+                'historical_patterns': None,
+                'page': page,
+                'limit': limit,
+                'total': 0,
+                'total_pages': 0
+            })
         
-        # Calculate historical patterns
+        # Calculate historical patterns (use all news for patterns)
         historical_patterns = calculate_historical_news_impact_patterns(ticker, news_list)
         
+        # Apply pagination
+        total = len(news_list)
+        offset = (page - 1) * limit
+        paginated_news = news_list[offset:offset + limit]
+        
         return jsonify(clean_for_json({
-            'news': news_list,
-            'historical_patterns': historical_patterns
+            'news': paginated_news,
+            'historical_patterns': historical_patterns,
+            'page': page,
+            'limit': limit,
+            'total': total,
+            'total_pages': (total + limit - 1) // limit if limit > 0 else 0
         }))
         
     except Exception as e:

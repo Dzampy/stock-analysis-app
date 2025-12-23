@@ -6,11 +6,21 @@ from app.analysis.fundamental import calculate_financials_score, get_peer_compar
 from app.utils.json_utils import clean_for_json
 from app.utils.logger import logger
 from app.utils.error_handler import NotFoundError, ExternalAPIError
+from app.config import CACHE_TIMEOUTS
 
 bp = Blueprint('financials', __name__)
 
+# Import cache for route caching
+try:
+    from app import cache
+    CACHE_AVAILABLE = True
+except (ImportError, RuntimeError):
+    CACHE_AVAILABLE = False
+    cache = None
+
 
 @bp.route('/api/financials/<ticker>')
+@cache.cached(timeout=CACHE_TIMEOUTS['financials'], unless=lambda: not CACHE_AVAILABLE)
 def get_financials(ticker):
     """Get comprehensive financial data for Financials tab"""
     import time as time_module

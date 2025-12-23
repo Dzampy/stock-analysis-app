@@ -65,10 +65,38 @@ if not expected_template_path.exists():
             logger.info(f"Updated template_folder to: {app.template_folder}")
             break
 app.config['TEMPLATES_AUTO_RELOAD'] = True
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+# Cache static files for 1 hour, but keep HTML dynamic (no cache)
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 3600  # 1 hour for static assets
 
 # Register error handlers
 register_error_handlers(app)
+
+# Add cache headers for API responses
+@app.after_request
+def add_cache_headers(response):
+    """Add appropriate cache headers to responses"""
+    # Don't cache HTML pages - always serve fresh
+    if response.content_type and 'text/html' in response.content_type:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    # Cache JSON API responses based on route (handled by Flask-Caching decorators)
+    elif response.content_type and 'application/json' in response.content_type:
+        # Flask-Caching handles this, but we can add ETag support
+        if not response.headers.get('Cache-Control'):
+            # Default: allow browser to cache for short time if no cache control set
+            response.headers['Cache-Control'] = 'private, max-age=60'
+    return response
+
+# Initialize caching
+from flask_caching import Cache
+from app.config import CACHE_CONFIG
+cache = Cache()
+cache.init_app(app, config=CACHE_CONFIG)
+logger.info("Flask-Caching initialized with simple cache backend")
+
+# Export cache for use in services
+__all__ = ['app', 'cache']
 
 # Register blueprints
 from app.routes import stock, financials, ai, news, analyst, screener, portfolio, search
