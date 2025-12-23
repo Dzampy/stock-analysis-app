@@ -1433,20 +1433,20 @@ def get_prediction_accuracy(
                 accuracy_results.append({
                 'date': pred_date_str,
                 'predicted': float(pred_price),
-            'actual': float(actual_price),
-            'error_pct': float(error_pct),
-            'error_abs': float(error_abs)
-        })
+                'actual': float(actual_price),
+                'error_pct': float(error_pct),
+                'error_abs': float(error_abs)
+                })
 
-        except Exception as e:
+                except Exception as e:
 
-            logger.debug(
+                logger.debug(
                 f"Error evaluating prediction from {entry.get('date')}: {e}")
 
         continue
 
-        if len(accuracy_results) < 3:
-            return None
+                if len(accuracy_results) < 3:
+                return None
 
         # Calculate aggregate metrics
         errors_abs = [r['error_abs'] for r in accuracy_results]
