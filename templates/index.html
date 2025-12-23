@@ -10670,8 +10670,8 @@
                                                 pred = predObj;
                                             }
                                         }
-                                        let ret = data.ml_models.price_prediction.expected_returns[period];
-                                        let ci = data.ml_models.price_prediction.confidence_intervals[period];
+                                        let ret = data.ml_models?.price_prediction?.expected_returns?.[period] ?? null;
+                                        let ci = data.ml_models?.price_prediction?.confidence_intervals?.[period] ?? null;
                                         
                                         // Validate and fix Infinity/NaN values
                                         // Ensure pred, ret, ci are numbers (handle null/undefined)
