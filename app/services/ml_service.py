@@ -1416,8 +1416,8 @@ def get_prediction_accuracy(
         # Download historical data for that period
                 hist = stock.history(start=pred_date, end=target_date)
 
-        if hist.empty or len(hist) == 0:
-                continue
+                if hist.empty or len(hist) == 0:
+                    continue
 
                 # Get actual price closest to target date (use last available
                 # price in range)
