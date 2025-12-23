@@ -1445,19 +1445,19 @@ def get_prediction_accuracy(
 
         continue
 
-                if len(accuracy_results) < 3:
+            if len(accuracy_results) < 3:
                 return None
 
-        # Calculate aggregate metrics
-        errors_abs = [r['error_abs'] for r in accuracy_results]
-        errors_pct = [r['error_pct'] for r in accuracy_results]
+                # Calculate aggregate metrics
+                errors_abs = [r['error_abs'] for r in accuracy_results]
+                errors_pct = [r['error_pct'] for r in accuracy_results]
 
-        mean_error = np.mean(errors_abs)
-        median_error = np.median(errors_abs)
-        std_error = np.std(errors_abs)
+                mean_error = np.mean(errors_abs)
+                median_error = np.median(errors_abs)
+                std_error = np.std(errors_abs)
 
-        # Calculate percentage of predictions within reasonable ranges
-        within_range_20pct = sum(
+                # Calculate percentage of predictions within reasonable ranges
+                within_range_20pct = sum(
             1 for e in errors_abs if e <= 20) / len(errors_abs) * 100
         within_range_30pct = sum(
             1 for e in errors_abs if e <= 30) / len(errors_abs) * 100
