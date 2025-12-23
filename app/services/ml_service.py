@@ -1675,7 +1675,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
                 entry_confidence = 'high'
                 # Entry can be slightly above current (up to 2%)
         entry_price = min(entry_price, current_price * 1.02)
-        elif current_price >= recent_high * 0.95:
+            elif current_price >= recent_high * 0.95:
             entry_confidence = 'low'
             # Entry can be slightly below current (up to 3% discount)
         entry_price = max(entry_price, current_price * 0.97)
