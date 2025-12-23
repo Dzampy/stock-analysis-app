@@ -562,7 +562,7 @@ def _train_random_forest_model(ticker: str,
 
         # Convert to numpy arrays
         X_train = np.array(X_hist)
-                y_train = np.array(y_hist)
+        y_train = np.array(y_hist)
                 
         logger.info(
             f"Training Random Forest model with {len(X_train)} samples and {len(feature_names)} features")
