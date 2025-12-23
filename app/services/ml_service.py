@@ -2275,7 +2275,7 @@ def run_backtest(
 
         else:
 
-        end = df.index[-1]
+            end = df.index[-1]
 
         if start_date:
             start = pd.to_datetime(start_date)
@@ -2321,7 +2321,7 @@ def run_backtest(
             try:
 
                 # Training data: everything up to current point
-        train_df = df_test.iloc[:i + 1]
+                train_df = df_test.iloc[:i + 1]
 
         # Test point: next day
         test_date = df_test.index[i + 1]
