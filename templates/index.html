@@ -10724,11 +10724,12 @@
                                             pred = minPrice;
                                         }
                                         
-                                        // Fix Infinity/NaN returns
-                                        if (!isFinite(ret)) {
+                                        // Fix Infinity/NaN returns - always recalculate from pred and currentPrice for accuracy
+                                        if (!isFinite(ret) || ret === null || ret === undefined || currentPrice <= 0) {
                                             ret = ((pred - currentPrice) / currentPrice) * 100;
                                         }
-                                        ret = Math.max(-80, Math.min(400, ret)); // Cap at -80% to +400%
+                                        // Cap at reasonable bounds (-80% to +200% for realistic predictions)
+                                        ret = Math.max(-80, Math.min(200, ret));
                                         
                                         // Fix Infinity/NaN confidence intervals
                                         if (!ci || !isFinite(ci.lower) || ci.lower <= 0) {
@@ -10754,9 +10755,9 @@
                                         if (!isFinite(ci.upper)) {
                                             ci.upper = Math.min(maxPrice, pred * 1.18);
                                         }
-                                        if (!isFinite(ret)) {
+                                        if (!isFinite(ret) || ret === null || ret === undefined || currentPrice <= 0) {
                                             ret = ((pred - currentPrice) / currentPrice) * 100;
-                                            ret = Math.max(-80, Math.min(400, ret));
+                                            ret = Math.max(-80, Math.min(200, ret));
                                         }
                                         
                                         // Format values safely - add extra validation

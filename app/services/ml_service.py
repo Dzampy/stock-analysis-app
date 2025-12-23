@@ -400,11 +400,12 @@ def predict_price(features, current_price, df=None):
             '12m': {'price': current_price * (1 + price_change_ratio * 1.0), 'confidence': 0.3}
         }
         
+        # Calculate expected returns from actual predicted prices (more accurate)
         expected_returns = {
-            '1m': price_change_ratio * 15,  # Max ~15%
-            '3m': price_change_ratio * 40,  # Max ~40%
-            '6m': price_change_ratio * 70,  # Max ~70%
-            '12m': price_change_ratio * 100  # Max ~100%
+            '1m': ((predictions['1m']['price'] - current_price) / current_price) * 100 if current_price > 0 else 0,
+            '3m': ((predictions['3m']['price'] - current_price) / current_price) * 100 if current_price > 0 else 0,
+            '6m': ((predictions['6m']['price'] - current_price) / current_price) * 100 if current_price > 0 else 0,
+            '12m': ((predictions['12m']['price'] - current_price) / current_price) * 100 if current_price > 0 else 0
         }
         
         confidence_intervals = {
