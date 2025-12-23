@@ -366,10 +366,9 @@ def _download_extended_historical_data(ticker: str, years: int = 3) -> Optional[
     Returns:
         DataFrame with historical price data or None
         """
-        try:
+    try:
         import yfinance as yf
-
-            from datetime import datetime, timedelta
+        from datetime import datetime, timedelta
 
         
         logger.info(f"Downloading {years} years of historical data for {ticker}")
