@@ -495,8 +495,8 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
                 y_hist.append(target_price_normalized)  # Normalized price (ratio to current price)
                 
         except Exception as e:
-            logger.debug(f"Error extracting features for index {i}: {e}")
-            continue
+                logger.debug(f"Error extracting features for index {i}: {e}")
+                continue
 
         
         if len(X_hist) < 50:
