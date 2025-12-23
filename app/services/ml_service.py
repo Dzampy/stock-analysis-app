@@ -405,10 +405,8 @@ def _download_extended_historical_data(ticker: str, years: int = 3) -> Optional[
         preferred_days = 750  # 3 years
         if len(hist) < min_days:
             logger.warning(f"Only {len(hist)} days of data available for {ticker}, minimum {min_days} recommended")
-
-            elif len(hist) < preferred_days:
-
-                logger.info(f"Have {len(hist)} days of data, {preferred_days} days preferred for optimal training")
+        elif len(hist) < preferred_days:
+            logger.info(f"Have {len(hist)} days of data, {preferred_days} days preferred for optimal training")
 
         
         logger.info(f"Downloaded {len(hist)} days of historical data for {ticker}")
