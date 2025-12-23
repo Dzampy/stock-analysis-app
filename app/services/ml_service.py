@@ -180,6 +180,33 @@ def extract_ml_features(ticker: str, df: pd.DataFrame, info: Dict, indicators: D
     else:
         features['price_change_30d'] = 0.0
     
+    # Lag features for time series prediction (important for price prediction)
+    # These capture recent price movements which are often predictive
+    if len(df) >= 1:
+        features['price_lag_1'] = float(df['Close'].iloc[-1]) / current_price if current_price > 0 else 1.0
+    else:
+        features['price_lag_1'] = 1.0
+    
+    if len(df) >= 5:
+        features['price_lag_5'] = float(df['Close'].iloc[-5]) / current_price if current_price > 0 else 1.0
+    else:
+        features['price_lag_5'] = 1.0
+    
+    if len(df) >= 10:
+        features['price_lag_10'] = float(df['Close'].iloc[-10]) / current_price if current_price > 0 else 1.0
+    else:
+        features['price_lag_10'] = 1.0
+    
+    # Rolling statistics for better time series features
+    if len(df) >= 20:
+        rolling_mean_20 = df['Close'].tail(20).mean()
+        rolling_std_20 = df['Close'].tail(20).std()
+        features['price_vs_rolling_mean_20'] = ((current_price - rolling_mean_20) / rolling_mean_20) * 100 if rolling_mean_20 > 0 else 0.0
+        features['rolling_std_20_pct'] = (rolling_std_20 / rolling_mean_20) * 100 if rolling_mean_20 > 0 else 0.0
+    else:
+        features['price_vs_rolling_mean_20'] = 0.0
+        features['rolling_std_20_pct'] = 0.0
+    
     # Volume features
     if 'Volume' in df.columns:
         avg_volume = df['Volume'].tail(20).mean() if len(df) >= 20 else df['Volume'].mean()
@@ -279,13 +306,13 @@ def _extract_historical_features(df, idx):
     return features
 
 
-def _download_extended_historical_data(ticker: str, years: int = 2) -> Optional[pd.DataFrame]:
+def _download_extended_historical_data(ticker: str, years: int = 3) -> Optional[pd.DataFrame]:
     """
-    Download extended historical data (2+ years) for ML training
+    Download extended historical data (3+ years) for ML training
     
     Args:
         ticker: Stock ticker symbol
-        years: Number of years of historical data to download (default: 2)
+        years: Number of years of historical data to download (default: 3)
         
     Returns:
         DataFrame with historical price data or None
@@ -301,6 +328,8 @@ def _download_extended_historical_data(ticker: str, years: int = 2) -> Optional[
             period = '1y'
         elif years <= 2:
             period = '2y'
+        elif years <= 3:
+            period = '3y'
         elif years <= 5:
             period = '5y'
         else:
@@ -319,9 +348,13 @@ def _download_extended_historical_data(ticker: str, years: int = 2) -> Optional[
             hist.index = hist.index.tz_localize(None)
         
         # Ensure we have at least 2 years of data (approximately 500 trading days)
+        # Prefer 3+ years for better model training
         min_days = 500
+        preferred_days = 750  # 3 years
         if len(hist) < min_days:
             logger.warning(f"Only {len(hist)} days of data available for {ticker}, minimum {min_days} recommended")
+        elif len(hist) < preferred_days:
+            logger.info(f"Have {len(hist)} days of data, {preferred_days} days preferred for optimal training")
         
         logger.info(f"Downloaded {len(hist)} days of historical data for {ticker}")
         return hist
@@ -373,9 +406,9 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         
         # Build training dataset using walk-forward approach
         # For each day, extract features and predict next day's price
-            X_hist = []
-            y_hist = []
-            
+        X_hist = []
+        y_hist = []
+        
         # Use at least 60 days lookback for feature calculation
         lookback_days = 60
         
@@ -388,19 +421,19 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
                 if hist_features is None:
                     continue
                 
-                # IMPORTANT CHANGE: Predict percentage return instead of absolute price
-                # This makes the model more generalizable and reduces overfitting
+                # Predict absolute price (not percentage return)
+                # Percentage return caused worse CV R² scores, reverting to absolute price
                 current_price_at_idx = df['Close'].iloc[i]
                 next_day_price = df['Close'].iloc[i + 1]
                 
-                # Calculate percentage return (annualized for next day)
-                # This normalizes the target and makes it easier to predict
-                target_return_pct = ((next_day_price - current_price_at_idx) / current_price_at_idx) * 100
+                # Use absolute price as target (normalized by current price for better scaling)
+                # Normalize target to reduce impact of price scale differences
+                target_price_normalized = next_day_price / current_price_at_idx if current_price_at_idx > 0 else 1.0
                 
                 # Build feature vector
                 feature_vector = [hist_features.get(name, 0.0) for name in feature_names]
                 X_hist.append(feature_vector)
-                y_hist.append(target_return_pct)  # Changed from absolute price to percentage return
+                y_hist.append(target_price_normalized)  # Normalized price (ratio to current price)
                 
             except Exception as e:
                 logger.debug(f"Error extracting features for index {i}: {e}")
@@ -427,19 +460,19 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         # This prevents data leakage from future to past
         tscv = TimeSeriesSplit(n_splits=min(5, len(X_train) // 50))  # At least 50 samples per fold
         
-        # Try different hyperparameter sets - MORE REGULARIZATION to reduce overfitting
-        # Increased min_samples_split and min_samples_leaf, reduced max_depth for better generalization
+        # Try different hyperparameter sets - OPTIMIZED for better CV R²
+        # Based on analysis: need more regularization but also enough capacity to learn patterns
         hyperparameter_sets = [
             {
-        'n_estimators': 150,  # Reduced from 200
-        'max_depth': 10,  # Reduced from 15 for less overfitting
-        'min_samples_split': 20,  # Increased from 10 for more regularization
-        'min_samples_leaf': 10,  # Increased from 5 for more regularization
+        'n_estimators': 100,  # Reduced for faster training and less overfitting
+        'max_depth': 8,  # Shallow trees to prevent overfitting
+        'min_samples_split': 30,  # High threshold - more regularization
+        'min_samples_leaf': 15,  # High threshold - more regularization
         'max_features': 'sqrt'  # Feature sampling to reduce overfitting
             },
             {
-        'n_estimators': 100,
-        'max_depth': 8,  # Even more conservative
+        'n_estimators': 150,
+        'max_depth': 10,
         'min_samples_split': 25,
         'min_samples_leaf': 12,
         'max_features': 'sqrt'
@@ -447,8 +480,8 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             {
         'n_estimators': 200,
         'max_depth': 12,
-        'min_samples_split': 15,
-        'min_samples_leaf': 8,
+        'min_samples_split': 20,
+        'min_samples_leaf': 10,
         'max_features': 'log2'
             }
         ]
@@ -461,31 +494,31 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         if len(X_train) >= 100 and len(hyperparameter_sets) > 1:
             logger.info(f"Performing hyperparameter tuning with {tscv.get_n_splits()} folds")
             for params in hyperparameter_sets:
-        try:
-            model_cv = RandomForestRegressor(
-                random_state=42,
-                n_jobs=-1,
-                verbose=0,
-                **params
-            )
+                        try:
+                    model_cv = RandomForestRegressor(
+                        random_state=42,
+                        n_jobs=-1,
+                        verbose=0,
+                        **params
+                    )
                     
                     # Cross-validation score (negative because we want to maximize R²)
-            cv_scores = cross_val_score(
-                model_cv, X_train_scaled, y_train,
-                cv=tscv, scoring='r2', n_jobs=-1
-            )
-            avg_score = np.mean(cv_scores)
+                    cv_scores = cross_val_score(
+                        model_cv, X_train_scaled, y_train,
+                        cv=tscv, scoring='r2', n_jobs=-1
+                    )
+                    avg_score = np.mean(cv_scores)
                     
-            logger.debug(f"CV R² score: {avg_score:.4f} (+/- {np.std(cv_scores):.4f}) for params {params}")
+                    logger.debug(f"CV R² score: {avg_score:.4f} (+/- {np.std(cv_scores):.4f}) for params {params}"):.4f}) for params {params}")
                     
-            if avg_score > best_score:
-                best_score = avg_score
-                best_params = params
-                best_model = model_cv
+                    if avg_score > best_score:
+                        best_score = avg_score
+                        best_params = params
+                        best_model = model_cv
                         
-        except Exception as e:
-            logger.debug(f"Error in CV for params {params}: {e}")
-            continue
+                except Exception as e:
+                    logger.debug(f"Error in CV for params {params}: {e}")
+                    continue
         
         # Use best model from CV or default if CV failed
         if best_model is not None and best_params:
@@ -496,10 +529,10 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             logger.info("Using default hyperparameters")
             best_params = hyperparameter_sets[0]
             model = RandomForestRegressor(
-        random_state=42,
-        n_jobs=-1,
-        verbose=0,
-        **best_params
+                random_state=42,
+                n_jobs=-1,
+                verbose=0,
+                **best_params
             )
         
         # Train final model on all training data
@@ -513,12 +546,24 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         if best_score != float('-inf'):
             logger.info(f"Cross-validation R² score: {best_score:.4f}")
         
-        # Store feature importance for later use
+        # Store feature importance for later use and feature selection
         if hasattr(model, 'feature_importances_'):
             feature_importance_dict = dict(zip(feature_names, model.feature_importances_))
             # Sort by importance
             sorted_importance = sorted(feature_importance_dict.items(), key=lambda x: x[1], reverse=True)
             logger.debug(f"Top 5 most important features: {sorted_importance[:5]}")
+            
+            # Feature selection: Keep only top 70% of features by importance
+            # This reduces noise and improves generalization
+            if len(sorted_importance) > 10:
+                threshold_idx = max(10, int(len(sorted_importance) * 0.7))
+                top_features = [name for name, _ in sorted_importance[:threshold_idx]]
+                logger.info(f"Feature selection: Keeping top {len(top_features)}/{len(feature_names)} features")
+                # Store selected features for future use
+                model.selected_features_ = top_features
+            else:
+                model.selected_features_ = feature_names
+            
             # Attach to model for later retrieval
             model.feature_names_ = feature_names
             model.feature_importances_dict_ = feature_importance_dict
@@ -531,7 +576,10 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             # If no CV was performed, use training score as approximation
             model.cv_r2_score = float(train_score)
             model.train_r2_score = float(train_score)
-                
+        
+        # Store flag indicating if model is better than baseline
+        model.is_better_than_baseline = model.cv_r2_score > 0.0
+        
         return model, scaler
         
     except Exception as e:
@@ -693,24 +741,28 @@ def predict_price(features, current_price, df=None):
             tree_predictions.append(tree_pred)
         
         tree_predictions = np.array(tree_predictions)
-        prediction_mean = np.mean(tree_predictions)  # Mean prediction from ensemble (this is now percentage return, not price)
+        prediction_mean = np.mean(tree_predictions)  # Mean prediction from ensemble (normalized price ratio)
         prediction_std = np.std(tree_predictions)  # Standard deviation across trees
         
-        # IMPORTANT: Model now predicts percentage return for next day, not absolute price
-        # prediction_mean is already a percentage return (e.g., 0.5 = 0.5% return)
-        next_day_return_pct = prediction_mean
+        # Model predicts normalized price ratio (next_price / current_price)
+        # Convert back to absolute price
+        next_day_prediction = current_price * prediction_mean if current_price > 0 else current_price
         
-        # Calculate annualized return expectation from next-day return
-        # Convert daily percentage return to annualized
-        if current_price > 0:
-            # If model predicts return as percentage (e.g., 0.5 for 0.5%), convert to decimal
-            daily_return_decimal = next_day_return_pct / 100.0  # Convert percentage to decimal
-            annualized_return = daily_return_decimal * 252 * 100  # Annualize and convert back to percentage
+        # Check if model is better than baseline - if not, ignore ML predictions
+        use_ml_prediction = True
+        if hasattr(model, 'is_better_than_baseline'):
+            use_ml_prediction = model.is_better_than_baseline
+            if not use_ml_prediction:
+                logger.warning(f"ML model CV R² ({model.cv_r2_score:.3f}) < 0, using momentum-only predictions")
+        
+        # Calculate annualized return expectation from next-day prediction
+        if current_price > 0 and use_ml_prediction:
+            next_day_return = (next_day_prediction - current_price) / current_price
+            annualized_return = next_day_return * 252 * 100  # Annualize and convert to percentage
         else:
+            # If ML is worse than baseline, set annualized return to 0 (will use only momentum)
             annualized_return = 0.0
-        
-        # For backward compatibility, calculate what the predicted next day price would be
-        next_day_prediction = current_price * (1 + next_day_return_pct / 100.0)
+            next_day_prediction = current_price  # No change predicted
         
         # Calculate historical volatility for dynamic capping
         historical_volatility = 0.0
@@ -722,13 +774,13 @@ def predict_price(features, current_price, df=None):
         momentum_pcts = {}
         if df is not None:
             if len(df) >= 21:
-        momentum_pcts['1m'] = ((df['Close'].iloc[-1] - df['Close'].iloc[-21]) / df['Close'].iloc[-21]) * 100
+                momentum_pcts['1m'] = ((df['Close'].iloc[-1] - df['Close'].iloc[-21]) / df['Close'].iloc[-21]) * 100
             if len(df) >= 63:
-        momentum_pcts['3m'] = ((df['Close'].iloc[-1] - df['Close'].iloc[-63]) / df['Close'].iloc[-63]) * 100
+                momentum_pcts['3m'] = ((df['Close'].iloc[-1] - df['Close'].iloc[-63]) / df['Close'].iloc[-63]) * 100
             if len(df) >= 126:
-        momentum_pcts['6m'] = ((df['Close'].iloc[-1] - df['Close'].iloc[-126]) / df['Close'].iloc[-126]) * 100
+                momentum_pcts['6m'] = ((df['Close'].iloc[-1] - df['Close'].iloc[-126]) / df['Close'].iloc[-126]) * 100
             if len(df) >= 252:
-        momentum_pcts['12m'] = ((df['Close'].iloc[-1] - df['Close'].iloc[-252]) / df['Close'].iloc[-252]) * 100
+                momentum_pcts['12m'] = ((df['Close'].iloc[-1] - df['Close'].iloc[-252]) / df['Close'].iloc[-252]) * 100
         
         # Timeframe configuration
         timeframe_days = {
@@ -738,14 +790,25 @@ def predict_price(features, current_price, df=None):
             '12m': 252  # ~1 year
         }
         
-        # Hybrid weights: more conservative - favor momentum over ML to avoid extreme predictions
-        # Momentum is more stable and realistic, especially for short-term where ML can be too volatile
-        timeframe_weights = {
-            '1m': {'ml': 0.4, 'momentum': 0.6},   # Changed from 80/20 to 40/60
-            '3m': {'ml': 0.3, 'momentum': 0.7},   # Changed from 50/50 to 30/70
-            '6m': {'ml': 0.25, 'momentum': 0.75}, # Changed from 30/70 to 25/75
-            '12m': {'ml': 0.15, 'momentum': 0.85} # Changed from 20/80 to 15/85
-        }
+        # Hybrid weights: heavily favor momentum over ML since ML model has negative CV R²
+        # If ML is worse than baseline (CV R² < 0), use only momentum (0% ML, 100% momentum)
+        # Otherwise use conservative weights: 10-15% ML, 85-90% momentum
+        if not use_ml_prediction:
+            # ML is worse than baseline - use only momentum
+            timeframe_weights = {
+                '1m': {'ml': 0.0, 'momentum': 1.0},
+                '3m': {'ml': 0.0, 'momentum': 1.0},
+                '6m': {'ml': 0.0, 'momentum': 1.0},
+                '12m': {'ml': 0.0, 'momentum': 1.0}
+            }
+        else:
+            # ML is better than baseline but still conservative weights
+            timeframe_weights = {
+                '1m': {'ml': 0.10, 'momentum': 0.90},   # 10% ML, 90% momentum
+                '3m': {'ml': 0.10, 'momentum': 0.90},   # 10% ML, 90% momentum
+                '6m': {'ml': 0.15, 'momentum': 0.85},   # 15% ML, 85% momentum
+                '12m': {'ml': 0.15, 'momentum': 0.85}   # 15% ML, 85% momentum
+            }
         
         predictions = {}
         expected_returns = {}
@@ -753,11 +816,12 @@ def predict_price(features, current_price, df=None):
         
         for timeframe, days in timeframe_days.items():
             # ML-based prediction (compound next-day return)
-            if annualized_return != 0:
-        daily_return = annualized_return / 252
-        ml_return_pct = ((1 + daily_return) ** days - 1) * 100
+            if use_ml_prediction and annualized_return != 0:
+                        daily_return = annualized_return / 252
+                ml_return_pct = ((1 + daily_return) ** days - 1) * 100
             else:
-        ml_return_pct = 0.0
+                # If ML is worse than baseline, use 0% ML prediction (will use only momentum)
+                ml_return_pct = 0.0
             
             # Get historical momentum for this timeframe
             momentum_pct = momentum_pcts.get(timeframe, 0.0)
