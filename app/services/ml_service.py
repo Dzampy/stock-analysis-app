@@ -996,10 +996,9 @@ def predict_price(features, current_price, df=None):
             # Calculate confidence based on alignment between ML and momentum
             if abs(momentum_pct) > 1:
                 alignment = 1 - abs(blended_return_pct - momentum_pct) / max(abs(momentum_pct), 10)
-
-        confidence = 0.5 + 0.3 * max(0, alignment)  # 0.5 to 0.8
-    else:
-            confidence = 0.5  # Lower confidence if no clear momentum
+                confidence = 0.5 + 0.3 * max(0, alignment)  # 0.5 to 0.8
+            else:
+                confidence = 0.5  # Lower confidence if no clear momentum
 
             
             # Also factor in timeframe (longer = lower confidence)
