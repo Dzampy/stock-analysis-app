@@ -1438,7 +1438,7 @@ def get_prediction_accuracy(
                 'error_abs': float(error_abs)
                 })
 
-                except Exception as e:
+            except Exception as e:
 
                 logger.debug(
                 f"Error evaluating prediction from {entry.get('date')}: {e}")
