@@ -107,8 +107,20 @@ def get_analyst_data(ticker):
     except NotFoundError:
         raise
     except Exception as e:
-        logger.exception(f"Error fetching analyst data for {ticker}")
-        raise ExternalAPIError('Failed to fetch analyst data', service='analyst')
+        logger.exception(f"Error fetching analyst data for {ticker}: {str(e)}")
+        # Return empty data structure instead of raising error, so frontend can still display the page
+        return jsonify(clean_for_json({
+            'recommendations': [],
+            'recommendation_summary': None,
+            'target_mean_price': None,
+            'target_high_price': None,
+            'target_low_price': None,
+            'current_price': None,
+            'upside_pct': None,
+            'number_of_analysts': None,
+            'individual_targets': [],
+            'error': f'Unable to fetch analyst data: {str(e)}'
+        })), 200  # Return 200 so frontend doesn't show error banner
 
 
 @bp.route('/api/insider-trading/<ticker>')
