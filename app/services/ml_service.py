@@ -508,10 +508,10 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         y_train = np.array(y_hist)
 
         logger.info(f"Training Random Forest model with {len(X_train)} samples and {len(feature_names)} features")
-                
-                # Scale features
-                scaler = StandardScaler()
-                X_train_scaled = scaler.fit_transform(X_train)
+        
+        # Scale features
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
                 
         # Cross-validation for model validation (TimeSeriesSplit for time series data)
         from sklearn.model_selection import TimeSeriesSplit, cross_val_score
