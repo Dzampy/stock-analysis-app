@@ -325,15 +325,15 @@ def _download_extended_historical_data(ticker: str, years: int = 3) -> Optional[
         
         # Calculate period
         if years <= 1:
-        period = '1y'
+            period = '1y'
         elif years <= 2:
-        period = '2y'
+            period = '2y'
         elif years <= 3:
-        period = '3y'
+            period = '3y'
         elif years <= 5:
-        period = '5y'
+            period = '5y'
         else:
-        period = 'max'
+            period = 'max'
         
         # Download data
         stock = yf.Ticker(ticker)
