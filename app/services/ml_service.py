@@ -983,12 +983,11 @@ def predict_price(features, current_price, df=None):
                 vol_factor = historical_volatility / 100  # Convert to decimal
 
                 # Allow more movement for longer timeframes
-        max_down = min(0.5, vol_factor * np.sqrt(days / 252) * 3)  # Max 50% down
-        max_up = min(2.0, vol_factor * np.sqrt(days / 252) * 4)    # Max 200% up
-    else:
-            max_down = 0.3  # Conservative 30% down
-
-            max_up = 1.5    # Conservative 50% up
+                max_down = min(0.5, vol_factor * np.sqrt(days / 252) * 3)  # Max 50% down
+                max_up = min(2.0, vol_factor * np.sqrt(days / 252) * 4)    # Max 200% up
+            else:
+                max_down = 0.3  # Conservative 30% down
+                max_up = 1.5    # Conservative 50% up
 
             
             predicted_price = max(current_price * (1 - max_down), 
