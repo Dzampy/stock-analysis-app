@@ -625,13 +625,13 @@ def predict_price(features, current_price, df=None):
         momentum_1m = ((df['Close'].iloc[-1] - df['Close'].iloc[-20]) / df['Close'].iloc[-20]) * 100
             if len(df) >= 60:
 
-        momentum_3m = ((df['Close'].iloc[-1] - df['Close'].iloc[-60]) / df['Close'].iloc[-60]) * 100
+            momentum_3m = ((df['Close'].iloc[-1] - df['Close'].iloc[-60]) / df['Close'].iloc[-60]) * 100
             if len(df) >= 120:
 
-        momentum_6m = ((df['Close'].iloc[-1] - df['Close'].iloc[-120]) / df['Close'].iloc[-120]) * 100
+            momentum_6m = ((df['Close'].iloc[-1] - df['Close'].iloc[-120]) / df['Close'].iloc[-120]) * 100
             if len(df) >= 252:
 
-        momentum_12m = ((df['Close'].iloc[-1] - df['Close'].iloc[-252]) / df['Close'].iloc[-252]) * 100
+            momentum_12m = ((df['Close'].iloc[-1] - df['Close'].iloc[-252]) / df['Close'].iloc[-252]) * 100
         
         # Use momentum with conservative estimates (50% of momentum)
         return {
