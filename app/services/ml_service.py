@@ -1400,7 +1400,7 @@ def get_prediction_accuracy(
 
                 pred_date_str = entry.get('date', '')
 
-        if not pred_date_str:
+                if not pred_date_str:
             continue
 
         pred_date = pd.to_datetime(pred_date_str)
