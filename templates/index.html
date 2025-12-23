@@ -10664,7 +10664,7 @@
                                         let predObj = data.ml_models?.price_prediction?.predictions?.[period];
                                         let pred = null;
                                         if (predObj !== null && predObj !== undefined) {
-                                            if (typeof predObj === 'object' && 'price' in predObj) {
+                                            if (typeof predObj === 'object' && predObj !== null && 'price' in predObj && typeof predObj.price === 'number') {
                                                 pred = predObj.price;
                                             } else if (typeof predObj === 'number') {
                                                 pred = predObj;
