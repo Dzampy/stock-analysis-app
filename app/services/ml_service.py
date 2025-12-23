@@ -607,19 +607,15 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             logger.info(f"Best hyperparameters: {best_params} with CV R²: {best_score:.4f}")
 
             model = best_model
-            else:
-
+        else:
             # Default hyperparameters if CV didn't work
             logger.info("Using default hyperparameters")
             best_params = hyperparameter_sets[0]
             model = RandomForestRegressor(
-            random_state=42,
-            n_jobs=-1,
-
-            verbose=0,
-
-            **best_params
-
+                random_state=42,
+                n_jobs=-1,
+                verbose=0,
+                **best_params
             )
 
         
