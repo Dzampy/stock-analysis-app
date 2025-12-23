@@ -524,8 +524,8 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         # Based on analysis: need more regularization but also enough capacity to learn patterns
         hyperparameter_sets = [
         {
-            'n_estimators': 100,  # Reduced for faster training and less overfitting
-            'max_depth': 8,  # Shallow trees to prevent overfitting
+        'n_estimators': 100,  # Reduced for faster training and less overfitting
+        'max_depth': 8,  # Shallow trees to prevent overfitting
 
             'min_samples_split': 30,  # High threshold - more regularization
 
