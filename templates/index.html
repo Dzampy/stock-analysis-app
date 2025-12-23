@@ -23063,136 +23063,216 @@
         function displayBacktestResults(data) {
             const content = document.getElementById('backtestContent');
             
-            if (!data.results || data.results.length === 0) {
+            if (!data.success || !data.predictions || data.predictions.length === 0) {
                 content.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">No backtest results available</div>';
                 return;
             }
             
+            const perf = data.performance_metrics || {};
+            const baseline = data.baseline_comparison || {};
+            const trading = data.trading_metrics || {};
+            const summary = data.summary || {};
+            
             let html = `
                 <div style="margin-bottom: 30px;">
-                    <h3 style="margin-bottom: 15px;">📊 Summary Metrics</h3>
+                    <h3 style="margin-bottom: 15px;">📊 Performance Summary</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
                         <div class="card" style="padding: 15px;">
                             <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 5px;">Total Predictions</div>
-                            <div style="font-size: 1.5em; font-weight: 600; color: var(--text-primary);">${data.total_predictions}</div>
+                            <div style="font-size: 1.5em; font-weight: 600; color: var(--text-primary);">${data.predictions_count || data.predictions.length}</div>
                         </div>
                         <div class="card" style="padding: 15px;">
-                            <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 5px;">Valid Results</div>
-                            <div style="font-size: 1.5em; font-weight: 600; color: var(--text-primary);">${data.valid_results}</div>
+                            <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 5px;">R² Score</div>
+                            <div style="font-size: 1.5em; font-weight: 600; color: ${(perf.r2_score || 0) >= 0 ? '#10b981' : '#ef4444'};">
+                                ${summary.r2_score || (perf.r2_score ? perf.r2_score.toFixed(4) : 'N/A')}
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 15px;">
+                            <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 5px;">Mean Absolute Error</div>
+                            <div style="font-size: 1.5em; font-weight: 600; color: var(--text-primary);">
+                                ${summary.mean_absolute_error || (perf.mae ? '$' + perf.mae.toFixed(2) : 'N/A')}
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 15px;">
+                            <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 5px;">Direction Accuracy</div>
+                            <div style="font-size: 1.5em; font-weight: 600; color: ${(perf.direction_accuracy || 0) >= 50 ? '#10b981' : '#ef4444'};">
+                                ${summary.direction_accuracy || (perf.direction_accuracy ? perf.direction_accuracy.toFixed(1) + '%' : 'N/A')}
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
             
-            // Metrics by period
-            if (data.metrics && Object.keys(data.metrics).length > 0) {
+            // Performance Metrics
+            if (perf && Object.keys(perf).length > 0) {
                 html += `
                     <div style="margin-bottom: 30px;">
-                        <h3 style="margin-bottom: 15px;">📈 Performance by Period</h3>
+                        <h3 style="margin-bottom: 15px;">📈 Performance Metrics</h3>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                `;
-                
-                const periods = ['1m', '3m', '6m', '12m'];
-                const periodLabels = {'1m': '1 Month', '3m': '3 Months', '6m': '6 Months', '12m': '12 Months'};
-                
-                for (const period of periods) {
-                    if (!data.metrics[period]) continue;
-                    const m = data.metrics[period];
-                    
-                    html += `
-                        <div class="card" style="padding: 20px;">
-                            <h4 style="margin-bottom: 15px; color: var(--text-primary);">${periodLabels[period]}</h4>
-                            <div style="display: flex; flex-direction: column; gap: 10px;">
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span style="color: var(--text-secondary);">Count:</span>
-                                    <span style="font-weight: 600; color: var(--text-primary);">${m.count}</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span style="color: var(--text-secondary);">Avg Error:</span>
-                                    <span style="font-weight: 600; color: var(--text-primary);">${m.avg_error_pct}%</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span style="color: var(--text-secondary);">Avg Actual Return:</span>
-                                    <span style="font-weight: 600; color: ${m.avg_actual_return_pct >= 0 ? '#10b981' : '#ef4444'};">
-                                        ${m.avg_actual_return_pct >= 0 ? '+' : ''}${m.avg_actual_return_pct}%
-                                    </span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span style="color: var(--text-secondary);">Avg Predicted Return:</span>
-                                    <span style="font-weight: 600; color: ${m.avg_predicted_return_pct >= 0 ? '#10b981' : '#ef4444'};">
-                                        ${m.avg_predicted_return_pct >= 0 ? '+' : ''}${m.avg_predicted_return_pct}%
-                                    </span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span style="color: var(--text-secondary);">Total P/L:</span>
-                                    <span style="font-weight: 600; color: ${m.total_profit_loss >= 0 ? '#10b981' : '#ef4444'};">
-                                        $${m.total_profit_loss >= 0 ? '+' : ''}${m.total_profit_loss.toFixed(2)}
-                                    </span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span style="color: var(--text-secondary);">Win Rate:</span>
-                                    <span style="font-weight: 600; color: var(--text-primary);">${m.win_rate_pct}%</span>
-                                </div>
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span style="color: var(--text-secondary);">Direction Accuracy:</span>
-                                    <span style="font-weight: 600; color: var(--text-primary);">${m.direction_accuracy_pct}%</span>
+                            <div class="card" style="padding: 20px;">
+                                <h4 style="margin-bottom: 15px; color: var(--text-primary);">ML Model</h4>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-secondary);">RMSE:</span>
+                                        <span style="font-weight: 600; color: var(--text-primary);">${summary.root_mean_squared_error || (perf.rmse ? '$' + perf.rmse.toFixed(2) : 'N/A')}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-secondary);">MAPE:</span>
+                                        <span style="font-weight: 600; color: var(--text-primary);">${summary.mean_absolute_percentage_error || (perf.mape ? perf.mape.toFixed(2) + '%' : 'N/A')}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-secondary);">Correlation:</span>
+                                        <span style="font-weight: 600; color: var(--text-primary);">${summary.correlation || (perf.correlation ? perf.correlation.toFixed(4) : 'N/A')}</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                `;
+                
+                // Baseline Comparisons
+                if (baseline.naive_baseline) {
+                    html += `
+                            <div class="card" style="padding: 20px;">
+                                <h4 style="margin-bottom: 15px; color: var(--text-primary);">Naive Baseline</h4>
+                                <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 10px;">${baseline.naive_baseline.description || 'Predicts price stays the same'}</div>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-secondary);">R²:</span>
+                                        <span style="font-weight: 600; color: var(--text-primary);">${baseline.naive_baseline.r2_score ? baseline.naive_baseline.r2_score.toFixed(4) : 'N/A'}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-secondary);">RMSE:</span>
+                                        <span style="font-weight: 600; color: var(--text-primary);">${baseline.naive_baseline.rmse ? '$' + baseline.naive_baseline.rmse.toFixed(2) : 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                    `;
+                }
+                
+                if (baseline.momentum_baseline) {
+                    html += `
+                            <div class="card" style="padding: 20px;">
+                                <h4 style="margin-bottom: 15px; color: var(--text-primary);">Momentum Baseline</h4>
+                                <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 10px;">${baseline.momentum_baseline.description || 'Predicts price continues previous trend'}</div>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-secondary);">R²:</span>
+                                        <span style="font-weight: 600; color: var(--text-primary);">${baseline.momentum_baseline.r2_score ? baseline.momentum_baseline.r2_score.toFixed(4) : 'N/A'}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-secondary);">RMSE:</span>
+                                        <span style="font-weight: 600; color: var(--text-primary);">${baseline.momentum_baseline.rmse ? '$' + baseline.momentum_baseline.rmse.toFixed(2) : 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                    `;
+                }
+                
+                // Trading Metrics
+                if (trading && Object.keys(trading).length > 0) {
+                    html += `
+                            <div class="card" style="padding: 20px;">
+                                <h4 style="margin-bottom: 15px; color: var(--text-primary);">Trading Metrics</h4>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-secondary);">Sharpe Ratio:</span>
+                                        <span style="font-weight: 600; color: var(--text-primary);">${summary.sharpe_ratio || (trading.sharpe_ratio ? trading.sharpe_ratio.toFixed(2) : 'N/A')}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-secondary);">Max Drawdown:</span>
+                                        <span style="font-weight: 600; color: ${(trading.max_drawdown_pct || 0) >= 0 ? '#10b981' : '#ef4444'};">
+                                            ${summary.max_drawdown || (trading.max_drawdown_pct ? trading.max_drawdown_pct.toFixed(2) + '%' : 'N/A')}
+                                        </span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-secondary);">Total Return:</span>
+                                        <span style="font-weight: 600; color: ${(trading.total_return_pct || 0) >= 0 ? '#10b981' : '#ef4444'};">
+                                            ${trading.total_return_pct ? (trading.total_return_pct >= 0 ? '+' : '') + trading.total_return_pct.toFixed(2) + '%' : 'N/A'}
+                                        </span>
+                                    </div>
+                                </div>
+                                ${trading.note ? `<div style="font-size: 0.75em; color: var(--text-secondary); margin-top: 10px; font-style: italic;">${trading.note}</div>` : ''}
+                            </div>
                     `;
                 }
                 
                 html += `</div></div>`;
             }
             
-            // Detailed results table
-            html += `
-                <div style="margin-bottom: 30px;">
-                    <h3 style="margin-bottom: 15px;">📋 Detailed Results</h3>
-                    <div style="overflow-x: auto;">
-                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-                            <thead>
-                                <tr style="background: var(--metric-bg); border-bottom: 2px solid var(--border-color);">
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Date</th>
-                                    <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">Price</th>
-                                    <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">1M Actual</th>
-                                    <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">3M Actual</th>
-                                    <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">6M Actual</th>
-                                    <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">12M Actual</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-            `;
-            
-            // Show last 20 results
-            const resultsToShow = data.results.slice(-20).reverse();
-            for (const result of resultsToShow) {
+            // Model vs Baselines Comparison
+            if (baseline.ml_model_vs_baselines) {
+                const vs = baseline.ml_model_vs_baselines;
                 html += `
-                    <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 12px; font-weight: 600; color: var(--text-primary);">${result.date}</td>
-                        <td style="padding: 12px; text-align: right; color: var(--text-primary);">$${result.current_price.toFixed(2)}</td>
-                        <td style="padding: 12px; text-align: right; color: ${result.actual_returns['1m'] >= 0 ? '#10b981' : '#ef4444'};">
-                            ${result.actual_prices['1m'] ? `$${result.actual_prices['1m'].toFixed(2)} (${result.actual_returns['1m'] >= 0 ? '+' : ''}${result.actual_returns['1m'].toFixed(2)}%)` : 'N/A'}
-                        </td>
-                        <td style="padding: 12px; text-align: right; color: ${result.actual_returns['3m'] >= 0 ? '#10b981' : '#ef4444'};">
-                            ${result.actual_prices['3m'] ? `$${result.actual_prices['3m'].toFixed(2)} (${result.actual_returns['3m'] >= 0 ? '+' : ''}${result.actual_returns['3m'].toFixed(2)}%)` : 'N/A'}
-                        </td>
-                        <td style="padding: 12px; text-align: right; color: ${result.actual_returns['6m'] >= 0 ? '#10b981' : '#ef4444'};">
-                            ${result.actual_prices['6m'] ? `$${result.actual_prices['6m'].toFixed(2)} (${result.actual_returns['6m'] >= 0 ? '+' : ''}${result.actual_returns['6m'].toFixed(2)}%)` : 'N/A'}
-                        </td>
-                        <td style="padding: 12px; text-align: right; color: ${result.actual_returns['12m'] >= 0 ? '#10b981' : '#ef4444'};">
-                            ${result.actual_prices['12m'] ? `$${result.actual_prices['12m'].toFixed(2)} (${result.actual_returns['12m'] >= 0 ? '+' : ''}${result.actual_returns['12m'].toFixed(2)}%)` : 'N/A'}
-                        </td>
-                    </tr>
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="margin-bottom: 15px;">🎯 Model vs Baselines</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div class="card" style="padding: 15px; background: ${vs.better_than_naive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'};">
+                                <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 5px;">vs Naive Baseline</div>
+                                <div style="font-size: 1.2em; font-weight: 600; color: ${vs.better_than_naive ? '#10b981' : '#ef4444'};">
+                                    ${vs.better_than_naive ? '✅ Better' : '❌ Worse'}
+                                </div>
+                                <div style="font-size: 0.85em; color: var(--text-secondary); margin-top: 5px;">
+                                    R² improvement: ${vs.improvement_vs_naive_r2 >= 0 ? '+' : ''}${vs.improvement_vs_naive_r2.toFixed(4)}
+                                </div>
+                            </div>
+                            <div class="card" style="padding: 15px; background: ${vs.better_than_momentum ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'};">
+                                <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 5px;">vs Momentum Baseline</div>
+                                <div style="font-size: 1.2em; font-weight: 600; color: ${vs.better_than_momentum ? '#10b981' : '#ef4444'};">
+                                    ${vs.better_than_momentum ? '✅ Better' : '❌ Worse'}
+                                </div>
+                                <div style="font-size: 0.85em; color: var(--text-secondary); margin-top: 5px;">
+                                    R² improvement: ${vs.improvement_vs_momentum_r2 >= 0 ? '+' : ''}${vs.improvement_vs_momentum_r2.toFixed(4)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 `;
             }
             
-            html += `
-                            </tbody>
-                        </table>
+            // Detailed predictions table
+            if (data.predictions && data.predictions.length > 0) {
+                html += `
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="margin-bottom: 15px;">📋 Detailed Predictions (Last 50)</h3>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                                <thead>
+                                    <tr style="background: var(--metric-bg); border-bottom: 2px solid var(--border-color);">
+                                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Date</th>
+                                        <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">Predicted</th>
+                                        <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">Actual</th>
+                                        <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">Error</th>
+                                        <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">Error %</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                
+                // Show last 50 predictions (most recent first)
+                const predictionsToShow = data.predictions.slice(-50).reverse();
+                for (const pred of predictionsToShow) {
+                    const errorColor = Math.abs(pred.error_pct || 0) < 5 ? '#10b981' : (Math.abs(pred.error_pct || 0) < 10 ? '#f59e0b' : '#ef4444');
+                    html += `
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 12px; font-weight: 600; color: var(--text-primary);">${pred.date}</td>
+                            <td style="padding: 12px; text-align: right; color: var(--text-primary);">$${pred.predicted ? pred.predicted.toFixed(2) : 'N/A'}</td>
+                            <td style="padding: 12px; text-align: right; color: var(--text-primary);">$${pred.actual ? pred.actual.toFixed(2) : 'N/A'}</td>
+                            <td style="padding: 12px; text-align: right; color: ${errorColor};">
+                                ${pred.error !== undefined ? (pred.error >= 0 ? '+' : '') + '$' + pred.error.toFixed(2) : 'N/A'}
+                            </td>
+                            <td style="padding: 12px; text-align: right; color: ${errorColor};">
+                                ${pred.error_pct !== undefined ? (pred.error_pct >= 0 ? '+' : '') + pred.error_pct.toFixed(2) + '%' : 'N/A'}
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                html += `
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
             
             content.innerHTML = html;
         }
