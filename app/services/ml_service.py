@@ -509,7 +509,7 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
                     )
                     avg_score = np.mean(cv_scores)
                     
-                    logger.debug(f"CV R² score: {avg_score:.4f} (+/- {np.std(cv_scores):.4f}) for params {params}"):.4f}) for params {params}")
+                    logger.debug(f"CV R² score: {avg_score:.4f} (+/- {np.std(cv_scores):.4f}) for params {params}")
                     
                     if avg_score > best_score:
                         best_score = avg_score
