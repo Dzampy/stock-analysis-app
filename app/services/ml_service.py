@@ -4,7 +4,7 @@ ML service - Price predictions, backtesting, model management
 import pandas as pd
 import numpy as np
 import yfinance as yf
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, Optional, List, Tuple, Any, Union
 from datetime import datetime, timedelta
 from pathlib import Path
 import joblib
@@ -299,7 +299,7 @@ def _download_extended_historical_data(ticker: str, years: int = 2) -> Optional[
         return None
 
 
-def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: float, df: Optional[pd.DataFrame] = None) -> Tuple[Optional, Optional]:
+def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: float, df: Optional[pd.DataFrame] = None) -> Tuple[Optional[Any], Optional[Any]]:
     """
     Train Random Forest model for price prediction using 2+ years of historical data
     
