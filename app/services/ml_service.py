@@ -1728,7 +1728,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             # This keeps TP realistic while considering ML direction
             if ml_tp1 and ml_tp1 > entry_price:
                 # Only use ML if it's higher than entry (makes sense for TP)
-        tp1_price = default_tp1 * 0.6 + ml_tp1 * 0.4
+                tp1_price = default_tp1 * 0.6 + ml_tp1 * 0.4
         # Ensure TP1 is at least 5% above entry
         tp1_price = max(entry_price * 1.05, tp1_price)
 
