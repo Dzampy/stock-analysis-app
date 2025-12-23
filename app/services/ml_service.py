@@ -516,6 +516,15 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             model.feature_names_ = feature_names
             model.feature_importances_dict_ = feature_importance_dict
         
+        # Store CV R² score for transparency
+        if best_score != float('-inf'):
+            model.cv_r2_score = float(best_score)
+            model.train_r2_score = float(train_score)
+        else:
+            # If no CV was performed, use training score as approximation
+            model.cv_r2_score = float(train_score)
+            model.train_r2_score = float(train_score)
+        
         return model, scaler
         
     except Exception as e:
@@ -846,13 +855,25 @@ def predict_price(features, current_price, df=None):
             top_features = {name: float(importance) for name, importance in sorted_importance[:10]}
             logger.debug(f"Top 5 features: {list(sorted_importance[:5])}")
         
+        # Get model quality metrics (CV R² score) if available
+        model_quality = {}
+        if model:
+            if hasattr(model, 'cv_r2_score'):
+                model_quality['cv_r2_score'] = float(model.cv_r2_score)
+                model_quality['train_r2_score'] = float(getattr(model, 'train_r2_score', model.cv_r2_score))
+            else:
+                # Fallback if model doesn't have CV score
+                model_quality['cv_r2_score'] = None
+                model_quality['train_r2_score'] = None
+        
         result = {
             'current_price': current_price,
             'predictions': predictions,
             'expected_returns': expected_returns,
             'confidence_intervals': confidence_intervals,
             'model_used': 'random_forest',
-            'feature_importance': top_features if top_features else None
+            'feature_importance': top_features if top_features else None,
+            'model_quality': model_quality if model_quality else None
         }
         
         # Cache the result
@@ -981,6 +1002,108 @@ def get_prediction_history(ticker: str, days: int = 30) -> List[Dict]:
     except Exception as e:
         logger.exception(f"Error loading prediction history: {e}")
         return []
+
+
+def get_prediction_accuracy(ticker: str, timeframe: str = '6m') -> Optional[Dict]:
+    """
+    Calculate accuracy of historical predictions by comparing them with actual prices
+    
+    Args:
+        ticker: Stock ticker symbol
+        timeframe: '1m', '3m', '6m', or '12m' to evaluate predictions for that timeframe
+        
+    Returns:
+        Dict with accuracy metrics or None if insufficient data
+    """
+    try:
+        # Load prediction history
+        history = get_prediction_history(ticker, days=365)  # Look back up to 1 year
+        
+        if not history or len(history) < 3:
+            return None
+        
+        # Map timeframe to days
+        timeframe_days = {'1m': 21, '3m': 63, '6m': 126, '12m': 252}
+        days = timeframe_days.get(timeframe, 126)
+        
+        # Get stock data for actual prices
+        stock = yf.Ticker(ticker)
+        
+        accuracy_results = []
+        
+        for entry in history:
+            try:
+                pred_date_str = entry.get('date', '')
+                if not pred_date_str:
+                    continue
+                    
+                pred_date = pd.to_datetime(pred_date_str)
+                pred_price = entry.get(f'prediction_{timeframe}')
+                
+                if pred_price is None or not isinstance(pred_price, (int, float)):
+                    continue
+                
+                # Get actual price 'days' days after prediction
+                target_date = pred_date + timedelta(days=days + 30)  # Add buffer for weekends/holidays
+                
+                # Download historical data for that period
+                hist = stock.history(start=pred_date, end=target_date)
+                
+                if hist.empty or len(hist) == 0:
+                    continue
+                
+                # Get actual price closest to target date (use last available price in range)
+                actual_price = float(hist['Close'].iloc[-1]) if len(hist) > 0 else None
+                
+                if actual_price is None or actual_price <= 0:
+                    continue
+                
+                # Calculate error
+                error_pct = ((actual_price - pred_price) / pred_price) * 100
+                error_abs = abs(error_pct)
+                
+                accuracy_results.append({
+                    'date': pred_date_str,
+                    'predicted': float(pred_price),
+                    'actual': float(actual_price),
+                    'error_pct': float(error_pct),
+                    'error_abs': float(error_abs)
+                })
+            except Exception as e:
+                logger.debug(f"Error evaluating prediction from {entry.get('date')}: {e}")
+                continue
+        
+        if len(accuracy_results) < 3:
+            return None
+        
+        # Calculate aggregate metrics
+        errors_abs = [r['error_abs'] for r in accuracy_results]
+        errors_pct = [r['error_pct'] for r in accuracy_results]
+        
+        mean_error = np.mean(errors_abs)
+        median_error = np.median(errors_abs)
+        std_error = np.std(errors_abs)
+        
+        # Calculate percentage of predictions within reasonable ranges
+        within_range_20pct = sum(1 for e in errors_abs if e <= 20) / len(errors_abs) * 100
+        within_range_30pct = sum(1 for e in errors_abs if e <= 30) / len(errors_abs) * 100
+        within_range_50pct = sum(1 for e in errors_abs if e <= 50) / len(errors_abs) * 100
+        
+        return {
+            'timeframe': timeframe,
+            'num_predictions': len(accuracy_results),
+            'mean_absolute_error_pct': float(mean_error),
+            'median_error_pct': float(median_error),
+            'std_error_pct': float(std_error),
+            'within_20pct': float(within_range_20pct),
+            'within_30pct': float(within_range_30pct),
+            'within_50pct': float(within_range_50pct),
+            'recent_predictions': accuracy_results[-10:] if len(accuracy_results) > 10 else accuracy_results
+        }
+        
+    except Exception as e:
+        logger.exception(f"Error calculating prediction accuracy for {ticker}: {e}")
+        return None
 
 
 def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
@@ -1137,12 +1260,12 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
                 ml_pred_price = pred_1m
             
             if ml_pred_price:
-                # Use weighted average: 70% current price, 30% ML prediction
-                # This keeps entry close to current price while considering ML direction
-                entry_price = current_price * 0.7 + ml_pred_price * 0.3
+                # Use weighted average: 80% current price, 20% ML prediction
+                # More conservative - entry should be even closer to current price for more realistic entry points
+                entry_price = current_price * 0.8 + ml_pred_price * 0.2
                 
-                # Ensure entry is within reasonable range (±10% of current price)
-                entry_price = max(current_price * 0.90, min(current_price * 1.10, entry_price))
+                # Ensure entry is within tighter range (±8% of current price for more realistic entry)
+                entry_price = max(current_price * 0.92, min(current_price * 1.08, entry_price))
         
         # Adjust entry based on support/resistance (fine-tuning)
         if len(df) >= 20:
