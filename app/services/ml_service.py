@@ -667,8 +667,8 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         
         # Store flag indicating if model is better than baseline
         model.is_better_than_baseline = model.cv_r2_score > 0.0
-                
-                return model, scaler
+        
+        return model, scaler
         
     except Exception as e:
         logger.exception(f"Error training model for {ticker}: {e}")
