@@ -474,9 +474,9 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
         logger.info(f"Building training dataset for {ticker} with {len(df)} days of data")
         
         for i in range(lookback_days, len(df) - 1):  # -1 because we predict next day
-        try:
+            try:
                 # Extract features for this historical point
-        hist_features = _extract_historical_features(df, i)
+                hist_features = _extract_historical_features(df, i)
         if hist_features is None:
             continue
 
