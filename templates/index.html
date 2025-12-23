@@ -10661,10 +10661,15 @@
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                                     ${['1m', '3m', '6m', '12m'].map(period => {
                                         // Handle both formats: {price: X, confidence: Y} or direct number
-                                        let predObj = data.ml_models.price_prediction.predictions[period];
-                                        let pred = (predObj && typeof predObj === 'object' && 'price' in predObj) 
-                                            ? predObj.price 
-                                            : (typeof predObj === 'number' ? predObj : null);
+                                        let predObj = data.ml_models?.price_prediction?.predictions?.[period];
+                                        let pred = null;
+                                        if (predObj !== null && predObj !== undefined) {
+                                            if (typeof predObj === 'object' && 'price' in predObj) {
+                                                pred = predObj.price;
+                                            } else if (typeof predObj === 'number') {
+                                                pred = predObj;
+                                            }
+                                        }
                                         let ret = data.ml_models.price_prediction.expected_returns[period];
                                         let ci = data.ml_models.price_prediction.confidence_intervals[period];
                                         
