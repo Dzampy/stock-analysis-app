@@ -1428,11 +1428,11 @@ def get_prediction_accuracy(
 
                 # Calculate error
                 error_pct = ((actual_price - pred_price) / pred_price) * 100
-        error_abs = abs(error_pct)
+                error_abs = abs(error_pct)
 
-        accuracy_results.append({
-            'date': pred_date_str,
-            'predicted': float(pred_price),
+                accuracy_results.append({
+                'date': pred_date_str,
+                'predicted': float(pred_price),
             'actual': float(actual_price),
             'error_pct': float(error_pct),
             'error_abs': float(error_abs)
