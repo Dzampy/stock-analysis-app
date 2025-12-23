@@ -2476,20 +2476,18 @@ def run_backtest(
             else:
                 sharpe_ratio = 0.0
 
-        # Maximum drawdown
-        cumulative_returns = np.cumprod(1 + strategy_returns / 100)
-        running_max = np.maximum.accumulate(cumulative_returns)
-        drawdown = (cumulative_returns - running_max) / running_max
-        max_drawdown = float(np.min(drawdown)) * \
-            100 if len(drawdown) > 0 else 0.0
+            # Maximum drawdown
+            cumulative_returns = np.cumprod(1 + strategy_returns / 100)
+            running_max = np.maximum.accumulate(cumulative_returns)
+            drawdown = (cumulative_returns - running_max) / running_max
+            max_drawdown = float(np.min(drawdown)) * \
+                100 if len(drawdown) > 0 else 0.0
 
-        # Total return
-        total_return = (
-            cumulative_returns[-1] - 1) * 100 if len(cumulative_returns) > 0 else 0.0
+            # Total return
+            total_return = (
+                cumulative_returns[-1] - 1) * 100 if len(cumulative_returns) > 0 else 0.0
         else:
-
             sharpe_ratio = 0.0
-
             max_drawdown = 0.0
             total_return = 0.0
 
