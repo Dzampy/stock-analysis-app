@@ -63,29 +63,104 @@ except ImportError:
 
 
 def get_reddit_sentiment(ticker, days=7):
-    """Get Reddit sentiment for a ticker"""
+    """Get Reddit sentiment for a ticker using web scraping"""
     try:
-        # This is a placeholder - implement if needed
-        return None
+        # Use fallback web scraping method
+        return get_social_sentiment_fallback(ticker, days)
     except Exception as e:
-        logger.exception(f"Error getting Reddit sentiment")
+        logger.exception(f"Error getting Reddit sentiment for {ticker}: {e}")
         return None
 
 
 def get_social_sentiment_fallback(ticker, days=7):
-    """Fallback to web scraping if PRAW not available or failed"""
+    """Fallback to web scraping Reddit if PRAW not available or failed"""
     try:
-        # Placeholder implementation
+        import cloudscraper
+        
+        posts = []
+        sentiment_scores = []
+        total_upvotes = 0
+        total_comments = 0
+        
+        # Search Reddit using web scraping
+        scraper = cloudscraper.create_scraper()
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+        
+        # Search in multiple subreddits
+        subreddits = ['stocks', 'investing', 'StockMarket', 'wallstreetbets', 'SecurityAnalysis']
+        
+        for subreddit in subreddits:
+            try:
+                # Search Reddit for ticker
+                search_url = f"https://www.reddit.com/r/{subreddit}/search.json?q={ticker}&restrict_sr=1&sort=relevance&t=week&limit=10"
+                response = scraper.get(search_url, headers=headers, timeout=10)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'data' in data and 'children' in data['data']:
+                        for child in data['data']['children']:
+                            post_data = child.get('data', {})
+                            title = post_data.get('title', '')
+                            selftext = post_data.get('selftext', '')
+                            url = post_data.get('url', '')
+                            score = post_data.get('score', 0)
+                            num_comments = post_data.get('num_comments', 0)
+                            created_utc = post_data.get('created_utc', 0)
+                            
+                            # Check if post is within date range
+                            if created_utc:
+                                post_date = datetime.fromtimestamp(created_utc)
+                                days_ago = (datetime.now() - post_date).days
+                                if days_ago > days:
+                                    continue
+                            
+                            # Analyze sentiment
+                            text = f"{title} {selftext}"
+                            sentiment = analyze_sentiment(text)
+                            sentiment_scores.append(sentiment['score'])
+                            
+                            posts.append({
+                                'title': title,
+                                'text': selftext[:500],  # Limit text length
+                                'url': url,
+                                'subreddit': subreddit,
+                                'upvotes': score,
+                                'comments': num_comments,
+                                'date': datetime.fromtimestamp(created_utc).strftime('%Y-%m-%d') if created_utc else 'N/A',
+                                'sentiment': sentiment['sentiment'],
+                                'sentiment_score': sentiment['score']
+                            })
+                            
+                            total_upvotes += score
+                            total_comments += num_comments
+                
+                time.sleep(0.5)  # Rate limiting
+            except Exception as sub_error:
+                logger.debug(f"Error scraping r/{subreddit}: {str(sub_error)}")
+                continue
+        
+        # Calculate overall sentiment score
+        if sentiment_scores:
+            # Convert from -1 to 1 range to 0-100 range
+            avg_sentiment = sum(sentiment_scores) / len(sentiment_scores)
+            sentiment_score = ((avg_sentiment + 1) / 2) * 100
+        else:
+            sentiment_score = 50.0  # Neutral if no data
+        
         return {
-            'posts': [],
-            'sentiment_score': 50.0,
-            'mention_count': 0,
-            'trending': False,
-            'total_upvotes': 0,
-            'total_comments': 0
+            'posts': posts[:20],  # Limit to 20 posts
+            'sentiment_score': round(sentiment_score, 2),
+            'mention_count': len(posts),
+            'trending': len(posts) > 10,  # Consider trending if more than 10 mentions
+            'total_upvotes': total_upvotes,
+            'total_comments': total_comments
         }
     except Exception as e:
-        logger.exception(f"Error in get_social_sentiment_fallback")
+        logger.exception(f"Error in get_social_sentiment_fallback for {ticker}: {e}")
         return {
             'posts': [],
             'sentiment_score': 50.0,
