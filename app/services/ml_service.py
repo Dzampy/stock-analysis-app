@@ -1034,8 +1034,8 @@ def predict_price(features, current_price, df=None):
             if historical_volatility > 0:
                 # Adjust based on volatility: high vol stocks get wider ranges
                 # Normalize: 30% annual vol = 1.0x, scale from there
-        vol_factor = historical_volatility / 30.0
-        range_multiplier = min(1.5, max(0.7, vol_factor))  # Between 0.7x and 1.5x
+                vol_factor = historical_volatility / 30.0
+                range_multiplier = min(1.5, max(0.7, vol_factor))  # Between 0.7x and 1.5x
             
             range_pct = timeframe_ranges.get(timeframe, 0.25) * range_multiplier
             # Apply percentage range to predicted price (not current price)
