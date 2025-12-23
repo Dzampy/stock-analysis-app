@@ -554,6 +554,10 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         # Calculate risk score
         risk_analysis = calculate_risk_score(ml_features, metrics, info)
         
+        # Get moving averages for trend classification
+        sma_20 = indicators.get('sma_20', [])
+        sma_50 = indicators.get('sma_50', [])
+        
         # Stub implementations for missing functions
         # Determine trend class based on price momentum and indicators
         price_momentum_30d = 0
