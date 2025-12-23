@@ -94,11 +94,9 @@ def extract_ml_features(ticker: str, df: pd.DataFrame, info: Dict, indicators: D
     if rsi_values and len(rsi_values) > 0:
         features['rsi'] = float(rsi_values[-1]) if not pd.isna(rsi_values[-1]) else 50.0
         features['rsi_7d_avg'] = float(np.mean(rsi_values[-7:])) if len(rsi_values) >= 7 else 50.0
-        else:
-
-            features['rsi'] = 50.0
-
-            features['rsi_7d_avg'] = 50.0
+    else:
+        features['rsi'] = 50.0
+        features['rsi_7d_avg'] = 50.0
 
     
     # MACD features
