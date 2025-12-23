@@ -10778,8 +10778,8 @@
                                         if (!isFinite(ret) || ret === null || ret === undefined || currentPrice <= 0) {
                                             ret = ((pred - currentPrice) / currentPrice) * 100;
                                         }
-                                        // Cap at reasonable bounds (-80% to +200% for realistic predictions)
-                                        ret = Math.max(-80, Math.min(200, ret));
+                                        // Only cap negative returns, allow positive returns to be displayed accurately
+                                        ret = Math.max(-80, ret);  // Cap only negative side at -80%
                                         
                                         // Fix Infinity/NaN confidence intervals
                                         if (!ci || !isFinite(ci.lower) || ci.lower <= 0) {
