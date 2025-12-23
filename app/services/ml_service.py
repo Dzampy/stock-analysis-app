@@ -1403,15 +1403,15 @@ def get_prediction_accuracy(
                 if not pred_date_str:
                     continue
 
-                    pred_date = pd.to_datetime(pred_date_str)
-                    pred_price = entry.get(f'prediction_{timeframe}')
+                pred_date = pd.to_datetime(pred_date_str)
+                pred_price = entry.get(f'prediction_{timeframe}')
 
                 if pred_price is None or not isinstance(pred_price, (int, float)):
                     continue
 
-            # Get actual price 'days' days after prediction
-        # Add buffer for weekends/holidays
-        target_date = pred_date + timedelta(days=days + 30)
+                # Get actual price 'days' days after prediction
+                # Add buffer for weekends/holidays
+                target_date = pred_date + timedelta(days=days + 30)
 
         # Download historical data for that period
         hist = stock.history(start=pred_date, end=target_date)
