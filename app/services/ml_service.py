@@ -660,7 +660,7 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             model.cv_r2_score = float(best_score)
 
             model.train_r2_score = float(train_score)
-            else:
+        else:
 
             # If no CV was performed, use training score as approximation
             model.cv_r2_score = float(train_score)
@@ -868,7 +868,7 @@ def predict_price(features, current_price, df=None):
             next_day_return = (next_day_prediction - current_price) / current_price
 
             annualized_return = next_day_return * 252 * 100  # Annualize and convert to percentage
-            else:
+        else:
 
             # If ML is worse than baseline, set annualized return to 0 (will use only momentum)
             annualized_return = 0.0
@@ -920,7 +920,7 @@ def predict_price(features, current_price, df=None):
 
             }
 
-            else:
+        else:
 
             # ML is better than baseline but still conservative weights
             timeframe_weights = {
@@ -1904,7 +1904,7 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             technical_score -= 25  # Heavy penalty if all timeframes are negative
 
             warnings.append(f"ML model predicts negative returns across all timeframes (1M: {expected_return_1m:.1f}%, 3M: {expected_return_3m:.1f}%, 6M: {expected_return_6m:.1f}%, 12M: {expected_return_12m:.1f}%)")
-            else:
+        else:
 
             # Individual ML prediction impact (increased penalties/bonuses)
         if expected_return_6m > 20:
@@ -2108,7 +2108,7 @@ def run_backtest(ticker: str, start_date: Optional[str] = None, end_date: Option
         if end_date:
             end = pd.to_datetime(end_date)
 
-            else:
+        else:
 
                 end = df.index[-1]
 
@@ -2116,7 +2116,7 @@ def run_backtest(ticker: str, start_date: Optional[str] = None, end_date: Option
         if start_date:
             start = pd.to_datetime(start_date)
 
-            else:
+        else:
 
             # Default to 1 year ago or 252 trading days
             start = end - timedelta(days=365)
