@@ -1680,9 +1680,9 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             # Entry can be slightly below current (up to 3% discount)
                 entry_price = max(entry_price, current_price * 0.97)
             else:
-            entry_confidence = 'medium'
-            # Keep entry within 2% of current price in medium confidence
-            # scenarios
+                entry_confidence = 'medium'
+                # Keep entry within 2% of current price in medium confidence
+                # scenarios
         entry_price = max(current_price * 0.98,
                           min(current_price * 1.02, entry_price))
 
