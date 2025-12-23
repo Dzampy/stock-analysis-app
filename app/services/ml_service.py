@@ -941,11 +941,10 @@ def predict_price(features, current_price, df=None):
             # ML-based prediction (compound next-day return)
             if use_ml_prediction and annualized_return != 0:
                 daily_return = annualized_return / 252
-
-        ml_return_pct = ((1 + daily_return) ** days - 1) * 100
-    else:
+                ml_return_pct = ((1 + daily_return) ** days - 1) * 100
+            else:
                 # If ML is worse than baseline, use 0% ML prediction (will use only momentum)
-        ml_return_pct = 0.0
+                ml_return_pct = 0.0
             
             # Get historical momentum for this timeframe
             momentum_pct = momentum_pcts.get(timeframe, 0.0)
