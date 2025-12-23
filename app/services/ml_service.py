@@ -714,8 +714,10 @@ def predict_price(features, current_price, df=None):
             else:
                 predicted_price = current_price
             
-            # Cap predictions at reasonable bounds (-50% to +200%)
-            predicted_price = max(current_price * 0.5, min(current_price * 3.0, predicted_price))
+            # Cap predictions at reasonable bounds based on volatility
+            # Use more conservative bounds: -30% to +100% instead of -50% to +200%
+            # This prevents unrealistic predictions like -50% for all timeframes
+            predicted_price = max(current_price * 0.7, min(current_price * 2.0, predicted_price))
             
             # Calculate confidence based on prediction std (wider for longer timeframes)
             timeframe_std = prediction_std * np.sqrt(days)  # Uncertainty grows with time
