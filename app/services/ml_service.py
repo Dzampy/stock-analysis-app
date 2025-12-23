@@ -72,9 +72,7 @@ def extract_ml_features(ticker: str, df: pd.DataFrame, info: Dict, indicators: D
     Returns:
         Dict with extracted features
         """
-
-        features = {}
-
+    features = {}
     
     current_price = df['Close'].iloc[-1]
     
