@@ -50,3 +50,4 @@ pytest -m integration
 4. Add appropriate markers (`@pytest.mark.unit`, `@pytest.mark.integration`)
 5. Mock external dependencies (yfinance, APIs, etc.)
 
+

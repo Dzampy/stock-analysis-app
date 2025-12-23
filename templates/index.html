@@ -4318,7 +4318,10 @@
         }
     </style>
 </head>
-<body>
+    <body>
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Toggle menu">☰</button>
+        <div class="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
     <!-- Sidebar Navigation -->
     <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
@@ -5562,8 +5565,8 @@
                 // Update active state
                 setActiveSection(sectionId);
                 
-                // Update breadcrumbs
-                updateBreadcrumbs(sectionId);
+                // Update breadcrumbs with current ticker if available
+                updateBreadcrumbs(sectionId, currentTicker || null);
                 
                 // Close mobile sidebar
                 if (window.innerWidth <= 1024) {
@@ -5705,7 +5708,7 @@
             }
             
             setActiveSection(currentSection);
-            updateBreadcrumbs(currentSection);
+            updateBreadcrumbs(currentSection, currentTicker || null);
             
             // Load watchlist content if on watchlist section
             if (currentSection === 'watchlistSection') {
@@ -5875,7 +5878,7 @@
                 // #region agent log
                 fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:4625',message:'Fetching API','data':{'query':query},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                 // #endregion
-                const response = await fetch(`/api/search/${encodeURIComponent(query)}`);
+                const response = await cachedFetch(`/api/search/${encodeURIComponent(query)}`);
                 // #region agent log
                 fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:4627',message:'Response received','data':{'status':response.status,'ok':response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
                 // #endregion
@@ -7687,7 +7690,31 @@
             container.innerHTML = html;
         }
 
-        const metricTooltips = {
+        // Simple/Advanced tooltip mode
+        let tooltipMode = localStorage.getItem('tooltipMode') || 'simple';
+        
+        function toggleTooltipMode() {
+            tooltipMode = tooltipMode === 'simple' ? 'advanced' : 'simple';
+            localStorage.setItem('tooltipMode', tooltipMode);
+            showToast(`Tooltips: ${tooltipMode === 'simple' ? 'Jednoduché' : 'Pokročilé'}`, 'info');
+        }
+        
+        const metricTooltipsSimple = {
+            'Market Cap': 'Celková tržní hodnota všech akcií',
+            'P/E Ratio': 'Poměr ceny k zisku. Nižší = levnější',
+            'Forward P/E': 'P/E poměr založený na očekávaném zisku',
+            'Dividend Yield': 'Roční dividenda jako % z ceny akcie',
+            'Beta': 'Volatilita oproti trhu. >1 = více volatilní',
+            'EPS': 'Zisk na akcii. Vyšší = lepší',
+            'Price to Book': 'Poměr ceny k účetní hodnotě',
+            'Profit Margin': '% z tržeb, které jsou zisk',
+            '52 Week High': 'Nejvyšší cena za poslední rok',
+            '52 Week Low': 'Nejnižší cena za poslední rok',
+            'Volatility (30d)': 'Kolísání ceny za 30 dní',
+            'Volume': 'Počet obchodovaných akcií dnes'
+        };
+        
+        const metricTooltipsAdvanced = {
             'Market Cap': 'Total market value of all outstanding shares. Calculated as share price × number of shares.',
             'P/E Ratio': 'Price-to-Earnings ratio. Shows how much investors pay per dollar of earnings. Lower is generally better.',
             'Forward P/E': 'Forward Price-to-Earnings ratio based on projected earnings. Helps assess future valuation.',
@@ -7701,6 +7728,8 @@
             'Volatility (30d)': 'Measure of price fluctuations over 30 days. Higher volatility = more price swings (riskier).',
             'Volume': 'Number of shares traded today. Higher volume = more interest and liquidity.'
         };
+        
+        const metricTooltips = tooltipMode === 'simple' ? metricTooltipsSimple : metricTooltipsAdvanced;
 
         function displayMetrics(metrics) {
             const grid = document.getElementById('metricsGrid');
@@ -7719,8 +7748,9 @@
                 { label: 'Volume', value: formatNumber(metrics.volume) },
             ];
 
+            const currentTooltips = tooltipMode === 'simple' ? metricTooltipsSimple : metricTooltipsAdvanced;
             grid.innerHTML = metricItems.map(item => {
-                const tooltip = metricTooltips[item.label] || '';
+                const tooltip = currentTooltips[item.label] || '';
                 return `
                     <div class="metric-item">
                         <div class="metric-label">
@@ -14008,14 +14038,24 @@
             `;
 
             try {
-                // Use new news endpoint with impact analysis
-                const response = await fetch(`/api/news/${ticker}`);
+                // Use new news endpoint with impact analysis (with pagination)
+                let newsPage = window.newsCurrentPage || 1;
+                let newsLimit = window.newsLimit || 20;
+                const response = await cachedFetch(`/api/news/${ticker}?page=${newsPage}&limit=${newsLimit}`);
                 
                 if (!response.ok) {
                     throw new Error(`Failed to load news for ${ticker}`);
                 }
                 
                 const data = await response.json();
+                
+                // Store pagination info
+                if (data.total_pages) {
+                    window.newsCurrentPage = data.page || 1;
+                    window.newsTotalPages = data.total_pages || 0;
+                    window.newsTotal = data.total || 0;
+                    window.newsLimit = data.limit || 20;
+                }
                 
                 if (!data.news || data.news.length === 0) {
                     container.innerHTML = `
@@ -14059,6 +14099,11 @@
 
                 // Pass the full object to displayNews so it can store ticker info
                 displayNewsForNewsSection(currentNewsData);
+                
+                // Add pagination UI if there are multiple pages
+                if (window.newsTotalPages > 1) {
+                    addNewsPagination(container, ticker);
+                }
                 
                 loadBtn.disabled = false;
                 loadBtn.textContent = '📰 Load News';
@@ -14116,8 +14161,36 @@
             return '⭐'.repeat(stars);
         }
 
+        function addNewsPagination(container, ticker) {
+            // Remove existing pagination if any
+            const existingPagination = document.getElementById('newsPagination');
+            if (existingPagination) {
+                existingPagination.remove();
+            }
+            
+            const paginationHtml = `
+                <div id="newsPagination" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 30px; padding: 20px; border-top: 1px solid var(--border-color);">
+                    <button onclick="loadNewsPage(${Math.max(1, window.newsCurrentPage - 1)})" ${window.newsCurrentPage <= 1 ? 'disabled' : ''} style="padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); color: var(--text-primary); cursor: pointer; ${window.newsCurrentPage <= 1 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">‹ Prev</button>
+                    <span style="padding: 8px 16px; color: var(--text-primary);">Page ${window.newsCurrentPage} of ${window.newsTotalPages} (${window.newsTotal} total)</span>
+                    <button onclick="loadNewsPage(${Math.min(window.newsTotalPages, window.newsCurrentPage + 1)})" ${window.newsCurrentPage >= window.newsTotalPages ? 'disabled' : ''} style="padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); color: var(--text-primary); cursor: pointer; ${window.newsCurrentPage >= window.newsTotalPages ? 'opacity: 0.5; cursor: not-allowed;' : ''}">Next ›</button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', paginationHtml);
+        }
+        
+        function loadNewsPage(page) {
+            window.newsCurrentPage = page;
+            loadNewsForTicker();
+        }
+        
         function displayNewsForNewsSection(newsData) {
             const container = document.getElementById('newsContent');
+            
+            // Remove existing pagination if any
+            const existingPagination = document.getElementById('newsPagination');
+            if (existingPagination) {
+                existingPagination.remove();
+            }
             
             if (!newsData || !newsData.news || newsData.news.length === 0) {
                 container.innerHTML = '<p style="color: var(--text-secondary);">No news found for this ticker.</p>';
@@ -20032,9 +20105,9 @@
             
             try {
                 const [analystResponse, insiderResponse, institutionalResponse] = await Promise.all([
-                    fetch(`/api/analyst-data/${ticker}`),
-                    fetch(`/api/insider-trading/${ticker}`),
-                    fetch(`/api/institutional-analysis/${ticker}`)
+                    cachedFetch(`/api/analyst-data/${ticker}`),
+                    cachedFetch(`/api/insider-trading/${ticker}?page=1&limit=20`),
+                    cachedFetch(`/api/institutional-analysis/${ticker}`)
                 ]);
                 
                 // Add to recent searches
@@ -20117,9 +20190,42 @@
             }
         }
 
+        async function loadInsiderPage(page, ticker) {
+            window.insiderCurrentPage = page;
+            try {
+                const response = await cachedFetch(`/api/insider-trading/${ticker}?page=${page}&limit=20`);
+                if (!response.ok) throw new Error('Failed to load insider data');
+                const insiderData = await response.json();
+                
+                // Reload analyst & insider section
+                const analystResponse = await cachedFetch(`/api/analyst-data/${ticker}`);
+                const analystData = analystResponse.ok ? await analystResponse.json() : null;
+                
+                const institutionalResponse = await cachedFetch(`/api/institutional-analysis/${ticker}`);
+                const institutionalData = institutionalResponse.ok ? await institutionalResponse.json() : null;
+                
+                displayAnalystInsider(analystData, insiderData, institutionalData, ticker);
+            } catch (error) {
+                console.error('Error loading insider page:', error);
+                showError('Failed to load insider trading data');
+            }
+        }
+        
         function displayAnalystInsider(analystData, insiderData, institutionalData, ticker, errors = []) {
             const container = document.getElementById('analystInsiderContent');
             let html = '';
+            
+            // Store insider pagination info if available
+            if (insiderData && insiderData.total_pages) {
+                window.insiderCurrentPage = insiderData.page || 1;
+                window.insiderTotalPages = insiderData.total_pages || 0;
+                window.insiderTotal = insiderData.total || 0;
+                window.insiderLimit = insiderData.limit || 20;
+            } else {
+                window.insiderCurrentPage = 1;
+                window.insiderTotalPages = 0;
+                window.insiderTotal = 0;
+            }
             
             const favoriteBadge = isFavorite(ticker) ? '⭐' : '';
             const companyName = analystData?.company_name || ticker;
@@ -23132,8 +23238,12 @@
         let screenerResults = [];
         let screenerSortColumn = null;
         let screenerSortDirection = 'asc';
-
-        async function runScreener() {
+        let screenerCurrentPage = 1;
+        let screenerPerPage = 20;
+        let screenerTotalPages = 0;
+        let screenerTotalCount = 0;
+        
+        async function runScreener(page = 1) {
             const loadingDiv = document.getElementById('screenerLoading');
             const resultsDiv = document.getElementById('screenerResults');
             const tableBody = document.getElementById('screenerResultsTableBody');
@@ -23237,6 +23347,9 @@
                 }
                 
                 screenerResults = data.results || [];
+                screenerCurrentPage = data.page || 1;
+                screenerTotalPages = data.total_pages || 0;
+                screenerTotalCount = data.count || 0;
                 displayScreenerResults(screenerResults);
                 
             } catch (error) {
@@ -23252,7 +23365,10 @@
             const countDiv = document.getElementById('screenerResultsCount');
             const tableBody = document.getElementById('screenerResultsTableBody');
             
-            countDiv.textContent = `Results: ${results.length} stock${results.length !== 1 ? 's' : ''}`;
+            // Update count with pagination info
+            if (countDiv) {
+                countDiv.textContent = `Results: ${screenerTotalCount} stocks (Page ${screenerCurrentPage} of ${screenerTotalPages})`;
+            }
             
             if (results.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="9" style="padding: 20px; text-align: center; color: var(--text-secondary);">No stocks found matching your criteria</td></tr>';

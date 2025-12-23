@@ -69,3 +69,4 @@ Všechny kritické slabiny byly adresovány:
 - Logger automaticky loguje do souborů i konzole
 - Error handler automaticky zachytává všechny exceptions a loguje je
 
+

@@ -72,3 +72,4 @@ pytest tests/test_utils.py
 3. **Error tracking** - integrovat Sentry nebo podobný nástroj
 4. **Monitoring** - přidat health checks a metrics
 
+

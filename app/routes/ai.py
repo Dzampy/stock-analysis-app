@@ -12,7 +12,7 @@ from app.analysis.factor import (
     calculate_factor_sensitivity,
     calculate_fair_value
 )
-from app.services.ml_service import get_prediction_history
+from app.services.ml_service import get_prediction_history, run_backtest
 from app.utils.json_utils import clean_for_json
 from app.utils.logger import logger
 from app.utils.error_handler import NotFoundError, ExternalAPIError
@@ -276,24 +276,25 @@ def get_ml_prediction_history(ticker):
 def get_backtest_results(ticker):
     """Get backtest results for ML predictions"""
     try:
-        # TODO: Move backtest logic to app/services/ml_service.py
-        import json
-        from pathlib import Path
-        from datetime import datetime, timedelta
-        import yfinance as yf
-        import time as time_module
-        import requests
-        import re
+        from app.services.ml_service import run_backtest
         
         ticker = ticker.upper()
-        _PREDICTION_HISTORY_DIR = Path('.ml_predictions')
-        history_file = _PREDICTION_HISTORY_DIR / f"{ticker}.json"
+        start_date = request.args.get('start_date', None)
+        end_date = request.args.get('end_date', None)
         
-        if not history_file.exists():
-            return jsonify({'error': 'No prediction history found'}), 404
+        logger.info(f"Running backtest for {ticker} from {start_date} to {end_date}")
         
-        # Load prediction history
-        with open(history_file, 'r') as f:
+        result = run_backtest(ticker, start_date=start_date, end_date=end_date)
+        
+        if not result.get('success', False):
+            error_msg = result.get('error', 'Unknown error')
+            return jsonify({'error': error_msg}), 400
+        
+        return jsonify(clean_for_json(result))
+        
+    except Exception as e:
+        logger.exception(f"Error in backtest endpoint for {ticker}: {e}")
+        return jsonify({'error': f'Failed to run backtest: {str(e)}'}), 500 open(history_file, 'r') as f:
             history = json.load(f)
         
         # Sort by date (oldest first)

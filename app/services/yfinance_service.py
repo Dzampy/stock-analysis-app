@@ -5,13 +5,23 @@ import yfinance as yf
 import pandas as pd
 import time
 from typing import Dict, Optional, List
+from functools import wraps
 from app.utils.constants import RATE_LIMIT_DELAY, DEFAULT_PERIOD
 from app.utils.logger import logger
+from app.config import CACHE_TIMEOUTS
+
+# Import cache - will be initialized when app starts
+try:
+    from app import cache
+    CACHE_AVAILABLE = True
+except (ImportError, RuntimeError):
+    CACHE_AVAILABLE = False
+    cache = None
 
 
 def get_stock_data(ticker: str, period: str = DEFAULT_PERIOD) -> Optional[Dict]:
     """
-    Fetch stock data from Yahoo Finance
+    Fetch stock data from Yahoo Finance (cached)
     
     Args:
         ticker: Stock ticker symbol
@@ -20,6 +30,14 @@ def get_stock_data(ticker: str, period: str = DEFAULT_PERIOD) -> Optional[Dict]:
     Returns:
         Dict with 'history' (DataFrame) and 'info' (dict) or None
     """
+    # Check cache first
+    if CACHE_AVAILABLE and cache:
+        cache_key = f"yfinance_stock_data_{ticker}_{period}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            logger.debug(f"Cache hit for {ticker} ({period})")
+            return cached_data
+    
     try:
         # Map custom timeframes to yfinance period and interval
         timeframe_map = {
@@ -97,10 +115,18 @@ def get_stock_data(ticker: str, period: str = DEFAULT_PERIOD) -> Optional[Dict]:
                 'longBusinessSummary': 'Data temporarily unavailable from Yahoo Finance API.'
             }
         
-        return {
+        result = {
             'history': hist,
             'info': info
         }
+        
+        # Cache the result
+        if CACHE_AVAILABLE and cache:
+            cache_key = f"yfinance_stock_data_{ticker}_{period}"
+            cache.set(cache_key, result, timeout=CACHE_TIMEOUTS['yfinance'])
+            logger.debug(f"Cached data for {ticker} ({period})")
+        
+        return result
     except Exception as e:
         logger.exception(f"Error fetching data for {ticker}")
         return None
@@ -1117,7 +1143,7 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
 
 def get_earnings_qoq(ticker: str) -> Optional[Dict]:
     """
-    Get quarterly earnings, EPS, revenue and compare with expectations
+    Get quarterly earnings, EPS, revenue and compare with expectations (cached)
     
     Args:
         ticker: Stock ticker symbol
@@ -1125,6 +1151,14 @@ def get_earnings_qoq(ticker: str) -> Optional[Dict]:
     Returns:
         Dict with quarterly earnings data or None
     """
+    # Check cache first
+    if CACHE_AVAILABLE and cache:
+        cache_key = f"yfinance_earnings_qoq_{ticker}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            logger.debug(f"Cache hit for earnings QoQ {ticker}")
+            return cached_data
+    
     try:
         from app.services.finviz_service import get_quarterly_estimates_from_finviz
         
@@ -1248,10 +1282,18 @@ def get_earnings_qoq(ticker: str) -> Optional[Dict]:
                 'eps_qoq': round(eps_qoq, 2) if eps_qoq is not None else None
             })
         
-        return {
+        result = {
             'ticker': ticker.upper(),
             'earnings': earnings_data
         }
+        
+        # Cache the result
+        if CACHE_AVAILABLE and cache:
+            cache_key = f"yfinance_earnings_qoq_{ticker}"
+            cache.set(cache_key, result, timeout=CACHE_TIMEOUTS['yfinance'])
+            logger.debug(f"Cached earnings QoQ for {ticker}")
+        
+        return result
     
     except Exception as e:
         logger.exception(f"Error fetching earnings QoQ for {ticker}")

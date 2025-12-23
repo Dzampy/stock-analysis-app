@@ -86,3 +86,4 @@ def validate_query(query: str) -> bool:
     return bool(re.match(pattern, query))
 
 
+

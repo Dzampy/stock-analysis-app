@@ -18,11 +18,20 @@ except ImportError:
 
 from app.utils.constants import FINVIZ_TIMEOUT, RATE_LIMIT_DELAY
 from app.utils.logger import logger
+from app.config import CACHE_TIMEOUTS
+
+# Import cache - will be initialized when app starts
+try:
+    from app import cache
+    CACHE_AVAILABLE = True
+except (ImportError, RuntimeError):
+    CACHE_AVAILABLE = False
+    cache = None
 
 
 def get_quarterly_estimates_from_finviz(ticker: str) -> Dict:
     """
-    Get quarterly revenue and EPS estimates AND actual values from Finviz - PARSING JSON DATA FROM HTML
+    Get quarterly revenue and EPS estimates AND actual values from Finviz - PARSING JSON DATA FROM HTML (cached)
     
     Args:
         ticker: Stock ticker symbol
@@ -30,6 +39,14 @@ def get_quarterly_estimates_from_finviz(ticker: str) -> Dict:
     Returns:
         Dict with 'estimates' and 'actuals' keys, each containing 'revenue' and 'eps' dicts
     """
+    # Check cache first
+    if CACHE_AVAILABLE and cache:
+        cache_key = f"finviz_estimates_{ticker}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            logger.debug(f"Cache hit for Finviz estimates {ticker}")
+            return cached_data
+    
     estimates = {'revenue': {}, 'eps': {}}
     actuals = {'revenue': {}, 'eps': {}}  # Store actual reported values
     
@@ -658,7 +675,15 @@ def get_finviz_analyst_ratings(ticker: str) -> Optional[List[Dict]]:
                                 if recommendations:
                                     break
         
-        return recommendations if recommendations else None
+        result = recommendations if recommendations else None
+        
+        # Cache the result
+        if CACHE_AVAILABLE and cache and result:
+            cache_key = f"finviz_analyst_{ticker}"
+            cache.set(cache_key, result, timeout=CACHE_TIMEOUTS['finviz'])
+            logger.debug(f"Cached Finviz analyst ratings for {ticker}")
+        
+        return result
         
     except Exception as e:
         logger.exception(f"Error scraping Finviz analyst ratings for {ticker}: {str(e)}")

@@ -9,10 +9,18 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import joblib
 import json
-from app.config import ML_AVAILABLE
+from app.config import ML_AVAILABLE, CACHE_TIMEOUTS
 from app.utils.constants import MODEL_CACHE_VERSION
 from app.utils.logger import logger
 import time
+
+# Import cache - will be initialized when app starts
+try:
+    from app import cache
+    CACHE_AVAILABLE = True
+except (ImportError, RuntimeError):
+    CACHE_AVAILABLE = False
+    cache = None
 
 # Model cache (module-level)
 _model_cache = {}
@@ -243,8 +251,67 @@ def _extract_historical_features(df, idx):
     return features
 
 
-def _train_random_forest_model(features_dict, current_price, df=None):
-    """Train Random Forest model for price prediction"""
+def _download_extended_historical_data(ticker: str, years: int = 2) -> Optional[pd.DataFrame]:
+    """
+    Download extended historical data (2+ years) for ML training
+    
+    Args:
+        ticker: Stock ticker symbol
+        years: Number of years of historical data to download (default: 2)
+        
+    Returns:
+        DataFrame with historical price data or None
+    """
+    try:
+        import yfinance as yf
+        from datetime import datetime, timedelta
+        
+        logger.info(f"Downloading {years} years of historical data for {ticker}")
+        
+        # Calculate period
+        if years <= 1:
+            period = '1y'
+        elif years <= 2:
+            period = '2y'
+        elif years <= 5:
+            period = '5y'
+        else:
+            period = 'max'
+        
+        # Download data
+        stock = yf.Ticker(ticker)
+        hist = stock.history(period=period, auto_adjust=True, prepost=False)
+        
+        if hist.empty:
+            logger.warning(f"No historical data available for {ticker}")
+            return None
+        
+        # Ensure we have at least 2 years of data (approximately 500 trading days)
+        min_days = 500
+        if len(hist) < min_days:
+            logger.warning(f"Only {len(hist)} days of data available for {ticker}, minimum {min_days} recommended")
+        
+        logger.info(f"Downloaded {len(hist)} days of historical data for {ticker}")
+        return hist
+        
+    except Exception as e:
+        logger.exception(f"Error downloading extended historical data for {ticker}: {e}")
+        return None
+
+
+def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: float, df: Optional[pd.DataFrame] = None) -> Tuple[Optional, Optional]:
+    """
+    Train Random Forest model for price prediction using 2+ years of historical data
+    
+    Args:
+        ticker: Stock ticker symbol
+        features_dict: Current features dict
+        current_price: Current stock price
+        df: Optional DataFrame with historical data (if None, will download)
+        
+    Returns:
+        Tuple of (model, scaler) or (None, None) if training fails
+    """
     if not ML_AVAILABLE:
         return None, None
     
@@ -252,47 +319,93 @@ def _train_random_forest_model(features_dict, current_price, df=None):
         from sklearn.ensemble import RandomForestRegressor
         from sklearn.preprocessing import StandardScaler
         
+        # Download extended historical data if not provided
+        if df is None or len(df) < 500:
+            logger.info(f"Downloading extended historical data for {ticker}")
+            df = _download_extended_historical_data(ticker, years=2)
+            if df is None or len(df) < 100:
+                logger.warning(f"Insufficient historical data for {ticker} to train model")
+                return None, None
+        
         # Prepare features
         feature_names = sorted([k for k in features_dict.keys() if k != 'ticker'])
-        X = np.array([[features_dict.get(name, 0.0) for name in feature_names]])
         
-        # For training, we'd need historical data
-        # This is a simplified version
-        if df is not None and len(df) > 30:
-            # Use historical prices as targets
-            prices = df['Close'].values[-30:]
-            X_hist = []
-            y_hist = []
-            
-            for i in range(30, len(df)):
-                hist_features = _extract_historical_features(df, i-1)
-                if hist_features:
-                    X_hist.append([hist_features.get(name, 0.0) for name in feature_names])
-                    y_hist.append(df['Close'].iloc[i])
-            
-            if len(X_hist) > 10:
-                X_train = np.array(X_hist)
-                y_train = np.array(y_hist)
-                
-                # Scale features
-                scaler = StandardScaler()
-                X_train_scaled = scaler.fit_transform(X_train)
-                
-                # Train model
-                model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
-                model.fit(X_train_scaled, y_train)
-                
-                return model, scaler
+        # We need at least 100 days of historical data for meaningful training
+        min_training_days = 100
+        if len(df) < min_training_days:
+            logger.warning(f"Insufficient data: {len(df)} days, need at least {min_training_days}")
+            return None, None
         
-        return None, None
+        # Build training dataset using walk-forward approach
+        # For each day, extract features and predict next day's price
+        X_hist = []
+        y_hist = []
+        
+        # Use at least 60 days lookback for feature calculation
+        lookback_days = 60
+        
+        logger.info(f"Building training dataset for {ticker} with {len(df)} days of data")
+        
+        for i in range(lookback_days, len(df) - 1):  # -1 because we predict next day
+            try:
+                # Extract features for this historical point
+                hist_features = _extract_historical_features(df, i)
+                if hist_features is None:
+                    continue
+                
+                # Get target (next day's close price)
+                target_price = df['Close'].iloc[i + 1]
+                
+                # Build feature vector
+                feature_vector = [hist_features.get(name, 0.0) for name in feature_names]
+                X_hist.append(feature_vector)
+                y_hist.append(target_price)
+                
+            except Exception as e:
+                logger.debug(f"Error extracting features for index {i}: {e}")
+                continue
+        
+        if len(X_hist) < 50:
+            logger.warning(f"Insufficient training samples: {len(X_hist)}, need at least 50")
+            return None, None
+        
+        # Convert to numpy arrays
+        X_train = np.array(X_hist)
+        y_train = np.array(y_hist)
+        
+        logger.info(f"Training Random Forest model with {len(X_train)} samples and {len(feature_names)} features")
+        
+        # Scale features
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        
+        # Train model with improved hyperparameters
+        model = RandomForestRegressor(
+            n_estimators=200,  # Increased from 100
+            max_depth=15,  # Limit depth to prevent overfitting
+            min_samples_split=10,
+            min_samples_leaf=5,
+            random_state=42,
+            n_jobs=-1,
+            verbose=0
+        )
+        
+        model.fit(X_train_scaled, y_train)
+        
+        # Calculate training score for logging
+        train_score = model.score(X_train_scaled, y_train)
+        logger.info(f"Model trained successfully for {ticker}. Training R² score: {train_score:.4f}")
+        
+        return model, scaler
+        
     except Exception as e:
-        logger.exception(f"Error training model: {e}")
+        logger.exception(f"Error training model for {ticker}: {e}")
         return None, None
 
 
 def predict_price(features, current_price, df=None):
     """
-    Predict future stock price using ML models
+    Predict future stock price using ML models (cached)
     
     Args:
         features: Dict with ML features
@@ -302,27 +415,57 @@ def predict_price(features, current_price, df=None):
     Returns:
         Dict with price predictions and confidence intervals
     """
+    # Check cache first
+    ticker = features.get('ticker', '')
+    if CACHE_AVAILABLE and cache and ticker:
+        cache_key = f"ml_predict_price_{ticker}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            logger.debug(f"Cache hit for ML price prediction {ticker}")
+            return cached_data
+    
     if not ML_AVAILABLE:
-        # Fallback predictions without ML
+        # Simple estimate based on historical momentum (NOT ML prediction)
+        logger.warning(f"ML not available for {ticker}, using simple momentum-based estimates")
+        
+        # Calculate simple momentum if historical data available
+        momentum_1m = 0.0
+        momentum_3m = 0.0
+        momentum_6m = 0.0
+        momentum_12m = 0.0
+        
+        if df is not None and len(df) > 20:
+            # Calculate recent momentum
+            if len(df) >= 20:
+                momentum_1m = ((df['Close'].iloc[-1] - df['Close'].iloc[-20]) / df['Close'].iloc[-20]) * 100
+            if len(df) >= 60:
+                momentum_3m = ((df['Close'].iloc[-1] - df['Close'].iloc[-60]) / df['Close'].iloc[-60]) * 100
+            if len(df) >= 120:
+                momentum_6m = ((df['Close'].iloc[-1] - df['Close'].iloc[-120]) / df['Close'].iloc[-120]) * 100
+            if len(df) >= 252:
+                momentum_12m = ((df['Close'].iloc[-1] - df['Close'].iloc[-252]) / df['Close'].iloc[-252]) * 100
+        
+        # Use momentum with conservative estimates (50% of momentum)
         return {
             'current_price': current_price,
             'predictions': {
-                '1m': {'price': current_price * 1.02, 'confidence': 0.5},
-                '3m': {'price': current_price * 1.05, 'confidence': 0.4},
-                '6m': {'price': current_price * 1.10, 'confidence': 0.3},
-                '12m': {'price': current_price * 1.15, 'confidence': 0.2}
+                '1m': {'price': current_price * (1 + momentum_1m * 0.5 / 100), 'confidence': 0.3},
+                '3m': {'price': current_price * (1 + momentum_3m * 0.5 / 100), 'confidence': 0.25},
+                '6m': {'price': current_price * (1 + momentum_6m * 0.5 / 100), 'confidence': 0.2},
+                '12m': {'price': current_price * (1 + momentum_12m * 0.5 / 100), 'confidence': 0.15}
             },
             'expected_returns': {
-                '1m': 2.0,
-                '3m': 5.0,
-                '6m': 10.0,
-                '12m': 15.0
+                '1m': momentum_1m * 0.5,
+                '3m': momentum_3m * 0.5,
+                '6m': momentum_6m * 0.5,
+                '12m': momentum_12m * 0.5
             },
             'confidence_intervals': {
-                '6m': {'lower': current_price * 0.85, 'upper': current_price * 1.35},
-                '12m': {'lower': current_price * 0.75, 'upper': current_price * 1.55}
+                '6m': {'lower': current_price * 0.80, 'upper': current_price * 1.30},
+                '12m': {'lower': current_price * 0.70, 'upper': current_price * 1.50}
             },
-            'model_used': 'fallback'
+            'model_used': 'momentum_estimate',
+            'warning': 'ML models not available. Using simple momentum-based estimates. These are NOT ML predictions.'
         }
     
     try:
@@ -336,35 +479,57 @@ def predict_price(features, current_price, df=None):
         if cache_key in _model_cache:
             model = _model_cache[cache_key]
             scaler = _scaler_cache.get(cache_key)
+            logger.debug(f"Using cached model for {ticker}")
         else:
-            # Train new model
-            model, scaler = _train_random_forest_model(features, current_price, df)
+            # Train new model with extended historical data
+            logger.info(f"Training new ML model for {ticker}")
+            model, scaler = _train_random_forest_model(ticker, features, current_price, df)
             if model:
                 _model_cache[cache_key] = model
                 if scaler:
                     _scaler_cache[cache_key] = scaler
+                logger.info(f"Model trained and cached for {ticker}")
         
         if not model:
-            # Fallback if model training failed
+            # Model training failed - use momentum-based estimates with clear warning
+            logger.warning(f"Model training failed for {ticker}, using momentum-based estimates")
+            
+            # Calculate momentum from available data
+            momentum_1m = 0.0
+            momentum_3m = 0.0
+            momentum_6m = 0.0
+            momentum_12m = 0.0
+            
+            if df is not None and len(df) > 20:
+                if len(df) >= 20:
+                    momentum_1m = ((df['Close'].iloc[-1] - df['Close'].iloc[-20]) / df['Close'].iloc[-20]) * 100
+                if len(df) >= 60:
+                    momentum_3m = ((df['Close'].iloc[-1] - df['Close'].iloc[-60]) / df['Close'].iloc[-60]) * 100
+                if len(df) >= 120:
+                    momentum_6m = ((df['Close'].iloc[-1] - df['Close'].iloc[-120]) / df['Close'].iloc[-120]) * 100
+                if len(df) >= 252:
+                    momentum_12m = ((df['Close'].iloc[-1] - df['Close'].iloc[-252]) / df['Close'].iloc[-252]) * 100
+            
             return {
                 'current_price': current_price,
                 'predictions': {
-                    '1m': {'price': current_price * 1.02, 'confidence': 0.5},
-                    '3m': {'price': current_price * 1.05, 'confidence': 0.4},
-                    '6m': {'price': current_price * 1.10, 'confidence': 0.3},
-                    '12m': {'price': current_price * 1.15, 'confidence': 0.2}
+                    '1m': {'price': current_price * (1 + momentum_1m * 0.5 / 100), 'confidence': 0.3},
+                    '3m': {'price': current_price * (1 + momentum_3m * 0.5 / 100), 'confidence': 0.25},
+                    '6m': {'price': current_price * (1 + momentum_6m * 0.5 / 100), 'confidence': 0.2},
+                    '12m': {'price': current_price * (1 + momentum_12m * 0.5 / 100), 'confidence': 0.15}
                 },
                 'expected_returns': {
-                    '1m': 2.0,
-                    '3m': 5.0,
-                    '6m': 10.0,
-                    '12m': 15.0
+                    '1m': momentum_1m * 0.5,
+                    '3m': momentum_3m * 0.5,
+                    '6m': momentum_6m * 0.5,
+                    '12m': momentum_12m * 0.5
                 },
                 'confidence_intervals': {
-                    '6m': {'lower': current_price * 0.85, 'upper': current_price * 1.35},
-                    '12m': {'lower': current_price * 0.75, 'upper': current_price * 1.55}
+                    '6m': {'lower': current_price * 0.80, 'upper': current_price * 1.30},
+                    '12m': {'lower': current_price * 0.70, 'upper': current_price * 1.50}
                 },
-                'model_used': 'fallback'
+                'model_used': 'momentum_estimate',
+                'warning': 'ML model training failed. Using momentum-based estimates. These are NOT ML predictions.'
             }
         
         # Prepare features for prediction
@@ -441,7 +606,7 @@ def predict_price(features, current_price, df=None):
             '12m': {'lower': prediction - 3*std_dev, 'upper': prediction + 3*std_dev}
         }
         
-        return {
+        result = {
             'current_price': current_price,
             'predictions': predictions,
             'expected_returns': expected_returns,
@@ -449,30 +614,59 @@ def predict_price(features, current_price, df=None):
             'model_used': 'random_forest'
         }
         
+        # Cache the result
+        if CACHE_AVAILABLE and cache and ticker:
+            cache_key = f"ml_predict_price_{ticker}"
+            cache.set(cache_key, result, timeout=CACHE_TIMEOUTS['ml_predictions'])
+            logger.debug(f"Cached ML price prediction for {ticker}")
+        
+        return result
+        
     except Exception as e:
         logger.exception(f"Error in predict_price: {e}")
         import traceback
         traceback.print_exc()
-        # Fallback
+        # Error fallback - use momentum estimates
+        logger.error(f"Error in predict_price for {ticker}: {e}")
+        
+        momentum_1m = 0.0
+        momentum_3m = 0.0
+        momentum_6m = 0.0
+        momentum_12m = 0.0
+        
+        if df is not None and len(df) > 20:
+            try:
+                if len(df) >= 20:
+                    momentum_1m = ((df['Close'].iloc[-1] - df['Close'].iloc[-20]) / df['Close'].iloc[-20]) * 100
+                if len(df) >= 60:
+                    momentum_3m = ((df['Close'].iloc[-1] - df['Close'].iloc[-60]) / df['Close'].iloc[-60]) * 100
+                if len(df) >= 120:
+                    momentum_6m = ((df['Close'].iloc[-1] - df['Close'].iloc[-120]) / df['Close'].iloc[-120]) * 100
+                if len(df) >= 252:
+                    momentum_12m = ((df['Close'].iloc[-1] - df['Close'].iloc[-252]) / df['Close'].iloc[-252]) * 100
+            except:
+                pass
+        
         return {
             'current_price': current_price,
             'predictions': {
-                '1m': {'price': current_price * 1.02, 'confidence': 0.5},
-                '3m': {'price': current_price * 1.05, 'confidence': 0.4},
-                '6m': {'price': current_price * 1.10, 'confidence': 0.3},
-                '12m': {'price': current_price * 1.15, 'confidence': 0.2}
+                '1m': {'price': current_price * (1 + momentum_1m * 0.5 / 100), 'confidence': 0.3},
+                '3m': {'price': current_price * (1 + momentum_3m * 0.5 / 100), 'confidence': 0.25},
+                '6m': {'price': current_price * (1 + momentum_6m * 0.5 / 100), 'confidence': 0.2},
+                '12m': {'price': current_price * (1 + momentum_12m * 0.5 / 100), 'confidence': 0.15}
             },
             'expected_returns': {
-                '1m': 2.0,
-                '3m': 5.0,
-                '6m': 10.0,
-                '12m': 15.0
+                '1m': momentum_1m * 0.5,
+                '3m': momentum_3m * 0.5,
+                '6m': momentum_6m * 0.5,
+                '12m': momentum_12m * 0.5
             },
             'confidence_intervals': {
-                '6m': {'lower': current_price * 0.85, 'upper': current_price * 1.35},
-                '12m': {'lower': current_price * 0.75, 'upper': current_price * 1.55}
+                '6m': {'lower': current_price * 0.80, 'upper': current_price * 1.30},
+                '12m': {'lower': current_price * 0.70, 'upper': current_price * 1.50}
             },
-            'model_used': 'fallback',
+            'model_used': 'momentum_estimate',
+            'warning': f'ML prediction error: {str(e)}. Using momentum-based estimates. These are NOT ML predictions.',
             'error': str(e)
         }
 
@@ -550,7 +744,7 @@ def get_prediction_history(ticker: str, days: int = 30) -> List[Dict]:
 
 def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
     """
-    Generate AI-powered stock recommendations
+    Generate AI-powered stock recommendations (cached)
     
     NOTE: This is a stub implementation. Full implementation requires:
     - classify_trend() function
@@ -559,6 +753,14 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
     
     These functions should be moved from app.py or reimplemented.
     """
+    # Check cache first
+    if CACHE_AVAILABLE and cache:
+        cache_key = f"ml_ai_recommendations_{ticker}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            logger.debug(f"Cache hit for AI recommendations {ticker}")
+            return cached_data
+    
     try:
         from app.services.yfinance_service import get_stock_data
         from app.services.news_service import get_stock_news
@@ -1082,8 +1284,200 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             'chart_data': chart_data
         }
         
+        # Cache the result
+        if CACHE_AVAILABLE and cache:
+            cache_key = f"ml_ai_recommendations_{ticker}"
+            cache.set(cache_key, result, timeout=CACHE_TIMEOUTS['ml_predictions'])
+            logger.debug(f"Cached AI recommendations for {ticker}")
+        
+        return result
+        
     except Exception as e:
         logger.exception(f"Error in AI recommendations: {e}")
         import traceback
         traceback.print_exc()
         return None
+
+
+def run_backtest(ticker: str, start_date: Optional[str] = None, end_date: Optional[str] = None) -> Dict:
+    """
+    Run backtest on ML predictions using historical data with walk-forward validation
+    
+    Args:
+        ticker: Stock ticker symbol
+        start_date: Start date for backtest (YYYY-MM-DD), defaults to 1 year ago
+        end_date: End date for backtest (YYYY-MM-DD), defaults to today
+        
+    Returns:
+        Dict with backtest results including accuracy metrics
+    """
+    if not ML_AVAILABLE:
+        return {
+            'success': False,
+            'error': 'ML not available for backtesting'
+        }
+    
+    try:
+        from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+        
+        # Download extended historical data
+        logger.info(f"Running backtest for {ticker}")
+        df = _download_extended_historical_data(ticker, years=2)
+        
+        if df is None or len(df) < 200:
+            return {
+                'success': False,
+                'error': f'Insufficient historical data for {ticker} (need at least 200 days)'
+            }
+        
+        # Set date range
+        if end_date:
+            end = pd.to_datetime(end_date)
+        else:
+            end = df.index[-1]
+        
+        if start_date:
+            start = pd.to_datetime(start_date)
+        else:
+            # Default to 1 year ago or 252 trading days
+            start = end - timedelta(days=365)
+        
+        # Filter data to date range
+        df_test = df[(df.index >= start) & (df.index <= end)].copy()
+        
+        if len(df_test) < 60:
+            return {
+                'success': False,
+                'error': f'Insufficient data in date range (only {len(df_test)} days)'
+            }
+        
+        logger.info(f"Backtesting on {len(df_test)} days from {start.date()} to {end.date()}")
+        
+        # Walk-forward validation: train on data before each prediction point
+        predictions = []
+        actuals = []
+        dates = []
+        
+        # Minimum training period: 100 days
+        min_train_days = 100
+        test_start_idx = min_train_days
+        
+        for i in range(test_start_idx, len(df_test) - 1):
+            try:
+                # Training data: everything up to current point
+                train_df = df_test.iloc[:i+1]
+                
+                # Test point: next day
+                test_date = df_test.index[i + 1]
+                actual_price = df_test['Close'].iloc[i + 1]
+                
+                # Get features for current point
+                from app.analysis.technical import calculate_technical_indicators
+                from app.analysis.fundamental import calculate_metrics
+                
+                indicators = calculate_technical_indicators(train_df)
+                info = {}  # Would need historical info, simplified for now
+                metrics = calculate_metrics(train_df, info)
+                news_list = []  # Simplified - would need historical news
+                
+                # Extract features
+                features = extract_ml_features(ticker, train_df, info, indicators, metrics, news_list)
+                features['ticker'] = ticker.upper()
+                
+                # Train model on training data
+                current_price = train_df['Close'].iloc[-1]
+                model, scaler = _train_random_forest_model(ticker, features, current_price, train_df)
+                
+                if model and scaler:
+                    # Make prediction
+                    feature_names = sorted([k for k in features.keys() if k != 'ticker'])
+                    X = np.array([[features.get(name, 0.0) for name in feature_names]])
+                    X_scaled = scaler.transform(X)
+                    predicted_price = model.predict(X_scaled)[0]
+                    
+                    predictions.append(predicted_price)
+                    actuals.append(actual_price)
+                    dates.append(test_date)
+                    
+            except Exception as e:
+                logger.debug(f"Error in backtest iteration {i}: {e}")
+                continue
+        
+        if len(predictions) < 10:
+            return {
+                'success': False,
+                'error': f'Insufficient predictions generated (only {len(predictions)})'
+            }
+        
+        # Calculate metrics
+        predictions = np.array(predictions)
+        actuals = np.array(actuals)
+        
+        mae = mean_absolute_error(actuals, predictions)
+        mse = mean_squared_error(actuals, predictions)
+        rmse = np.sqrt(mse)
+        r2 = r2_score(actuals, predictions)
+        
+        # Calculate percentage errors
+        mape = np.mean(np.abs((actuals - predictions) / actuals)) * 100
+        
+        # Direction accuracy (did we predict up/down correctly?)
+        direction_accuracy = 0.0
+        if len(predictions) > 1:
+            pred_direction = np.diff(predictions) > 0
+            actual_direction = np.diff(actuals) > 0
+            direction_accuracy = np.mean(pred_direction == actual_direction) * 100
+        
+        # Calculate returns
+        actual_returns = np.diff(actuals) / actuals[:-1] * 100
+        predicted_returns = np.diff(predictions) / predictions[:-1] * 100
+        
+        # Correlation
+        correlation = np.corrcoef(actuals, predictions)[0, 1]
+        
+        result = {
+            'success': True,
+            'ticker': ticker.upper(),
+            'start_date': start.strftime('%Y-%m-%d'),
+            'end_date': end.strftime('%Y-%m-%d'),
+            'test_period_days': len(df_test),
+            'predictions_count': len(predictions),
+            'metrics': {
+                'mae': float(mae),
+                'mse': float(mse),
+                'rmse': float(rmse),
+                'r2_score': float(r2),
+                'mape': float(mape),
+                'direction_accuracy': float(direction_accuracy),
+                'correlation': float(correlation)
+            },
+            'summary': {
+                'mean_absolute_error': f"${mae:.2f}",
+                'root_mean_squared_error': f"${rmse:.2f}",
+                'r2_score': f"{r2:.4f}",
+                'mean_absolute_percentage_error': f"{mape:.2f}%",
+                'direction_accuracy': f"{direction_accuracy:.1f}%",
+                'correlation': f"{correlation:.4f}"
+            },
+            'predictions': [
+                {
+                    'date': dates[i].strftime('%Y-%m-%d'),
+                    'predicted': float(predictions[i]),
+                    'actual': float(actuals[i]),
+                    'error': float(predictions[i] - actuals[i]),
+                    'error_pct': float((predictions[i] - actuals[i]) / actuals[i] * 100)
+                }
+                for i in range(len(predictions))
+            ]
+        }
+        
+        logger.info(f"Backtest completed for {ticker}. R²: {r2:.4f}, MAPE: {mape:.2f}%, Direction Accuracy: {direction_accuracy:.1f}%")
+        
+        return result
+        
+    except Exception as e:
+        logger.exception(f"Error running backtest for {ticker}: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }

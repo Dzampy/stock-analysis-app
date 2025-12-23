@@ -10,6 +10,15 @@ import time
 from app.utils.constants import RATE_LIMIT_DELAY
 from app.services.sentiment_service import analyze_sentiment
 from app.utils.logger import logger
+from app.config import CACHE_TIMEOUTS
+
+# Import cache - will be initialized when app starts
+try:
+    from app import cache
+    CACHE_AVAILABLE = True
+except (ImportError, RuntimeError):
+    CACHE_AVAILABLE = False
+    cache = None
 
 
 def normalize_date(date_str: str) -> Optional[str]:
@@ -305,7 +314,7 @@ def calculate_news_impact_score(price_movement: Optional[Dict], sentiment_score:
 
 def get_stock_news(ticker: str, max_news: int = 10) -> List[Dict]:
     """
-    Get latest Press Releases for a stock from Yahoo Finance and analyze sentiment
+    Get latest Press Releases for a stock from Yahoo Finance and analyze sentiment (cached)
     
     Args:
         ticker: Stock ticker symbol
@@ -314,6 +323,14 @@ def get_stock_news(ticker: str, max_news: int = 10) -> List[Dict]:
     Returns:
         List of analyzed news items
     """
+    # Check cache first
+    if CACHE_AVAILABLE and cache:
+        cache_key = f"news_{ticker}_{max_news}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            logger.debug(f"Cache hit for news {ticker}")
+            return cached_data
+    
     try:
         analyzed_news = []
         
