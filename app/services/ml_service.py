@@ -952,7 +952,7 @@ def predict_price(features, current_price, df=None):
             # Blend ML and momentum using timeframe-specific weights
             weights = timeframe_weights[timeframe]
             blended_return_pct = (weights['ml'] * ml_return_pct + 
-            weights['momentum'] * momentum_pct)
+                         weights['momentum'] * momentum_pct)
             
             # Sanity check: if blended prediction is extremely negative, favor momentum more
             # This prevents unrealistic predictions like -43% for 1M
