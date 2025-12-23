@@ -390,42 +390,42 @@ def predict_price(features, current_price, df=None):
         else:
             price_change_ratio = 0
         
-        # Use historical volatility to scale predictions more realistically
-        # If we have historical data, use it to estimate realistic price movements
-        volatility_multiplier = 1.0
+        # Use historical momentum and volatility to enhance predictions
+        momentum_multiplier = 1.0
         if df is not None and len(df) > 20:
+            # Calculate recent momentum (last 20 days)
+            recent_return = (df['Close'].iloc[-1] - df['Close'].iloc[-20]) / df['Close'].iloc[-20]
+            # Annualize momentum
+            annualized_momentum = recent_return * (252 / 20)
+            
+            # If model prediction is very small, use momentum instead
+            if abs(price_change_ratio) < 0.05:  # Less than 5% change predicted
+                price_change_ratio = annualized_momentum * 0.5  # Use 50% of momentum
+            
+            # Calculate volatility
             returns = df['Close'].pct_change().dropna()
             if len(returns) > 0:
                 historical_volatility = returns.std() * np.sqrt(252)  # Annualized
-                # Scale predictions based on volatility (higher vol = larger movements)
-                volatility_multiplier = max(0.5, min(2.0, historical_volatility * 10))
+                # Boost predictions for volatile stocks
+                if historical_volatility > 0.3:  # High volatility (>30%)
+                    momentum_multiplier = 1.5
+                elif historical_volatility > 0.2:  # Medium volatility (20-30%)
+                    momentum_multiplier = 1.2
+                else:  # Low volatility (<20%)
+                    momentum_multiplier = 1.0
         
-        # If price_change_ratio is very small (close to 0), use momentum-based prediction
-        if abs(price_change_ratio) < 0.01:  # Less than 1% change predicted
-            # Use recent momentum instead
-            if df is not None and len(df) > 10:
-                recent_return = (df['Close'].iloc[-1] - df['Close'].iloc[-10]) / df['Close'].iloc[-10]
-                # Annualize and scale for different timeframes
-                annualized_momentum = recent_return * (252 / 10)  # Scale to annual
-                price_change_ratio = annualized_momentum * 0.3  # Use 30% of momentum
-            else:
-                # Default to small positive prediction if no data
-                price_change_ratio = 0.05  # 5% annual return assumption
+        # Apply momentum multiplier
+        price_change_ratio = price_change_ratio * momentum_multiplier
         
-        # Limit the price change ratio to reasonable bounds but allow larger movements
-        # For 12M: allow -60% to +150%
-        price_change_ratio = max(-0.6, min(1.5, price_change_ratio))
+        # Limit the price change ratio to reasonable bounds (-50% to +100%)
+        price_change_ratio = max(-0.5, min(1.0, price_change_ratio))
         
-        # Apply volatility multiplier
-        price_change_ratio = price_change_ratio * volatility_multiplier
-        
-        # Scale factors for different timeframes (more realistic)
-        # These represent how much of the annual prediction applies to each timeframe
+        # Original multipliers that worked better
         predictions = {
-            '1m': {'price': current_price * (1 + price_change_ratio * 0.08), 'confidence': 0.6},   # ~1/12 of annual
-            '3m': {'price': current_price * (1 + price_change_ratio * 0.25), 'confidence': 0.5},   # ~1/4 of annual
-            '6m': {'price': current_price * (1 + price_change_ratio * 0.50), 'confidence': 0.4},   # ~1/2 of annual
-            '12m': {'price': current_price * (1 + price_change_ratio * 1.00), 'confidence': 0.3}    # Full annual
+            '1m': {'price': current_price * (1 + price_change_ratio * 0.15), 'confidence': 0.6},
+            '3m': {'price': current_price * (1 + price_change_ratio * 0.4), 'confidence': 0.5},
+            '6m': {'price': current_price * (1 + price_change_ratio * 0.7), 'confidence': 0.4},
+            '12m': {'price': current_price * (1 + price_change_ratio * 1.0), 'confidence': 0.3}
         }
         
         # Calculate expected returns from actual predicted prices (more accurate)
