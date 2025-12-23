@@ -2346,27 +2346,27 @@ def run_backtest(
                 features['ticker'] = ticker.upper()
 
                 # Decide if we need to retrain model
-        should_retrain = (
-            cached_model is None or  # First iteration
-            (i - last_retrain_idx) >= retrain_interval_days or  # Interval reached
-            len(train_df) - last_retrain_idx > retrain_interval_days *
-            2  # Significant growth
-        )
+                should_retrain = (
+                    cached_model is None or  # First iteration
+                    (i - last_retrain_idx) >= retrain_interval_days or  # Interval reached
+                    len(train_df) - last_retrain_idx > retrain_interval_days *
+                    2  # Significant growth
+                )
 
-        if should_retrain:
-            # Train new model on training data
-        current_price = train_df['Close'].iloc[-1]
-        logger.debug(
-            f"Retraining model at index {i} (interval: {i - last_retrain_idx} days)")
-        cached_model, cached_scaler = _train_random_forest_model(
-            ticker, features, current_price, train_df)
-        cached_features_template = features.copy()
-        last_retrain_idx = i
+                if should_retrain:
+                    # Train new model on training data
+                    current_price = train_df['Close'].iloc[-1]
+                    logger.debug(
+                        f"Retraining model at index {i} (interval: {i - last_retrain_idx} days)")
+                    cached_model, cached_scaler = _train_random_forest_model(
+                        ticker, features, current_price, train_df)
+                    cached_features_template = features.copy()
+                    last_retrain_idx = i
 
-        # Use cached model for prediction
-        if cached_model and cached_scaler:
-            # Make prediction using cached model
-        feature_names = sorted([k for k in features.keys() if k != 'ticker'])
+                # Use cached model for prediction
+                if cached_model and cached_scaler:
+                    # Make prediction using cached model
+                    feature_names = sorted([k for k in features.keys() if k != 'ticker'])
         X = np.array([[features.get(name, 0.0) for name in feature_names]])
         X_scaled = cached_scaler.transform(X)
 
