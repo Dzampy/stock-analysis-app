@@ -546,7 +546,7 @@ def _train_random_forest_model(ticker: str,
                 feature_vector = [
     hist_features.get(
         name, 0.0) for name in feature_names]
-        X_hist.append(feature_vector)
+                X_hist.append(feature_vector)
         # Normalized price (ratio to current price)
         y_hist.append(target_price_normalized)
 
