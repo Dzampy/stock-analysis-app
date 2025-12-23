@@ -1066,10 +1066,10 @@ def predict_price(features, current_price, df=None):
             if hasattr(model, 'feature_importances_dict_'):
 
                 # Use cached dict if available
-        feature_importance_dict = model.feature_importances_dict_
-    else:
+                feature_importance_dict = model.feature_importances_dict_
+            else:
                 # Create dict from feature_importances_
-        feature_importance_dict = dict(zip(feature_names, model.feature_importances_))
+                feature_importance_dict = dict(zip(feature_names, model.feature_importances_))
             
             # Sort by importance and get top 10
             sorted_importance = sorted(feature_importance_dict.items(), key=lambda x: x[1], reverse=True)
