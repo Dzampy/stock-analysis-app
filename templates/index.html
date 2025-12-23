@@ -10986,7 +10986,7 @@
                                     </div>
                                 </div>
                                 <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
-                                    ${Object.entries(data.ml_models.trend_classification.probabilities).map(([trend, prob]) => {
+                                    ${(data.ml_models?.trend_classification?.probabilities && typeof data.ml_models.trend_classification.probabilities === 'object') ? Object.entries(data.ml_models.trend_classification.probabilities).map(([trend, prob]) => {
                                         const probPct = (prob * 100).toFixed(0);
                                         const isActive = trend === data.ml_models.trend_classification.trend_class;
                                         const trendColors = {

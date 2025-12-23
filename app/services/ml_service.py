@@ -555,7 +555,79 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
         risk_analysis = calculate_risk_score(ml_features, metrics, info)
         
         # Stub implementations for missing functions
-        trend_classification = {'trend_class': 'Neutral', 'confidence': 0.5}
+        # Determine trend class based on price momentum and indicators
+        price_momentum_30d = 0
+        if len(df) >= 30:
+            price_30d_ago = df['Close'].iloc[-30]
+            price_momentum_30d = ((current_price - price_30d_ago) / price_30d_ago) * 100
+        
+        # Simple trend classification based on momentum and moving averages
+        if price_momentum_30d > 15 and sma_20 and sma_50 and len(sma_20) > 0 and len(sma_50) > 0:
+            if current_price > sma_20[-1] > sma_50[-1]:
+                trend_class = 'Strong Uptrend'
+                confidence = 0.75
+            else:
+                trend_class = 'Moderate Uptrend'
+                confidence = 0.65
+        elif price_momentum_30d > 5:
+            trend_class = 'Moderate Uptrend'
+            confidence = 0.60
+        elif price_momentum_30d < -15 and sma_20 and sma_50 and len(sma_20) > 0 and len(sma_50) > 0:
+            if current_price < sma_20[-1] < sma_50[-1]:
+                trend_class = 'Strong Downtrend'
+                confidence = 0.75
+            else:
+                trend_class = 'Moderate Downtrend'
+                confidence = 0.65
+        elif price_momentum_30d < -5:
+            trend_class = 'Moderate Downtrend'
+            confidence = 0.60
+        else:
+            trend_class = 'Sideways'
+            confidence = 0.50
+        
+        # Create probabilities distribution (sum to 1.0)
+        probabilities = {
+            'Strong Uptrend': 0.0,
+            'Moderate Uptrend': 0.0,
+            'Sideways': 0.0,
+            'Moderate Downtrend': 0.0,
+            'Strong Downtrend': 0.0
+        }
+        
+        # Assign probabilities based on trend_class
+        if trend_class == 'Strong Uptrend':
+            probabilities['Strong Uptrend'] = confidence
+            probabilities['Moderate Uptrend'] = (1 - confidence) * 0.6
+            probabilities['Sideways'] = (1 - confidence) * 0.3
+            probabilities['Moderate Downtrend'] = (1 - confidence) * 0.1
+        elif trend_class == 'Moderate Uptrend':
+            probabilities['Moderate Uptrend'] = confidence
+            probabilities['Strong Uptrend'] = (1 - confidence) * 0.3
+            probabilities['Sideways'] = (1 - confidence) * 0.5
+            probabilities['Moderate Downtrend'] = (1 - confidence) * 0.2
+        elif trend_class == 'Sideways':
+            probabilities['Sideways'] = confidence
+            probabilities['Moderate Uptrend'] = (1 - confidence) * 0.3
+            probabilities['Moderate Downtrend'] = (1 - confidence) * 0.3
+            probabilities['Strong Uptrend'] = (1 - confidence) * 0.2
+            probabilities['Strong Downtrend'] = (1 - confidence) * 0.2
+        elif trend_class == 'Moderate Downtrend':
+            probabilities['Moderate Downtrend'] = confidence
+            probabilities['Sideways'] = (1 - confidence) * 0.5
+            probabilities['Strong Downtrend'] = (1 - confidence) * 0.3
+            probabilities['Moderate Uptrend'] = (1 - confidence) * 0.2
+        elif trend_class == 'Strong Downtrend':
+            probabilities['Strong Downtrend'] = confidence
+            probabilities['Moderate Downtrend'] = (1 - confidence) * 0.6
+            probabilities['Sideways'] = (1 - confidence) * 0.3
+            probabilities['Moderate Uptrend'] = (1 - confidence) * 0.1
+        
+        trend_classification = {
+            'trend_class': trend_class,
+            'confidence': confidence,
+            'probabilities': probabilities
+        }
         entry_tp_dca = {
             'entry_point': current_price,
             'take_profit': current_price * 1.15,
