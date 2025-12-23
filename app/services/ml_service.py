@@ -405,15 +405,15 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             return None, None
         
         # Convert to numpy arrays
-                X_train = np.array(X_hist)
-                y_train = np.array(y_hist)
+        X_train = np.array(X_hist)
+        y_train = np.array(y_hist)
         
         logger.info(f"Training Random Forest model with {len(X_train)} samples and {len(feature_names)} features")
-                
-                # Scale features
-                scaler = StandardScaler()
-                X_train_scaled = scaler.fit_transform(X_train)
-                
+        
+        # Scale features
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        
         # Cross-validation for model validation (TimeSeriesSplit for time series data)
         from sklearn.model_selection import TimeSeriesSplit, cross_val_score
         
@@ -496,8 +496,8 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             )
         
         # Train final model on all training data
-                model.fit(X_train_scaled, y_train)
-                
+        model.fit(X_train_scaled, y_train)
+        
         # Calculate training score for logging
         train_score = model.score(X_train_scaled, y_train)
         logger.info(f"Model trained successfully for {ticker}. Training R² score: {train_score:.4f}")
@@ -516,7 +516,7 @@ def _train_random_forest_model(ticker: str, features_dict: Dict, current_price: 
             model.feature_names_ = feature_names
             model.feature_importances_dict_ = feature_importance_dict
         
-                return model, scaler
+        return model, scaler
         
     except Exception as e:
         logger.exception(f"Error training model for {ticker}: {e}")
