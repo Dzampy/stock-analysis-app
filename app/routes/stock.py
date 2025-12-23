@@ -53,17 +53,17 @@ def index():
     alt_template_path = base_dir / 'templates' / 'index.html'
     if alt_template_path.exists():
         logger.info(f"Found template at alternative path: {alt_template_path}")
-            try:
-                # Read template directly and use render_template_string
-                with open(alt_template_path, 'r', encoding='utf-8') as f:
-                    template_content = f.read()
-                from flask import render_template_string, make_response
-                response = make_response(render_template_string(template_content))
-                # Don't cache HTML - always serve fresh
-                response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-                response.headers['Pragma'] = 'no-cache'
-                response.headers['Expires'] = '0'
-                return response
+        try:
+            # Read template directly and use render_template_string
+            with open(alt_template_path, 'r', encoding='utf-8') as f:
+                template_content = f.read()
+            from flask import render_template_string, make_response
+            response = make_response(render_template_string(template_content))
+            # Don't cache HTML - always serve fresh
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            return response
         except Exception as e:
             logger.warning(f"Direct template read failed: {e}")
     
