@@ -264,7 +264,7 @@ def extract_ml_features(
         features['price_vs_rolling_mean_20'] = 0.0
 
         features['rolling_std_20_pct'] = 0.0
-
+    
     # Volume features
     if 'Volume' in df.columns:
         avg_volume = df['Volume'].tail(20).mean() if len(
@@ -373,7 +373,7 @@ def _extract_historical_features(df, idx):
                 values[-1]] if isinstance(values, list) else values
         else:
             validated_indicators[key] = []
-
+    
     # Get info (would need to be passed in, but for now use empty dict)
     # Note: Historical info would be point-in-time, not current
     info = {}
@@ -563,10 +563,10 @@ def _train_random_forest_model(ticker: str,
         # Convert to numpy arrays
                 X_train = np.array(X_hist)
                 y_train = np.array(y_hist)
-                
+
         logger.info(
             f"Training Random Forest model with {len(X_train)} samples and {len(feature_names)} features")
-
+                
                 # Scale features
                 scaler = StandardScaler()
                 X_train_scaled = scaler.fit_transform(X_train)
