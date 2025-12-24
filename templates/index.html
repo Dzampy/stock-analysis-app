@@ -5569,6 +5569,7 @@
                 toggleText.textContent = '▶ Expand';
             }
         }
+        window.toggleUpdatesSection = toggleUpdatesSection;
         
         // Load updates on page load
         window.addEventListener('load', function() {
@@ -23909,6 +23910,33 @@
             };
         }
 
+        // Export all critical functions to window scope for onclick handlers
+        // This ensures all functions are accessible from HTML onclick attributes
+        if (typeof loadAIRecommendations !== 'undefined') window.loadAIRecommendations = loadAIRecommendations;
+        if (typeof loadFinancials !== 'undefined') window.loadFinancials = loadFinancials;
+        if (typeof loadBacktest !== 'undefined') window.loadBacktest = loadBacktest;
+        if (typeof loadAlertsDashboard !== 'undefined') window.loadAlertsDashboard = loadAlertsDashboard;
+        if (typeof loadNewsForTicker !== 'undefined') window.loadNewsForTicker = loadNewsForTicker;
+        if (typeof loadEarningsCalendar !== 'undefined') window.loadEarningsCalendar = loadEarningsCalendar;
+        if (typeof loadEconomicCalendar !== 'undefined') window.loadEconomicCalendar = loadEconomicCalendar;
+        if (typeof loadSocialSentiment !== 'undefined') window.loadSocialSentiment = loadSocialSentiment;
+        if (typeof loadWatchlistSocialSentiment !== 'undefined') window.loadWatchlistSocialSentiment = loadWatchlistSocialSentiment;
+        if (typeof loadPredictionHistory !== 'undefined') window.loadPredictionHistory = loadPredictionHistory;
+        if (typeof loadScoreHistory !== 'undefined') window.loadScoreHistory = loadScoreHistory;
+        if (typeof loadAnalystInsider !== 'undefined') window.loadAnalystInsider = loadAnalystInsider;
+        if (typeof loadFactorAnalysis !== 'undefined') window.loadFactorAnalysis = loadFactorAnalysis;
+        if (typeof loadInvestmentThesis !== 'undefined') window.loadInvestmentThesis = loadInvestmentThesis;
+        if (typeof loadNewsPage !== 'undefined') window.loadNewsPage = loadNewsPage;
+        if (typeof loadEarningsStock !== 'undefined') window.loadEarningsStock = loadEarningsStock;
+        if (typeof loadAlertsStock !== 'undefined') window.loadAlertsStock = loadAlertsStock;
+        if (typeof toggleFavorite !== 'undefined') window.toggleFavorite = toggleFavorite;
+        if (typeof toggleIndicator !== 'undefined') window.toggleIndicator = toggleIndicator;
+        if (typeof showNews !== 'undefined') window.showNews = showNews;
+        if (typeof navigateToTicker !== 'undefined') window.navigateToTicker = navigateToTicker;
+        if (typeof showAlertsHistory !== 'undefined') window.showAlertsHistory = showAlertsHistory;
+        if (typeof toggleExplanation !== 'undefined') window.toggleExplanation = toggleExplanation;
+        if (typeof toggleWatchlistGroup !== 'undefined') window.toggleWatchlistGroup = toggleWatchlistGroup;
+        if (typeof showWatchlistGroupManager !== 'undefined') window.showWatchlistGroupManager = showWatchlistGroupManager;
     </script>
 </body>
 </html>
