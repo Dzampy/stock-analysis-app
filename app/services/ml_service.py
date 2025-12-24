@@ -1066,8 +1066,8 @@ def predict_price(features, current_price, df=None):
                     f"Extreme prediction ({blended_return_pct:.1f}%) for {timeframe}, using mostly momentum")
                 blended_return_pct = 0.1 * ml_return_pct + 0.9 * momentum_pct
 
-            # Calculate predicted price
-            predicted_price = current_price * (1 + blended_return_pct / 100)
+            # Calculate predicted price (uncapped)
+            predicted_price_uncapped = current_price * (1 + blended_return_pct / 100)
 
             # Dynamic volatility-based cap (instead of fixed -30%)
             # Use historical volatility to set reasonable bounds
@@ -1093,8 +1093,9 @@ def predict_price(features, current_price, df=None):
                 max_down = 0.3  # Conservative 30% down
                 max_up = 1.5    # Conservative 50% up
 
+            # Apply cap to predicted price (for display)
             predicted_price = max(current_price * (1 - max_down),
-                                  min(current_price * (1 + max_up), predicted_price))
+                                  min(current_price * (1 + max_up), predicted_price_uncapped))
 
             # Calculate confidence based on alignment between ML and momentum
             if abs(momentum_pct) > 1:
@@ -1115,9 +1116,14 @@ def predict_price(features, current_price, df=None):
 
             }
 
-            # Calculate expected return
-            expected_return = ((predicted_price - current_price) /
+            # Calculate expected return from UNCAPPED predicted price to get accurate percentage
+            # This ensures percentage matches the actual prediction logic
+            expected_return = ((predicted_price_uncapped - current_price) /
                                current_price) * 100 if current_price > 0 else 0
+            # Apply same cap to expected return as we did to predicted price
+            max_return_pct = ((current_price * (1 + max_up) - current_price) / current_price) * 100
+            min_return_pct = ((current_price * (1 - max_down) - current_price) / current_price) * 100
+            expected_return = max(min_return_pct, min(max_return_pct, expected_return))
             expected_returns[timeframe] = float(expected_return)
 
             # Confidence intervals using percentage-based ranges (more realistic than std-based)
