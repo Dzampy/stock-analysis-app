@@ -759,6 +759,15 @@ def predict_price(features, current_price, df=None):
         Dict with price predictions and confidence intervals
     """
 
+    # Validate and ensure current_price is correct
+    # If df is provided, prefer the latest close price from df as it's more accurate
+    if df is not None and len(df) > 0:
+        df_current_price = float(df['Close'].iloc[-1])
+        # If provided current_price differs significantly from df price, use df price
+        if abs(current_price - df_current_price) > 0.1:
+            logger.warning(f"current_price mismatch: provided={current_price:.2f}, df={df_current_price:.2f}, using df price")
+            current_price = df_current_price
+    
     # Check cache first
     ticker = features.get('ticker', '')
     if CACHE_AVAILABLE and cache and ticker:
