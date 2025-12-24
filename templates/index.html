@@ -6631,11 +6631,10 @@
             document.getElementById('companyInfo').innerHTML = 
                 `<p>${data.company_info.description || 'No description available.'}</p>`;
 
-            // Display earnings QoQ            console.log('[DEBUG] displayStockData: earnings_qoq data:', {
-                hasEarningsQoq: !!data.earnings_qoq,
-                eps: data.earnings_qoq?.eps?.slice(0, 4),
-                quarters: data.earnings_qoq?.quarters?.slice(0, 4)
-            });            displayEarningsQoq(data.earnings_qoq);
+            // Display earnings QoQ
+            if (data.earnings_qoq) {
+                displayEarningsQoq(data.earnings_qoq);
+            }
 
             // Display AI news summary
             displayNewsSummary(data.news_summary);
