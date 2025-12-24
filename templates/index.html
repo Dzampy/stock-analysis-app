@@ -20090,13 +20090,20 @@
                     },
                     scales: {
                         y: {
-                            beginAtZero: showGrowth ? false : true,
+                            beginAtZero: showGrowth ? false : false, // Don't force zero for EPS - let it auto-scale for better visibility
                             ticks: {
                                 callback: function(value) {
                                     if (showGrowth) {
                                         return value.toFixed(1) + '%';
                                     }
-                                    return '$' + value.toFixed(2);
+                                    // Format EPS values - handle small values better
+                                    if (Math.abs(value) < 0.01) {
+                                        return '$' + value.toFixed(4);
+                                    } else if (Math.abs(value) < 1) {
+                                        return '$' + value.toFixed(3);
+                                    } else {
+                                        return '$' + value.toFixed(2);
+                                    }
                                 },
                                 color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || 'var(--text-secondary)',
                                 font: {
@@ -20108,7 +20115,9 @@
                             grid: {
                                 color: getComputedStyle(document.documentElement).getPropertyValue('--chart-grid').trim() || 'rgba(255, 255, 255, 0.05)',
                                 lineWidth: 1,
-                                drawBorder: false
+                                drawBorder: false,
+                                zeroLineColor: 'rgba(255, 255, 255, 0.2)',
+                                zeroLineWidth: 2
                             }
                         },
                         x: {
@@ -20169,18 +20178,28 @@
                                     if (showGrowth) {
                                         label += context.parsed.y.toFixed(1) + '%';
                                     } else {
-                                        label += '$' + context.parsed.y.toFixed(2);
+                                        // Format EPS values better in tooltip
+                                        const epsValue = context.parsed.y;
+                                        if (Math.abs(epsValue) < 0.01) {
+                                            label += '$' + epsValue.toFixed(4);
+                                        } else if (Math.abs(epsValue) < 1) {
+                                            label += '$' + epsValue.toFixed(3);
+                                        } else {
+                                            label += '$' + epsValue.toFixed(2);
+                                        }
                                     }
                                     if (!showGrowth && expectations && context.datasetIndex === 0) {
                                         const estimate = expectations[context.dataIndex];
-                                        const actual = context.parsed.y;
-                                        const diff = actual - estimate;
-                                        // Use absolute value of estimate to handle negative values correctly
-                                        // For negative EPS: actual -0.03 vs estimate -0.10 means actual is better (less negative)
-                                        // diff = +0.07, so we want +70% (not -70%)
-                                        const diffPct = estimate !== 0 ? ((diff / Math.abs(estimate)) * 100).toFixed(1) : '0.0';
-                                        const diffPctNum = parseFloat(diffPct);
-                                        label += ` (${diffPctNum >= 0 ? '+' : ''}${diffPct}% vs estimate)`;
+                                        if (estimate !== null && estimate !== undefined && !isNaN(estimate)) {
+                                            const actual = context.parsed.y;
+                                            const diff = actual - estimate;
+                                            // Use absolute value of estimate to handle negative values correctly
+                                            // For negative EPS: actual -0.03 vs estimate -0.10 means actual is better (less negative)
+                                            // diff = +0.07, so we want +70% (not -70%)
+                                            const diffPct = estimate !== 0 ? ((diff / Math.abs(estimate)) * 100).toFixed(1) : '0.0';
+                                            const diffPctNum = parseFloat(diffPct);
+                                            label += ` (${diffPctNum >= 0 ? '+' : ''}${diffPct}% vs estimate)`;
+                                        }
                                     }
                                     return label;
                                 }
