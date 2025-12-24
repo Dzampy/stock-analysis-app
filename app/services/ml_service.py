@@ -1136,14 +1136,24 @@ def predict_price(features, current_price, df=None):
                     expected_return = 0.0
             
             # Additional validation: if predicted_price equals current_price, expected_return should be 0
-            if abs(predicted_price - current_price) < 0.01:
+            # BUT: Don't override if the difference is significant (could be a rounding issue)
+            price_diff = abs(predicted_price - current_price)
+            if price_diff < 0.01:
+                # Only set to 0 if the prices are truly equal (within 1 cent)
                 expected_return = 0.0
+            else:
+                # Recalculate expected_return to ensure it's correct
+                # This handles edge cases where rounding might cause issues
+                expected_return_recalc = ((predicted_price - current_price) / current_price) * 100
+                if abs(expected_return_recalc - expected_return) > 0.1:
+                    logger.warning(f"expected_return mismatch for {timeframe}: original={expected_return:.2f}%, recalc={expected_return_recalc:.2f}%, using recalc")
+                    expected_return = expected_return_recalc
             
             expected_returns[timeframe] = float(expected_return)
             
             # Debug logging for 12M to diagnose the issue
             if timeframe == '12m':
-                logger.debug(f"12M prediction: current_price=${current_price:.2f}, predicted_price=${predicted_price:.2f}, expected_return={expected_return:.2f}%")
+                logger.info(f"12M prediction: current_price=${current_price:.2f}, predicted_price=${predicted_price:.2f}, predicted_price_uncapped=${predicted_price_uncapped:.2f}, blended_return_pct={blended_return_pct:.2f}%, expected_return={expected_return:.2f}%, max_up={max_up:.2f}, max_down={max_down:.2f}, price_diff=${price_diff:.2f}")
 
             # Confidence intervals using percentage-based ranges (more realistic than std-based)
             # Use timeframe-specific percentage ranges that scale reasonably
