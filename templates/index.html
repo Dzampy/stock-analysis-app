@@ -13814,13 +13814,14 @@
                 </div>
             `;
             
-            const result = await fetchJSON(`/api/economic-event-explanation?event=${encodeURIComponent(eventName)}`, {}, modalContent);
-            
-            if (!result.success) {
-                return; // Error already displayed by fetchJSON
-            }
-            
-            const data = result.data;
+            try {
+                const result = await fetchJSON(`/api/economic-event-explanation?event=${encodeURIComponent(eventName)}`, {}, modalContent);
+                
+                if (!result.success) {
+                    return; // Error already displayed by fetchJSON
+                }
+                
+                const data = result.data;
                 
                 // Display explanation
                 modalContent.innerHTML = `
