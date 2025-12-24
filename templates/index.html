@@ -9639,6 +9639,47 @@
         function hideError() {
             document.getElementById('error').classList.add('hidden');
         }
+        
+        // Universal loading component function
+        function createLoadingIndicator(message = 'Loading...', includeProgress = false) {
+            const progressHtml = includeProgress ? `
+                <div style="margin-top: 15px; width: 100%; max-width: 300px; margin-left: auto; margin-right: auto;">
+                    <div style="background: rgba(102, 126, 234, 0.1); border-radius: 8px; height: 8px; overflow: hidden;">
+                        <div class="loading-progress-bar" style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); height: 100%; width: 0%; transition: width 0.3s ease; animation: loading-pulse 1.5s ease-in-out infinite;"></div>
+                    </div>
+                    <p style="margin-top: 10px; font-size: 0.85em; color: var(--text-tertiary);">This may take a moment...</p>
+                </div>
+            ` : '';
+            
+            return `
+                <div style="text-align: center; padding: 40px;">
+                    <div class="spinner" style="margin: 0 auto;"></div>
+                    <p style="margin-top: 20px; color: var(--text-secondary); font-size: 1.05em;">${message}</p>
+                    ${progressHtml}
+                </div>
+            `;
+        }
+        
+        // Loading state for ML training (long operations)
+        function createMLTrainingIndicator(ticker) {
+            return `
+                <div style="text-align: center; padding: 60px 40px;">
+                    <div class="spinner spinner-lg" style="margin: 0 auto;"></div>
+                    <p style="margin-top: 30px; color: var(--text-primary); font-size: 1.2em; font-weight: 600;">Training ML Model for ${ticker}</p>
+                    <p style="margin-top: 15px; color: var(--text-secondary);">This may take 30-60 seconds...</p>
+                    <div style="margin-top: 25px; width: 100%; max-width: 400px; margin-left: auto; margin-right: auto;">
+                        <div style="background: rgba(102, 126, 234, 0.1); border-radius: 10px; height: 10px; overflow: hidden;">
+                            <div class="loading-progress-bar" style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); height: 100%; width: 0%; transition: width 0.5s ease; animation: loading-pulse 2s ease-in-out infinite;"></div>
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.9em; color: var(--text-tertiary);">
+                            <p>📊 Downloading historical data...</p>
+                            <p style="margin-top: 5px;">🤖 Training model...</p>
+                            <p style="margin-top: 5px;">✅ Calculating predictions...</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
 
         // Dark Mode Functions
         function toggleDarkMode() {
@@ -9908,6 +9949,9 @@
         async function loadWatchlistSocialSentiment() {
             const container = document.getElementById('socialSentimentContent');
             const timeRange = document.getElementById('socialSentimentTimeRange').value;
+            
+            // Show loading state
+            container.innerHTML = createLoadingIndicator('Analyzing watchlist sentiment...', true);
             
             // Get watchlist from localStorage
             const watchlistData = localStorage.getItem('watchlist');
@@ -10252,12 +10296,8 @@
             }
             
             const container = document.getElementById('aiRecommendationsContent');
-            container.innerHTML = `
-                <div style="text-align: center; padding: 40px;">
-                    <div class="spinner"></div>
-                    <p style="margin-top: 20px; color: var(--text-secondary);">Analyzing ${ticker}...</p>
-                </div>
-            `;
+            // Show ML training indicator for long operations
+            container.innerHTML = createMLTrainingIndicator(ticker);
             
             const result = await fetchJSON(`/api/ai-recommendations/${ticker}`, {}, container);
             
@@ -10284,9 +10324,18 @@
                     return;
                 }
                 
+                const container = document.getElementById('predictionHistoryTable');
+                const containerWrapper = document.getElementById('predictionHistoryContainer');
+                
+                // Show loading state
+                if (container) {
+                    container.innerHTML = createLoadingIndicator('Loading prediction history...');
+                }
+                if (containerWrapper) {
+                    containerWrapper.style.display = 'block';
+                }
                 
                 const days = document.getElementById('historyPeriodSelect')?.value || 30;
-                const container = document.getElementById('predictionHistoryTable');
                 const result = await fetchJSON(`/api/ml-prediction-history/${ticker}?days=${days}`, {}, container);
                 
                 if (!result.success) {
@@ -10401,8 +10450,18 @@
                     return;
                 }
                 
-                const days = document.getElementById('scoreHistoryPeriodSelect')?.value || 30;
                 const container = document.getElementById('scoreHistoryTable');
+                const containerWrapper = document.getElementById('scoreHistoryContainer');
+                
+                // Show loading state
+                if (container) {
+                    container.innerHTML = createLoadingIndicator('Loading score history...');
+                }
+                if (containerWrapper) {
+                    containerWrapper.style.display = 'block';
+                }
+                
+                const days = document.getElementById('scoreHistoryPeriodSelect')?.value || 30;
                 const result = await fetchJSON(`/api/ml-score-history/${ticker}?days=${days}`, {}, container);
                 
                 if (!result.success) {
@@ -13356,14 +13415,13 @@
             `;
 
             try {
-                const response = await fetch('/api/economic-calendar');
+                const result = await fetchJSON('/api/economic-calendar', {}, container);
                 
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-                    throw new Error(errorData.error || `HTTP ${response.status}: Failed to load economic calendar`);
+                if (!result.success) {
+                    return; // Error already displayed by fetchJSON
                 }
-
-                const data = await response.json();
+                
+                const data = result.data;
                 console.log('Economic calendar response:', data);
 
                 if (data.error) {
