@@ -4348,7 +4348,7 @@
                     <span class="nav-group-chevron" id="chevron-analysis">▼</span>
                 </div>
                 <div class="nav-group-items" id="nav-group-analysis">
-                    <a href="#" class="nav-item" data-section="stockAnalysisSection" onclick="navigateToSection('stockAnalysisSection'); return false;">
+                    <a href="#" class="nav-item" data-section="stockAnalysisSection" onclick="if(typeof window.navigateToSection === 'function') { window.navigateToSection('stockAnalysisSection'); } else { console.error('navigateToSection not available'); alert('Please wait, page is still loading...'); } return false;">
                         <span>📈 Stock Analysis</span>
                     </a>
                     <a href="#" class="nav-item" data-section="financialsSection" onclick="navigateToSection('financialsSection'); return false;">
@@ -5481,6 +5481,15 @@
     </div>
 
     <script>
+        // Debug: Check if script is loading
+        console.log('🚀 Script started loading...');
+        
+        // Make basic functions available immediately
+        window.debugCheck = function() {
+            console.log('✅ Script is loaded and functions are accessible');
+            return true;
+        };
+        
         // Latest Updates Functions
         async function loadLatestUpdates() {
             try {
