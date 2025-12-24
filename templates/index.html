@@ -17183,15 +17183,17 @@
                     </div>
                     
                     <!-- EPS Chart -->
-                    <div style="margin-bottom: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <div style="margin-bottom: 40px; margin-top: 30px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                             <h4 style="margin: 0; font-size: 1.2em; color: var(--text-primary);">${data.company_name || ticker} EPS</h4>
                             <div style="display: flex; gap: 5px; background: var(--metric-bg); padding: 4px; border-radius: 8px;">
                                 <button class="performance-tab-btn active" onclick="switchPerformanceTab('eps', 'value')" data-metric="eps" data-type="value" style="padding: 6px 14px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;">EPS</button>
                                 <button class="performance-tab-btn" onclick="switchPerformanceTab('eps', 'growth')" data-metric="eps" data-type="growth" style="padding: 6px 14px; background: transparent; color: var(--text-primary); border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;">EPS Growth</button>
                             </div>
                         </div>
-                        <canvas id="epsChart" style="max-height: 350px;"></canvas>
+                        <div style="padding: 20px; background: var(--metric-bg); border-radius: 12px;">
+                            <canvas id="epsChart" style="max-height: 400px; width: 100% !important;"></canvas>
+                        </div>
                     </div>
                     
                     <div id="incomeStatementInsights" style="margin-top: 20px; padding: 15px; background: rgba(102, 126, 234, 0.05); border-radius: 10px;"></div>
@@ -20046,8 +20048,10 @@
                             borderWidth: 2,
                             borderRadius: 8,
                             borderSkipped: false,
-                            barThickness: 'flex',
-                            maxBarThickness: 60
+                            barThickness: 50,
+                            maxBarThickness: 50,
+                            barPercentage: 0.6,
+                            categoryPercentage: 0.8
                         },
                         ...(showGrowth ? [] : (expectations && expectations.some(e => e !== null && e !== undefined && !isNaN(e) && e !== 0)) ? [{
                             label: 'Estimate',
