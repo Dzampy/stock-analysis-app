@@ -5625,6 +5625,7 @@
             }
         }
         window.toggleSidebar = toggleSidebar;
+        window.toggleMobileSidebar = toggleSidebar; // Alias for mobile
 
         // Toggle nav group (collapsible)
         function toggleNavGroup(groupId) {
@@ -5784,6 +5785,7 @@
         function showWelcome() {
             navigateToSection('welcomeSection');
         }
+        window.showWelcome = showWelcome;
 
         // Initialize sidebar on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -9917,6 +9919,7 @@
                 initAutocomplete();
             }, 200);
         }
+        window.showStockAnalysis = showStockAnalysis;
 
         function showFinancials() {
             navigateToSection('financialsSection');
