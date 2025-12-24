@@ -6713,7 +6713,8 @@
         }
 
         function displayEarningsQoq(earningsData) {
-            const container = document.getElementById('earningsQoq');            console.log('[DEBUG] displayEarningsQoq called with data:', {
+            const container = document.getElementById('earningsQoq');
+            console.log('[DEBUG] displayEarningsQoq called with data:', {
                 hasData: !!earningsData,
                 quarters: earningsData?.quarters,
                 eps: earningsData?.eps,
@@ -6738,9 +6739,13 @@
                 const revenueQoqPct = earningsData.revenue_qoq_change_pct ? earningsData.revenue_qoq_change_pct[i] : null;
                 const eps = earningsData.eps ? earningsData.eps[i] : null;
                 const epsQoq = earningsData.eps_qoq_change ? earningsData.eps_qoq_change[i] : null;
-                const epsQoqPct = earningsData.eps_qoq_change_pct ? earningsData.eps_qoq_change_pct[i] : null;                if (i < 4) {  // Log first 4 quarters
+                const epsQoqPct = earningsData.eps_qoq_change_pct ? earningsData.eps_qoq_change_pct[i] : null;
+                
+                if (i < 4) {  // Log first 4 quarters
                     console.log(`[DEBUG] displayEarningsQoq ${quarter}: revenue=${revenue}, revenueQoq=${revenueQoq}, revenueQoqPct=${revenueQoqPct}, eps=${eps}, epsQoq=${epsQoq}, epsQoqPct=${epsQoqPct}`);
-                }                const epsEst = earningsData.eps_estimate ? earningsData.eps_estimate[i] : null;
+                }
+                
+                const epsEst = earningsData.eps_estimate ? earningsData.eps_estimate[i] : null;
                 const epsRep = earningsData.eps_reported ? earningsData.eps_reported[i] : null;
                 const epsSurprise = earningsData.eps_surprise_pct ? earningsData.eps_surprise_pct[i] : null;
                 const earnings = earningsData.earnings && earningsData.earnings[i] !== undefined ? earningsData.earnings[i] : null;
