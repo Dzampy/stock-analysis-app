@@ -10298,9 +10298,14 @@
                 
                 
                 const days = document.getElementById('historyPeriodSelect')?.value || 30;
-                const response = await fetch(`/api/ml-prediction-history/${ticker}?days=${days}`);
-                const data = await response.json();
+                const container = document.getElementById('predictionHistoryTable');
+                const result = await fetchJSON(`/api/ml-prediction-history/${ticker}?days=${days}`, {}, container);
                 
+                if (!result.success) {
+                    return; // Error already displayed by fetchJSON
+                }
+                
+                const data = result.data;
                 if (!data.history || data.history.length === 0) {
                     document.getElementById('predictionHistoryTable').innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 20px;">No prediction history available yet. Predictions will be saved automatically when you analyze this stock.</p>';
                     document.getElementById('predictionHistoryContainer').style.display = 'block';
@@ -10409,9 +10414,14 @@
                 }
                 
                 const days = document.getElementById('scoreHistoryPeriodSelect')?.value || 30;
-                const response = await fetch(`/api/ml-score-history/${ticker}?days=${days}`);
-                const data = await response.json();
+                const container = document.getElementById('scoreHistoryTable');
+                const result = await fetchJSON(`/api/ml-score-history/${ticker}?days=${days}`, {}, container);
                 
+                if (!result.success) {
+                    return; // Error already displayed by fetchJSON
+                }
+                
+                const data = result.data;
                 if (!data.score_history || data.score_history.length === 0) {
                     document.getElementById('scoreHistoryTable').innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 20px;">No score history available yet. Scores will be saved automatically when you analyze this stock.</p>';
                     document.getElementById('scoreHistoryContainer').style.display = 'block';
@@ -11670,23 +11680,16 @@
                     </div>
                 `;
                 
-                try {
-                    const response = await fetch(`/api/ai-investment-thesis/${ticker}`);
-                    const data = await response.json();
-                    
-                    if (!response.ok) {
-                        throw new Error(data.error || 'Failed to generate investment thesis');
-                    }
-                    
-                    // Display results
-                    displayInvestmentThesis(data);
-                    
-                    showToast('Investment thesis generated successfully', 'success');
-                    
-                } catch (error) {
-                    console.error('Error generating investment thesis:', error);
-                    container.innerHTML = `
-                        <div style="padding: 20px; background: rgba(239, 68, 68, 0.1); border-radius: 10px; border-left: 4px solid #ef4444;">
+                const result = await fetchJSON(`/api/ai-investment-thesis/${ticker}`, {}, container);
+                
+                if (!result.success) {
+                    return; // Error already displayed by fetchJSON
+                }
+                
+                // Display results
+                displayInvestmentThesis(result.data);
+                
+                showToast('Investment thesis generated successfully', 'success');
                             <div style="color: #ef4444; font-weight: 600; margin-bottom: 10px;">❌ Error</div>
                             <div style="color: var(--text-secondary);">${error.message}</div>
                             <button onclick="loadInvestmentThesis('${ticker}')" style="margin-top: 15px; padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button>
@@ -13000,9 +13003,9 @@
 
             for (const alert of activeAlerts) {
                 try {
-                    const response = await fetch(`/api/stock/${alert.ticker}?period=1d`);
-                    if (response.ok) {
-                        const data = await response.json();
+                    const result = await fetchJSON(`/api/stock/${alert.ticker}?period=1d`);
+                    if (result.success) {
+                        const data = result.data;
                         const currentPrice = data.metrics.current_price;
                         
                         // Update current price
@@ -23026,24 +23029,30 @@
             const content = document.getElementById('backtestContent');
             content.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-secondary);">Loading backtest results...</div>';
             
-            try {
-                const response = await fetch(`/api/backtest/${ticker}`);
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    // Show more detailed error message
-                    let errorMsg = data.error || 'Failed to load backtest';
-                    if (data.days_old !== undefined) {
-                        errorMsg += `<br><br><strong>Latest prediction:</strong> ${data.latest_prediction_date}<br><strong>Days old:</strong> ${data.days_old}<br><br>Backtest requires predictions that are at least 21 days old to compare with actual prices.`;
+            const result = await fetchJSON(`/api/backtest/${ticker}`, {}, content);
+            
+            if (!result.success) {
+                // fetchJSON already displayed error, but check for specific backtest error details
+                if (result.error && result.error.includes('days_old')) {
+                    // Try to extract additional info from the error response
+                    try {
+                        const response = await safeFetch(`/api/backtest/${ticker}`);
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            if (errorData.days_old !== undefined) {
+                                const errorMsg = `${result.error}<br><br><strong>Latest prediction:</strong> ${errorData.latest_prediction_date || 'N/A'}<br><strong>Days old:</strong> ${errorData.days_old}<br><br>Backtest requires predictions that are at least 21 days old to compare with actual prices.`;
+                                content.innerHTML = `<div style="padding: 20px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; color: #ef4444;">${errorMsg}</div>`;
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        // Fallback to default error message
                     }
-                    content.innerHTML = `<div style="padding: 20px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; color: #ef4444;">${errorMsg}</div>`;
-                    return;
                 }
-                
-                displayBacktestResults(data);
-            } catch (error) {
-                content.innerHTML = `<div style="padding: 20px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; color: #ef4444;">Error: ${error.message}</div>`;
+                return; // Error already displayed by fetchJSON
             }
+            
+            displayBacktestResults(result.data);
         }
         
         function displayBacktestResults(data) {
