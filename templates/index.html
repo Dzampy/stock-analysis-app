@@ -11866,25 +11866,26 @@
                     </div>
                 `;
                 
-                const result = await fetchJSON(`/api/ai-investment-thesis/${ticker}`, {}, container);
+                try {
+                    const result = await fetchJSON(`/api/ai-investment-thesis/${ticker}`, {}, container);
                     
-                if (!result.success) {
-                    return; // Error already displayed by fetchJSON
-                }
+                    if (!result.success) {
+                        return; // Error already displayed by fetchJSON
+                    }
                     
-                // Display results
-                displayInvestmentThesis(result.data);
-                showToast('Investment thesis generated successfully', 'success');
-            } catch (error) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #ef4444;">
-                        <div style="color: #ef4444; font-weight: 600; margin-bottom: 10px;">❌ Error</div>
-                        <div style="color: var(--text-secondary);">${error.message}</div>
-                        <button onclick="loadInvestmentThesis('${ticker}')" style="margin-top: 15px; padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button>
-                    </div>
-                `;
-                showToast('Error generating investment thesis', 'error');
-            } finally {
+                    // Display results
+                    displayInvestmentThesis(result.data);
+                    showToast('Investment thesis generated successfully', 'success');
+                } catch (error) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #ef4444;">
+                            <div style="color: #ef4444; font-weight: 600; margin-bottom: 10px;">❌ Error</div>
+                            <div style="color: var(--text-secondary);">${error.message}</div>
+                            <button onclick="loadInvestmentThesis('${ticker}')" style="margin-top: 15px; padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button>
+                        </div>
+                    `;
+                    showToast('Error generating investment thesis', 'error');
+                } finally {
                     button.disabled = false;
                     button.innerHTML = originalText;
                 }
