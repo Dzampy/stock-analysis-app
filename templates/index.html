@@ -6633,7 +6633,7 @@
 
             // Display earnings QoQ
             if (data.earnings_qoq) {
-                displayEarningsQoq(data.earnings_qoq);
+            displayEarningsQoq(data.earnings_qoq);
             }
 
             // Display AI news summary
@@ -6719,7 +6719,9 @@
                 quarters: earningsData?.quarters,
                 eps: earningsData?.eps,
                 epsLength: earningsData?.eps?.length
-            });            if (!earningsData || !earningsData.quarters || earningsData.quarters.length === 0) {
+            });
+            
+            if (!earningsData || !earningsData.quarters || earningsData.quarters.length === 0) {
                 container.innerHTML = '<p style="color: var(--text-secondary);">Earnings data not available for this stock.</p>';
                 return;
             }
@@ -9662,7 +9664,7 @@
                 return { success: false, error: error.message };
             }
         }
-        
+
         function showError(message) {
             const errorEl = document.getElementById('error');
             let errorMessage = '';
@@ -11865,15 +11867,15 @@
                 `;
                 
                 const result = await fetchJSON(`/api/ai-investment-thesis/${ticker}`, {}, container);
-                
+                    
                 if (!result.success) {
                     return; // Error already displayed by fetchJSON
-                }
-                
-                // Display results
+                    }
+                    
+                    // Display results
                 displayInvestmentThesis(result.data);
-                
-                showToast('Investment thesis generated successfully', 'success');
+                    
+                    showToast('Investment thesis generated successfully', 'success');
                             <div style="color: #ef4444; font-weight: 600; margin-bottom: 10px;">❌ Error</div>
                             <div style="color: var(--text-secondary);">${error.message}</div>
                             <button onclick="loadInvestmentThesis('${ticker}')" style="margin-top: 15px; padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button>
@@ -13557,7 +13559,7 @@
                 if (!result.success) {
                     return; // Error already displayed by fetchJSON
                 }
-                
+
                 const data = result.data;
                 console.log('Economic calendar response:', data);
 
@@ -13815,9 +13817,9 @@
             }
             
             const data = result.data;
-            
-            // Display explanation
-            modalContent.innerHTML = `
+                
+                // Display explanation
+                modalContent.innerHTML = `
                     <h2 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.8em; border-bottom: 3px solid #667eea; padding-bottom: 15px;">
                         📊 ${data.event_name}
                     </h2>
@@ -23215,13 +23217,13 @@
                     // Try to extract additional info from the error response
                     try {
                         const response = await safeFetch(`/api/backtest/${ticker}`);
-                        if (!response.ok) {
+                if (!response.ok) {
                             const errorData = await response.json();
                             if (errorData.days_old !== undefined) {
                                 const errorMsg = `${result.error}<br><br><strong>Latest prediction:</strong> ${errorData.latest_prediction_date || 'N/A'}<br><strong>Days old:</strong> ${errorData.days_old}<br><br>Backtest requires predictions that are at least 21 days old to compare with actual prices.`;
-                                content.innerHTML = `<div style="padding: 20px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; color: #ef4444;">${errorMsg}</div>`;
-                                return;
-                            }
+                    content.innerHTML = `<div style="padding: 20px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; color: #ef4444;">${errorMsg}</div>`;
+                    return;
+                }
                         }
                     } catch (e) {
                         // Fallback to default error message
@@ -23304,18 +23306,18 @@
                 // Baseline Comparisons
                 if (baseline.naive_baseline) {
                     html += `
-                            <div class="card" style="padding: 20px;">
+                        <div class="card" style="padding: 20px;">
                                 <h4 style="margin-bottom: 15px; color: var(--text-primary);">Naive Baseline</h4>
                                 <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 10px;">${baseline.naive_baseline.description || 'Predicts price stays the same'}</div>
-                                <div style="display: flex; flex-direction: column; gap: 10px;">
-                                    <div style="display: flex; justify-content: space-between;">
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <div style="display: flex; justify-content: space-between;">
                                         <span style="color: var(--text-secondary);">R²:</span>
                                         <span style="font-weight: 600; color: var(--text-primary);">${baseline.naive_baseline.r2_score ? baseline.naive_baseline.r2_score.toFixed(4) : 'N/A'}</span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between;">
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
                                         <span style="color: var(--text-secondary);">RMSE:</span>
                                         <span style="font-weight: 600; color: var(--text-primary);">${baseline.naive_baseline.rmse ? '$' + baseline.naive_baseline.rmse.toFixed(2) : 'N/A'}</span>
-                                    </div>
+                                </div>
                                 </div>
                             </div>
                     `;
@@ -23327,14 +23329,14 @@
                                 <h4 style="margin-bottom: 15px; color: var(--text-primary);">Momentum Baseline</h4>
                                 <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 10px;">${baseline.momentum_baseline.description || 'Predicts price continues previous trend'}</div>
                                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                                    <div style="display: flex; justify-content: space-between;">
+                                <div style="display: flex; justify-content: space-between;">
                                         <span style="color: var(--text-secondary);">R²:</span>
                                         <span style="font-weight: 600; color: var(--text-primary);">${baseline.momentum_baseline.r2_score ? baseline.momentum_baseline.r2_score.toFixed(4) : 'N/A'}</span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between;">
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
                                         <span style="color: var(--text-secondary);">RMSE:</span>
                                         <span style="font-weight: 600; color: var(--text-primary);">${baseline.momentum_baseline.rmse ? '$' + baseline.momentum_baseline.rmse.toFixed(2) : 'N/A'}</span>
-                                    </div>
+                                </div>
                                 </div>
                             </div>
                     `;
@@ -23346,25 +23348,25 @@
                             <div class="card" style="padding: 20px;">
                                 <h4 style="margin-bottom: 15px; color: var(--text-primary);">Trading Metrics</h4>
                                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                                    <div style="display: flex; justify-content: space-between;">
+                                <div style="display: flex; justify-content: space-between;">
                                         <span style="color: var(--text-secondary);">Sharpe Ratio:</span>
                                         <span style="font-weight: 600; color: var(--text-primary);">${summary.sharpe_ratio || (trading.sharpe_ratio ? trading.sharpe_ratio.toFixed(2) : 'N/A')}</span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between;">
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
                                         <span style="color: var(--text-secondary);">Max Drawdown:</span>
                                         <span style="font-weight: 600; color: ${(trading.max_drawdown_pct || 0) >= 0 ? '#10b981' : '#ef4444'};">
                                             ${summary.max_drawdown || (trading.max_drawdown_pct ? trading.max_drawdown_pct.toFixed(2) + '%' : 'N/A')}
                                         </span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between;">
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
                                         <span style="color: var(--text-secondary);">Total Return:</span>
                                         <span style="font-weight: 600; color: ${(trading.total_return_pct || 0) >= 0 ? '#10b981' : '#ef4444'};">
                                             ${trading.total_return_pct ? (trading.total_return_pct >= 0 ? '+' : '') + trading.total_return_pct.toFixed(2) + '%' : 'N/A'}
                                         </span>
-                                    </div>
                                 </div>
-                                ${trading.note ? `<div style="font-size: 0.75em; color: var(--text-secondary); margin-top: 10px; font-style: italic;">${trading.note}</div>` : ''}
                             </div>
+                                ${trading.note ? `<div style="font-size: 0.75em; color: var(--text-secondary); margin-top: 10px; font-style: italic;">${trading.note}</div>` : ''}
+                        </div>
                     `;
                 }
                 
@@ -23374,8 +23376,8 @@
             // Model vs Baselines Comparison
             if (baseline.ml_model_vs_baselines) {
                 const vs = baseline.ml_model_vs_baselines;
-                html += `
-                    <div style="margin-bottom: 30px;">
+            html += `
+                <div style="margin-bottom: 30px;">
                         <h3 style="margin-bottom: 15px;">🎯 Model vs Baselines</h3>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                             <div class="card" style="padding: 15px; background: ${vs.better_than_naive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'};">
@@ -23406,45 +23408,45 @@
                 html += `
                     <div style="margin-bottom: 30px;">
                         <h3 style="margin-bottom: 15px;">📋 Detailed Predictions (Last 50)</h3>
-                        <div style="overflow-x: auto;">
-                            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-                                <thead>
-                                    <tr style="background: var(--metric-bg); border-bottom: 2px solid var(--border-color);">
-                                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Date</th>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                            <thead>
+                                <tr style="background: var(--metric-bg); border-bottom: 2px solid var(--border-color);">
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Date</th>
                                         <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">Predicted</th>
                                         <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">Actual</th>
                                         <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">Error</th>
                                         <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">Error %</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                `;
-                
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
                 // Show last 50 predictions (most recent first)
                 const predictionsToShow = data.predictions.slice(-50).reverse();
                 for (const pred of predictionsToShow) {
                     const errorColor = Math.abs(pred.error_pct || 0) < 5 ? '#10b981' : (Math.abs(pred.error_pct || 0) < 10 ? '#f59e0b' : '#ef4444');
-                    html += `
-                        <tr style="border-bottom: 1px solid var(--border-color);">
+                html += `
+                    <tr style="border-bottom: 1px solid var(--border-color);">
                             <td style="padding: 12px; font-weight: 600; color: var(--text-primary);">${pred.date}</td>
                             <td style="padding: 12px; text-align: right; color: var(--text-primary);">$${pred.predicted ? pred.predicted.toFixed(2) : 'N/A'}</td>
                             <td style="padding: 12px; text-align: right; color: var(--text-primary);">$${pred.actual ? pred.actual.toFixed(2) : 'N/A'}</td>
                             <td style="padding: 12px; text-align: right; color: ${errorColor};">
                                 ${pred.error !== undefined ? (pred.error >= 0 ? '+' : '') + '$' + pred.error.toFixed(2) : 'N/A'}
-                            </td>
+                        </td>
                             <td style="padding: 12px; text-align: right; color: ${errorColor};">
                                 ${pred.error_pct !== undefined ? (pred.error_pct >= 0 ? '+' : '') + pred.error_pct.toFixed(2) + '%' : 'N/A'}
-                            </td>
-                        </tr>
-                    `;
-                }
-                
-                html += `
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                        </td>
+                    </tr>
                 `;
+            }
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
             }
             
             content.innerHTML = html;
