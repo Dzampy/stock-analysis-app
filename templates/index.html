@@ -13625,21 +13625,16 @@
                 </div>
             `;
             
-            try {
-                const response = await fetch(`/api/economic-event-explanation?event=${encodeURIComponent(eventName)}`);
-                
-                if (!response.ok) {
-                    throw new Error('Failed to load explanation');
-                }
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                // Display explanation
-                modalContent.innerHTML = `
+            const result = await fetchJSON(`/api/economic-event-explanation?event=${encodeURIComponent(eventName)}`, {}, modalContent);
+            
+            if (!result.success) {
+                return; // Error already displayed by fetchJSON
+            }
+            
+            const data = result.data;
+            
+            // Display explanation
+            modalContent.innerHTML = `
                     <h2 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.8em; border-bottom: 3px solid #667eea; padding-bottom: 15px;">
                         📊 ${data.event_name}
                     </h2>
