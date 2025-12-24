@@ -937,12 +937,88 @@ def predict_price(features, current_price, df=None):
 
             X_scaled = X
         
+        # CRITICAL: Additional safety check - verify model has required attributes
+        if not hasattr(model, 'estimators_') or model.estimators_ is None:
+            logger.error(f"Model for {ticker} is missing estimators_ attribute, falling back to momentum")
+            # Fall back to momentum-based estimates
+            momentum_1m = 0.0
+            momentum_3m = 0.0
+            momentum_6m = 0.0
+            momentum_12m = 0.0
+            if df is not None and len(df) > 20:
+                if len(df) >= 20:
+                    momentum_1m = ((df['Close'].iloc[-1] - df['Close'].iloc[-20]) / df['Close'].iloc[-20]) * 100
+                if len(df) >= 60:
+                    momentum_3m = ((df['Close'].iloc[-1] - df['Close'].iloc[-60]) / df['Close'].iloc[-60]) * 100
+                if len(df) >= 120:
+                    momentum_6m = ((df['Close'].iloc[-1] - df['Close'].iloc[-120]) / df['Close'].iloc[-120]) * 100
+                if len(df) >= 252:
+                    momentum_12m = ((df['Close'].iloc[-1] - df['Close'].iloc[-252]) / df['Close'].iloc[-252]) * 100
+            return {
+                'current_price': current_price,
+                'predictions': {
+                    '1m': {'price': current_price * (1 + momentum_1m * 0.5 / 100), 'confidence': 0.3},
+                    '3m': {'price': current_price * (1 + momentum_3m * 0.5 / 100), 'confidence': 0.25},
+                    '6m': {'price': current_price * (1 + momentum_6m * 0.5 / 100), 'confidence': 0.2},
+                    '12m': {'price': current_price * (1 + momentum_12m * 0.5 / 100), 'confidence': 0.15}
+                },
+                'expected_returns': {
+                    '1m': momentum_1m * 0.5,
+                    '3m': momentum_3m * 0.5,
+                    '6m': momentum_6m * 0.5,
+                    '12m': momentum_12m * 0.5
+                },
+                'confidence_intervals': {
+                    '6m': {'lower': current_price * 0.80, 'upper': current_price * 1.30},
+                    '12m': {'lower': current_price * 0.70, 'upper': current_price * 1.50}
+                },
+                'model_used': 'momentum_estimate',
+                'warning': 'ML model is missing required attributes. Using momentum-based estimates. These are NOT ML predictions.'
+            }
+        
         # Predict using all trees in ensemble for proper confidence intervals
         tree_predictions = []
-        for tree in model.estimators_:
-            tree_pred = tree.predict(X_scaled)[0]
-
-            tree_predictions.append(tree_pred)
+        try:
+            for tree in model.estimators_:
+                tree_pred = tree.predict(X_scaled)[0]
+                tree_predictions.append(tree_pred)
+        except (AttributeError, TypeError) as e:
+            logger.error(f"Error accessing model.estimators_ for {ticker}: {e}, falling back to momentum")
+            # Fall back to momentum-based estimates
+            momentum_1m = 0.0
+            momentum_3m = 0.0
+            momentum_6m = 0.0
+            momentum_12m = 0.0
+            if df is not None and len(df) > 20:
+                if len(df) >= 20:
+                    momentum_1m = ((df['Close'].iloc[-1] - df['Close'].iloc[-20]) / df['Close'].iloc[-20]) * 100
+                if len(df) >= 60:
+                    momentum_3m = ((df['Close'].iloc[-1] - df['Close'].iloc[-60]) / df['Close'].iloc[-60]) * 100
+                if len(df) >= 120:
+                    momentum_6m = ((df['Close'].iloc[-1] - df['Close'].iloc[-120]) / df['Close'].iloc[-120]) * 100
+                if len(df) >= 252:
+                    momentum_12m = ((df['Close'].iloc[-1] - df['Close'].iloc[-252]) / df['Close'].iloc[-252]) * 100
+            return {
+                'current_price': current_price,
+                'predictions': {
+                    '1m': {'price': current_price * (1 + momentum_1m * 0.5 / 100), 'confidence': 0.3},
+                    '3m': {'price': current_price * (1 + momentum_3m * 0.5 / 100), 'confidence': 0.25},
+                    '6m': {'price': current_price * (1 + momentum_6m * 0.5 / 100), 'confidence': 0.2},
+                    '12m': {'price': current_price * (1 + momentum_12m * 0.5 / 100), 'confidence': 0.15}
+                },
+                'expected_returns': {
+                    '1m': momentum_1m * 0.5,
+                    '3m': momentum_3m * 0.5,
+                    '6m': momentum_6m * 0.5,
+                    '12m': momentum_12m * 0.5
+                },
+                'confidence_intervals': {
+                    '6m': {'lower': current_price * 0.80, 'upper': current_price * 1.30},
+                    '12m': {'lower': current_price * 0.70, 'upper': current_price * 1.50}
+                },
+                'model_used': 'momentum_estimate',
+                'warning': 'ML model error during prediction. Using momentum-based estimates. These are NOT ML predictions.'
+            }
 
         tree_predictions = np.array(tree_predictions)
         # Mean prediction from ensemble (normalized price ratio)
@@ -1230,7 +1306,7 @@ def predict_price(features, current_price, df=None):
 
         # Get model quality metrics (CV R² score) if available
         model_quality = {}
-        if model:
+        if model is not None:
             if hasattr(model, 'cv_r2_score'):
                 model_quality['cv_r2_score'] = float(model.cv_r2_score)
                 model_quality['train_r2_score'] = float(
@@ -2406,16 +2482,24 @@ def run_backtest(
 
                 # Use cached model for prediction
                 if cached_model and cached_scaler:
-                    # Make prediction using cached model
-                    feature_names = sorted([k for k in features.keys() if k != 'ticker'])
-                    X = np.array([[features.get(name, 0.0) for name in feature_names]])
-                    X_scaled = cached_scaler.transform(X)
+                    # CRITICAL: Additional safety check - verify model has required attributes
+                    if not hasattr(cached_model, 'estimators_') or cached_model.estimators_ is None:
+                        logger.warning(f"Backtest: Model for {ticker} at index {i} is missing estimators_ attribute, skipping prediction")
+                        continue
+                    
+                    try:
+                        # Make prediction using cached model
+                        feature_names = sorted([k for k in features.keys() if k != 'ticker'])
+                        X = np.array([[features.get(name, 0.0) for name in feature_names]])
+                        X_scaled = cached_scaler.transform(X)
 
-                    # Get predictions from all trees for proper confidence
-                    # intervals
-                    tree_preds = [tree.predict(X_scaled)[0]
-                                  for tree in cached_model.estimators_]
-                    predicted_price = np.mean(tree_preds)
+                        # Get predictions from all trees for proper confidence intervals
+                        tree_preds = [tree.predict(X_scaled)[0]
+                                      for tree in cached_model.estimators_]
+                        predicted_price = np.mean(tree_preds)
+                    except (AttributeError, TypeError) as e:
+                        logger.warning(f"Backtest: Error using model for {ticker} at index {i}: {e}, skipping prediction")
+                        continue
 
                     predictions.append(predicted_price)
                     actuals.append(actual_price)

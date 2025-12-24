@@ -9446,6 +9446,83 @@
             document.getElementById('loading').classList.add('hidden');
         }
 
+        // Universal fetch helper with error handling and retry
+        async function safeFetch(url, options = {}, retries = 2) {
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                ...options
+            };
+            
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                    const response = await fetch(url, defaultOptions);
+                    
+                    // For non-ok responses, try to parse error message
+                    if (!response.ok) {
+                        let errorMessage = `Request failed with status ${response.status}`;
+                        try {
+                            const errorData = await response.json();
+                            errorMessage = errorData.error || errorMessage;
+                        } catch (e) {
+                            // If response is not JSON, use status text
+                            errorMessage = response.statusText || errorMessage;
+                        }
+                        
+                        // Retry on 5xx errors (server errors)
+                        if (response.status >= 500 && attempt < retries) {
+                            await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // Exponential backoff
+                            continue;
+                        }
+                        
+                        throw new Error(errorMessage);
+                    }
+                    
+                    return response;
+                } catch (error) {
+                    // Network errors - retry
+                    if (error.name === 'TypeError' && error.message.includes('fetch') && attempt < retries) {
+                        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+                        continue;
+                    }
+                    
+                    // Last attempt failed or non-retryable error
+                    if (attempt === retries) {
+                        throw error;
+                    }
+                }
+            }
+        }
+        
+        // Helper to fetch JSON with automatic error handling
+        async function fetchJSON(url, options = {}, containerElement = null) {
+            try {
+                const response = await safeFetch(url, options);
+                const data = await response.json();
+                return { success: true, data };
+            } catch (error) {
+                console.error(`Error fetching ${url}:`, error);
+                
+                // Show user-friendly error if container is provided
+                if (containerElement) {
+                    const errorMessage = error.message || 'An unexpected error occurred';
+                    containerElement.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #ef4444;">
+                            <p style="font-size: 1.2em; margin-bottom: 10px;">❌ Error</p>
+                            <p style="margin-bottom: 15px;">${errorMessage}</p>
+                            <button onclick="location.reload()" style="margin-top: 15px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
+                        </div>
+                    `;
+                } else {
+                    // Use global error handler
+                    showError(error.message || 'An unexpected error occurred');
+                }
+                
+                return { success: false, error: error.message };
+            }
+        }
+        
         function showError(message) {
             const errorEl = document.getElementById('error');
             let errorMessage = '';
