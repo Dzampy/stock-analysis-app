@@ -12080,7 +12080,7 @@
             const diffMinutes = Math.floor(diffMs / 60000);
             return { timestamp, diffMinutes, isFresh: diffMinutes < 15 };
         }
-        
+
         // Data Freshness Functions
         function updateDataFreshnessIndicator(timestamp, containerId = null) {
             // Use default indicator if no containerId provided (for Stock Analysis section)
@@ -12163,7 +12163,7 @@
             if (containerId) {
                 indicator.style.borderLeft = `3px solid ${statusColor}`;
             } else {
-                indicator.className = `data-freshness-indicator ${status}`;
+            indicator.className = `data-freshness-indicator ${status}`;
             }
             
             // Show refresh button if data is older than 15 minutes
@@ -12172,19 +12172,19 @@
                     refreshBtn.style.display = 'inline-block';
                     if (containerId) {
                         refreshBtn.style.display = 'inline-block';
-                    } else {
+                } else {
                         refreshBtn.style.display = 'inline-block';
                         refreshBtn.classList.add('stale');
                     }
                 } else if (diffMinutes >= 5) {
                     refreshBtn.style.display = 'inline-block';
                     if (!containerId) {
-                        refreshBtn.classList.remove('stale');
-                    }
-                } else {
-                    refreshBtn.style.display = 'none';
+                    refreshBtn.classList.remove('stale');
+                }
+            } else {
+                refreshBtn.style.display = 'none';
                     if (!containerId) {
-                        refreshBtn.classList.remove('stale');
+                refreshBtn.classList.remove('stale');
                     }
                 }
             }
@@ -19904,26 +19904,55 @@
             
             const showGrowth = currentPerformanceTabs.eps === 'growth';
             
-            // Get EPS from data (if available) or calculate from net income
+            // Get EPS from data (must be explicitly provided - no fallback calculation)
             const epsData = data.map(d => {
-                if (d.eps !== null && d.eps !== undefined) {
+                // Only use EPS if it's explicitly provided and not null/undefined
+                if (d.eps !== null && d.eps !== undefined && !isNaN(d.eps)) {
                     return d.eps;
                 }
-                // Fallback: estimate from net income (rough approximation)
-                const ni = d.net_income || 0;
-                // Assume ~100M shares for typical company
-                return ni / 100_000_000;
+                // Return null if EPS is not available (will be filtered out)
+                return null;
             }).reverse();
+            
+            // Filter out null values and track indices for label alignment
+            const validEpsIndices = [];
+            const validEpsData = [];
+            epsData.forEach((val, idx) => {
+                if (val !== null && val !== undefined && !isNaN(val)) {
+                    validEpsIndices.push(idx);
+                    validEpsData.push(val);
+                }
+            });
+            
+            // If no valid EPS data, show message instead of chart
+            if (validEpsData.length === 0) {
+                const container = ctx.parentElement;
+                if (container) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                            <p>EPS data not available for this company.</p>
+                        </div>
+                    `;
+                }
+                return;
+            }
+            
+            // Filter labels to match valid EPS data indices
+            const filteredLabels = validEpsIndices.map(idx => labels[idx]);
+            const filteredData = data.filter((d, idx) => {
+                const reversedIdx = data.length - 1 - idx;
+                return validEpsIndices.includes(reversedIdx);
+            }).reverse(); // Reverse to match the order of validEpsData (oldest first)
             
             let chartData, chartLabels, expectations, beatMissed;
             
             if (showGrowth) {
                 chartData = [];
-                chartLabels = labels.slice(1);
+                chartLabels = filteredLabels.slice(1);
                 
-                for (let i = 1; i < epsData.length; i++) {
-                    if (epsData[i-1] !== 0) {
-                        const growth = ((epsData[i] - epsData[i-1]) / Math.abs(epsData[i-1])) * 100;
+                for (let i = 1; i < validEpsData.length; i++) {
+                    if (validEpsData[i-1] !== 0 && validEpsData[i-1] !== null && validEpsData[i-1] !== undefined) {
+                        const growth = ((validEpsData[i] - validEpsData[i-1]) / Math.abs(validEpsData[i-1])) * 100;
                         chartData.push(growth);
                     } else {
                         chartData.push(0);
@@ -19932,15 +19961,15 @@
                 expectations = null;
                 beatMissed = null;
             } else {
-                chartData = epsData;
-                chartLabels = labels;
+                chartData = validEpsData;
+                chartLabels = filteredLabels;
                 
                 // Estimate expectations: use backend estimates if available, otherwise None
                 // chartData is now: [oldest, ..., newest] (after reverse)
                 // Get EPS estimates from backend data (if available)
                 // Create a map of quarter -> estimate for easier lookup
                 const epsEstimateMap = {};
-                data.forEach(d => {
+                filteredData.forEach(d => {
                     const quarter = d.quarter || d.date;
                     if (quarter && d.eps_estimate !== null && d.eps_estimate !== undefined && !isNaN(d.eps_estimate) && d.eps_estimate !== 0) {
                         epsEstimateMap[quarter] = d.eps_estimate;
@@ -19955,9 +19984,8 @@
                 for (let i = 0; i < chartData.length; i++) {
                     let estimate = null;
                     
-                    // Get quarter string for this index (after reverse, so oldest first)
-                    // data is newest first, so data[data.length - 1 - i] is the i-th oldest
-                    const quarterStr = data[data.length - 1 - i]?.quarter || data[data.length - 1 - i]?.date;
+                    // Get quarter string from filtered data (which matches valid EPS indices)
+                    const quarterStr = filteredData[i]?.quarter || filteredData[i]?.date;
                     
                     // Use backend estimate if available (lookup by quarter string)
                     if (quarterStr && epsEstimateMap[quarterStr]) {
