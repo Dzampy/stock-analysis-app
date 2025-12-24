@@ -2061,9 +2061,8 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             warnings.append(
                 f"ML model predicts negative returns across all timeframes (1M: {expected_return_1m:.1f}%, 3M: {expected_return_3m:.1f}%, 6M: {expected_return_6m:.1f}%, 12M: {expected_return_12m:.1f}%)")
         else:
-
             # Individual ML prediction impact (increased penalties/bonuses)
-        if expected_return_6m > 20:
+            if expected_return_6m > 20:
 
             technical_score += 20  # Increased from 15
 
