@@ -5481,6 +5481,100 @@
     </div>
 
     <script>
+        // Latest Updates Functions
+        async function loadLatestUpdates() {
+            try {
+                const response = await fetch('/api/updates?limit=5');
+                const data = await response.json();
+                
+                if (!data.success || !data.updates) {
+                    console.error('Failed to load updates:', data.error);
+                    document.getElementById('updatesContent').innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: rgba(255, 255, 255, 0.8);">
+                            <p>Unable to load updates at this time.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Update version
+                if (data.version) {
+                    document.getElementById('versionNumber').textContent = data.version;
+                }
+                
+                // Render updates
+                const updatesHtml = data.updates.map(update => {
+                    const typeColors = {
+                        'feature': 'rgba(16, 185, 129, 0.2)',
+                        'fix': 'rgba(239, 68, 68, 0.2)',
+                        'improvement': 'rgba(59, 130, 246, 0.2)'
+                    };
+                    const typeColor = typeColors[update.type] || 'rgba(255, 255, 255, 0.1)';
+                    
+                    const detailsHtml = update.details ? `
+                        <ul style="margin: 12px 0 0 0; padding-left: 20px; list-style: none;">
+                            ${update.details.map(detail => `
+                                <li style="margin: 6px 0; padding-left: 20px; position: relative;">
+                                    <span style="position: absolute; left: 0;">•</span>
+                                    ${detail}
+                                </li>
+                            `).join('')}
+                        </ul>
+                    ` : '';
+                    
+                    return `
+                        <div style="background: ${typeColor}; border-left: 4px solid white; border-radius: 8px; padding: 20px; margin-bottom: 15px; transition: transform 0.2s;" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='translateX(0)'">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                        <span style="font-size: 1.5em;">${update.icon || '📦'}</span>
+                                        <h3 style="margin: 0; font-size: 1.2em; font-weight: 700; color: white;">${update.title}</h3>
+                                        <span style="background: rgba(255, 255, 255, 0.2); padding: 4px 12px; border-radius: 12px; font-size: 0.85em; font-weight: 600;">v${update.version}</span>
+                                    </div>
+                                    <p style="margin: 0; color: rgba(255, 255, 255, 0.9); line-height: 1.6;">${update.description}</p>
+                                </div>
+                                <span style="color: rgba(255, 255, 255, 0.7); font-size: 0.9em; white-space: nowrap;">${update.date}</span>
+                            </div>
+                            ${detailsHtml}
+                        </div>
+                    `;
+                }).join('');
+                
+                document.getElementById('updatesContent').innerHTML = updatesHtml || `
+                    <div style="text-align: center; padding: 20px; color: rgba(255, 255, 255, 0.8);">
+                        <p>No updates available.</p>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading updates:', error);
+                document.getElementById('updatesContent').innerHTML = `
+                    <div style="text-align: center; padding: 20px; color: rgba(255, 255, 255, 0.8);">
+                        <p>Error loading updates. Please try again later.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        let updatesSectionExpanded = true;
+        function toggleUpdatesSection() {
+            updatesSectionExpanded = !updatesSectionExpanded;
+            const content = document.getElementById('updatesContent');
+            const toggleText = document.getElementById('updatesToggleText');
+            
+            if (updatesSectionExpanded) {
+                content.style.display = 'block';
+                toggleText.textContent = '▼ Collapse';
+            } else {
+                content.style.display = 'none';
+                toggleText.textContent = '▶ Expand';
+            }
+        }
+        
+        // Load updates on page load
+        window.addEventListener('load', function() {
+            setTimeout(loadLatestUpdates, 500);
+        });
+
         // Sidebar Navigation Functions
         let currentSection = 'welcomeSection';
         const sectionNames = {
