@@ -5542,17 +5542,9 @@
             // Show target section
             const targetSection = document.getElementById(sectionId);
             if (targetSection) {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'navigateToSection:before-remove-hidden',message:'Before removing hidden class',data:{sectionId,hasHidden:targetSection.classList.contains('hidden'),inlineDisplay:targetSection.style.display,computedDisplay:window.getComputedStyle(targetSection).display,offsetHeight:targetSection.offsetHeight,parentId:targetSection.parentElement?.id,parentClass:targetSection.parentElement?.className},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
                 
                 targetSection.classList.remove('hidden');
-                targetSection.style.removeProperty('display'); // Remove inline display to use CSS
-                
-                // #region agent log
-                const computed = window.getComputedStyle(targetSection);
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'navigateToSection:after-remove-hidden',message:'After removing hidden class',data:{sectionId,hasHidden:targetSection.classList.contains('hidden'),computedDisplay:computed.display,computedHeight:computed.height,computedMaxHeight:computed.maxHeight,computedOverflow:computed.overflow,computedPosition:computed.position,computedVisibility:computed.visibility,computedOpacity:computed.opacity,offsetHeight:targetSection.offsetHeight,scrollHeight:targetSection.scrollHeight,clientHeight:targetSection.clientHeight,parentDisplay:targetSection.parentElement?window.getComputedStyle(targetSection.parentElement).display:'no-parent',parentHeight:targetSection.parentElement?window.getComputedStyle(targetSection.parentElement).height:'no-parent'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,E'})}).catch(()=>{});
-                // #endregion
+                targetSection.style.removeProperty('display'); // Remove inline display to use CSS                const computed = window.getComputedStyle(targetSection);
                 
                 console.log('Showing section:', sectionId, 'has hidden class:', targetSection.classList.contains('hidden'), 'computed display:', window.getComputedStyle(targetSection).display);
                 
@@ -5590,13 +5582,9 @@
                         // Verify settings section is visible
                         const settingsEl = document.getElementById('settingsSection');
                         const settingsContent = document.getElementById('settingsContent');
-                        if (settingsEl) {
-                            // #region agent log
-                            const computed = window.getComputedStyle(settingsEl);
+                        if (settingsEl) {                            const computed = window.getComputedStyle(settingsEl);
                             const card = settingsEl.querySelector('.card');
                             const cardComputed = card ? window.getComputedStyle(card) : null;
-                            fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'navigateToSection:settings-visibility-check',message:'Settings section visibility check',data:{hasHidden:settingsEl.classList.contains('hidden'),computedDisplay:computed.display,computedHeight:computed.height,computedMaxHeight:computed.maxHeight,computedOverflow:computed.overflow,computedPosition:computed.position,computedVisibility:computed.visibility,computedOpacity:computed.opacity,offsetHeight:settingsEl.offsetHeight,scrollHeight:settingsEl.scrollHeight,clientHeight:settingsEl.clientHeight,inlineStyles:settingsEl.style.cssText,parentId:settingsEl.parentElement?.id,parentClass:settingsEl.parentElement?.className,parentDisplay:settingsEl.parentElement?window.getComputedStyle(settingsEl.parentElement).display:'no-parent',parentHeight:settingsEl.parentElement?window.getComputedStyle(settingsEl.parentElement).height:'no-parent',cardExists:!!card,cardDisplay:cardComputed?.display,cardHeight:cardComputed?.height,cardOffsetHeight:card?.offsetHeight,settingsContentHeight:settingsContent?.offsetHeight,settingsContentLength:settingsContent?.innerHTML?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E'})}).catch(()=>{});
-                            // #endregion
                             
                             console.log('Settings section visibility check:', {
                                 hasHidden: settingsEl.classList.contains('hidden'),
@@ -5879,28 +5867,16 @@
 
             try {
                 console.log('[AUTOCOMPLETE] Fetching results for:', query);
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:4625',message:'Fetching API','data':{'query':query},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
                 const response = await cachedFetch(`/api/search/${encodeURIComponent(query)}`);
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:4627',message:'Response received','data':{'status':response.status,'ok':response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
                 if (!response.ok) {
                     throw new Error(`Search failed: ${response.status}`);
                 }
                 const data = await response.json();
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:4636',message:'Data parsed','data':{'results_count':data.results?.length||0,'has_results':!!(data.results&&data.results.length>0),'first_result':data.results?.[0]||null,'data_keys':Object.keys(data),'full_data_preview':JSON.stringify(data).substring(0,500)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                // #endregion
                 console.log('[AUTOCOMPLETE] Received data:', data);
                 console.log('[AUTOCOMPLETE] Received results count:', data.results?.length || 0);
                 if (data.results && data.results.length > 0) {
                     console.log('[AUTOCOMPLETE] First result:', data.results[0]);
                 } else {
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:4643',message:'Empty results received','data':{'query':query,'data':data,'response_status':response.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                    // #endregion
                 }
                 return {
                     results: data.results || [],
@@ -5908,9 +5884,6 @@
                     recent: getSearchHistory().slice(0, 5)
                 };
             } catch (error) {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:4642',message:'Fetch error','data':{'error':error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
                 console.error('[AUTOCOMPLETE] Error fetching autocomplete:', error);
                 return { results: [], favorites: getFavoriteTickers(), recent: getSearchHistory().slice(0, 5), error: true };
             }
@@ -6114,9 +6087,6 @@
                 
                 let html = '';
                 console.log('[AUTOCOMPLETE] Processing results:', data.results);
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:4859',message:'Before rendering','data':{'results_count':data.results?.length||0,'has_results':!!(data.results&&data.results.length>0),'dropdown_exists':!!dropdown},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-                // #endregion
                 if (data.results && data.results.length > 0) {
                     console.log('[AUTOCOMPLETE] Found results, rendering...');
                     html += '<div class="autocomplete-section"><div class="autocomplete-section-title">🔍 Search Results</div>';
@@ -6154,14 +6124,8 @@
                     dropdown.innerHTML = html;
                     dropdown.style.display = html !== '' ? 'block' : 'none';
                     console.log('[AUTOCOMPLETE] Rendered dropdown:', { htmlLength: html.length, display: dropdown.style.display });
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:4890',message:'After rendering','data':{'html_length':html.length,'display':dropdown.style.display,'results_count':data.results?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-                    // #endregion
                 } else {
                     console.error('[AUTOCOMPLETE] Dropdown element is null!');
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:4895',message:'Dropdown missing','data':{'query':query},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-                    // #endregion
                 }
             }, 300);
         }
@@ -6530,15 +6494,11 @@
             document.getElementById('companyInfo').innerHTML = 
                 `<p>${data.company_info.description || 'No description available.'}</p>`;
 
-            // Display earnings QoQ
-            // #region agent log
-            console.log('[DEBUG] displayStockData: earnings_qoq data:', {
+            // Display earnings QoQ            console.log('[DEBUG] displayStockData: earnings_qoq data:', {
                 hasEarningsQoq: !!data.earnings_qoq,
                 eps: data.earnings_qoq?.eps?.slice(0, 4),
                 quarters: data.earnings_qoq?.quarters?.slice(0, 4)
-            });
-            // #endregion
-            displayEarningsQoq(data.earnings_qoq);
+            });            displayEarningsQoq(data.earnings_qoq);
 
             // Display AI news summary
             displayNewsSummary(data.news_summary);
@@ -6617,18 +6577,12 @@
         }
 
         function displayEarningsQoq(earningsData) {
-            const container = document.getElementById('earningsQoq');
-            
-            // #region agent log
-            console.log('[DEBUG] displayEarningsQoq called with data:', {
+            const container = document.getElementById('earningsQoq');            console.log('[DEBUG] displayEarningsQoq called with data:', {
                 hasData: !!earningsData,
                 quarters: earningsData?.quarters,
                 eps: earningsData?.eps,
                 epsLength: earningsData?.eps?.length
-            });
-            // #endregion
-            
-            if (!earningsData || !earningsData.quarters || earningsData.quarters.length === 0) {
+            });            if (!earningsData || !earningsData.quarters || earningsData.quarters.length === 0) {
                 container.innerHTML = '<p style="color: var(--text-secondary);">Earnings data not available for this stock.</p>';
                 return;
             }
@@ -6648,14 +6602,9 @@
                 const revenueQoqPct = earningsData.revenue_qoq_change_pct ? earningsData.revenue_qoq_change_pct[i] : null;
                 const eps = earningsData.eps ? earningsData.eps[i] : null;
                 const epsQoq = earningsData.eps_qoq_change ? earningsData.eps_qoq_change[i] : null;
-                const epsQoqPct = earningsData.eps_qoq_change_pct ? earningsData.eps_qoq_change_pct[i] : null;
-                
-                // #region agent log
-                if (i < 4) {  // Log first 4 quarters
+                const epsQoqPct = earningsData.eps_qoq_change_pct ? earningsData.eps_qoq_change_pct[i] : null;                if (i < 4) {  // Log first 4 quarters
                     console.log(`[DEBUG] displayEarningsQoq ${quarter}: revenue=${revenue}, revenueQoq=${revenueQoq}, revenueQoqPct=${revenueQoqPct}, eps=${eps}, epsQoq=${epsQoq}, epsQoqPct=${epsQoqPct}`);
-                }
-                // #endregion
-                const epsEst = earningsData.eps_estimate ? earningsData.eps_estimate[i] : null;
+                }                const epsEst = earningsData.eps_estimate ? earningsData.eps_estimate[i] : null;
                 const epsRep = earningsData.eps_reported ? earningsData.eps_reported[i] : null;
                 const epsSurprise = earningsData.eps_surprise_pct ? earningsData.eps_surprise_pct[i] : null;
                 const earnings = earningsData.earnings && earningsData.earnings[i] !== undefined ? earningsData.earnings[i] : null;
@@ -10269,9 +10218,6 @@
                     return;
                 }
                 
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:loadPredictionHistory',message:'Loading prediction history','data':{'ticker':ticker,'ticker_source':'parameter'},timestamp:Date.now(),sessionId:'debug-session',runId:'load-history',hypothesisId:'C'})}).catch(()=>{});
-                // #endregion
                 
                 const days = document.getElementById('historyPeriodSelect')?.value || 30;
                 const response = await fetch(`/api/ml-prediction-history/${ticker}?days=${days}`);
@@ -10283,9 +10229,6 @@
                     return;
                 }
                 
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:loadPredictionHistory',message:'History loaded','data':{'ticker':ticker,'entries_count':data.history.length},timestamp:Date.now(),sessionId:'debug-session',runId:'load-history',hypothesisId:'C'})}).catch(()=>{});
-                // #endregion
                 
                 // Build table
                 let tableHtml = `
@@ -10567,23 +10510,16 @@
             });
             
             // Store chart data globally for history table updates
-            currentChartData = data;
-            
-            // #region agent log
-            if (data.ml_models && data.ml_models.price_prediction) {
+            currentChartData = data;            if (data.ml_models && data.ml_models.price_prediction) {
                 const pp = data.ml_models.price_prediction;
                 try {
                     const pred12m = pp.predictions?.['12m'];
                     const ret12m = pp.expected_returns?.['12m'];
                     const ci12m = pp.confidence_intervals?.['12m'];
-                    fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:7606',message:'displayAIRecommendations entry','data':{'has_ml_models':!!data.ml_models,'has_price_prediction':!!pp,'12m_prediction':pred12m,'12m_return':ret12m,'12m_ci_lower':ci12m?.lower,'12m_ci_upper':ci12m?.upper,'12m_prediction_type':typeof pred12m,'12m_is_finite':isFinite(pred12m)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
                 } catch (e) {
                     // Silently ignore debug log errors
                 }
-            }
-            // #endregion
-            
-            const reasonsHtml = data.reasons && data.reasons.length > 0 
+            }            const reasonsHtml = data.reasons && data.reasons.length > 0 
                 ? `<div style="margin-top: 20px;">
                     <h4 style="color: #10b981; margin-bottom: 10px;">✅ Positive Factors</h4>
                     <ul style="list-style: none; padding: 0;">
@@ -10909,9 +10845,6 @@
                                             }
                                         };
                                         
-                                        // #region agent log
-                                        fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'templates/index.html:7870',message:'After validation before format','data':{'period':period,'pred':pred,'ret':ret,'ci_lower':ci?.lower,'ci_upper':ci?.upper,'currentPrice':currentPrice,'minPrice':minPrice,'maxPrice':maxPrice,'pred_is_finite':isFinite(pred),'ret_is_finite':isFinite(ret),'pred_formatted':formatPrice(pred),'ret_formatted':formatReturn(ret)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-                                        // #endregion
                                         
                                         const retColor = ret >= 0 ? '#10b981' : '#ef4444';
                                         
@@ -15044,12 +14977,7 @@
             `;
             // Update dynamic content
             updateStorageUsage();
-            updateCacheInfo();
-            
-            // #region agent log
-            const computedAfter = window.getComputedStyle(container);
-            fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'loadSettings:after-innerHTML',message:'After setting innerHTML',data:{containerInnerHTMLLength:container.innerHTML.length,containerOffsetHeight:container.offsetHeight,containerScrollHeight:container.scrollHeight,containerClientHeight:container.clientHeight,containerDisplay:computedAfter.display,containerHeight:computedAfter.height,containerMaxHeight:computedAfter.maxHeight,containerOverflow:computedAfter.overflow},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            // #endregion
+            updateCacheInfo();            const computedAfter = window.getComputedStyle(container);
             
             console.log('Settings content loaded, container.innerHTML length:', container.innerHTML.length);
             console.log('Settings content preview:', container.innerHTML.substring(0, 200));
@@ -15057,23 +14985,14 @@
             // Force reflow after content is loaded
             const settingsSectionEl = document.getElementById('settingsSection');
             if (settingsSectionEl) {
-                settingsSectionEl.offsetHeight; // Force reflow
-                
-                // #region agent log
-                const sectionComputed = window.getComputedStyle(settingsSectionEl);
+                settingsSectionEl.offsetHeight; // Force reflow                const sectionComputed = window.getComputedStyle(settingsSectionEl);
                 const cardEl = settingsSectionEl.querySelector('.card');
                 const cardComputedAfter = cardEl ? window.getComputedStyle(cardEl) : null;
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'loadSettings:after-reflow',message:'After forcing reflow',data:{sectionOffsetHeight:settingsSectionEl.offsetHeight,sectionScrollHeight:settingsSectionEl.scrollHeight,sectionClientHeight:settingsSectionEl.clientHeight,sectionDisplay:sectionComputed.display,sectionHeight:sectionComputed.height,sectionMaxHeight:sectionComputed.maxHeight,sectionOverflow:sectionComputed.overflow,sectionPosition:sectionComputed.position,cardExists:!!cardEl,cardOffsetHeight:cardEl?.offsetHeight,cardScrollHeight:cardEl?.scrollHeight,cardDisplay:cardComputedAfter?.display,cardHeight:cardComputedAfter?.height,containerOffsetHeight:container.offsetHeight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C'})}).catch(()=>{});
-                // #endregion
                 
                 console.log('After content load - settingsSection offsetHeight:', settingsSectionEl.offsetHeight, 'scrollHeight:', settingsSectionEl.scrollHeight, 'clientHeight:', settingsSectionEl.clientHeight);
                 
                 // If still 0, force display again
-                if (settingsSectionEl.offsetHeight === 0) {
-                    // #region agent log
-                    const beforeForce = window.getComputedStyle(settingsSectionEl);
-                    fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'loadSettings:before-second-force',message:'Before second force display',data:{sectionOffsetHeight:settingsSectionEl.offsetHeight,sectionScrollHeight:settingsSectionEl.scrollHeight,sectionDisplay:beforeForce.display,sectionHeight:beforeForce.height,sectionMaxHeight:beforeForce.maxHeight,sectionOverflow:beforeForce.overflow,sectionPosition:beforeForce.position,inlineStyles:settingsSectionEl.style.cssText},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,D'})}).catch(()=>{});
-                    // #endregion
+                if (settingsSectionEl.offsetHeight === 0) {                    const beforeForce = window.getComputedStyle(settingsSectionEl);
                     
                     console.log('Still 0 height after content load, forcing again...');
                     settingsSectionEl.style.setProperty('display', 'block', 'important');
@@ -15083,12 +15002,7 @@
                         card.style.setProperty('min-height', '500px', 'important');
                         card.style.setProperty('display', 'block', 'important');
                     }
-                    settingsSectionEl.offsetHeight; // Force reflow again
-                    
-                    // #region agent log
-                    const afterForce = window.getComputedStyle(settingsSectionEl);
-                    fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'loadSettings:after-second-force',message:'After second force display',data:{sectionOffsetHeight:settingsSectionEl.offsetHeight,sectionScrollHeight:settingsSectionEl.scrollHeight,sectionClientHeight:settingsSectionEl.clientHeight,sectionDisplay:afterForce.display,sectionHeight:afterForce.height,sectionMaxHeight:afterForce.maxHeight,sectionMinHeight:afterForce.minHeight,sectionOverflow:afterForce.overflow,sectionPosition:afterForce.position,inlineStyles:settingsSectionEl.style.cssText,cardOffsetHeight:card?.offsetHeight,cardScrollHeight:card?.scrollHeight},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,D'})}).catch(()=>{});
-                    // #endregion
+                    settingsSectionEl.offsetHeight; // Force reflow again                    const afterForce = window.getComputedStyle(settingsSectionEl);
                     
                     console.log('After second force - offsetHeight:', settingsSectionEl.offsetHeight);
                 }
@@ -16144,9 +16058,6 @@
 
         async function loadFinancials() {
             console.log('[DEBUG] loadFinancials: Function called');
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:loadFinancials',message:'Function entry',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
             const ticker = document.getElementById('financialsTickerInput').value.trim().toUpperCase();
             console.log('[DEBUG] loadFinancials: Ticker extracted', {ticker});
             if (!ticker) {
@@ -16176,9 +16087,6 @@
             try {
                 // Add to recent searches
                 console.log('[DEBUG] loadFinancials: Fetching financials data for', ticker);
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:loadFinancials',message:'Before fetch',data:{ticker:ticker},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
                 const response = await fetch(`/api/financials/${ticker}`);
                 const data = await response.json();
                 console.log('[DEBUG] loadFinancials: Data received', {
@@ -16186,9 +16094,6 @@
                     hasForwardEstimates: !!data.forward_estimates,
                     dataKeys: Object.keys(data || {})
                 });
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:loadFinancials',message:'After fetch',data:{hasData:!!data,hasForwardEstimates:!!data.forward_estimates,dataKeys:Object.keys(data||{}),forwardEstimatesKeys:data?.forward_estimates?Object.keys(data.forward_estimates):[]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
 
                 if (!response.ok) {
                     throw new Error(data.error || 'Failed to fetch financial data');
@@ -18034,9 +17939,6 @@
                     epsKeys: data.forward_estimates?.eps ? Object.keys(data.forward_estimates.eps) : [],
                     incomeDataLength: incomeData?.length || 0
                 });
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:loadFinancials',message:'Before creating analyst estimates table',data:{hasForwardEstimates:!!data.forward_estimates,forwardEstimatesKeys:data.forward_estimates?Object.keys(data.forward_estimates):[],revenueKeys:data.forward_estimates?.revenue?Object.keys(data.forward_estimates.revenue):[],epsKeys:data.forward_estimates?.eps?Object.keys(data.forward_estimates.eps):[],incomeDataLength:incomeData?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                // #endregion
                 if (data.forward_estimates) {
                     console.log('[DEBUG] loadFinancials: Calling createAnalystEstimatesTable');
                     try {
@@ -18044,15 +17946,9 @@
                         console.log('[DEBUG] loadFinancials: createAnalystEstimatesTable called successfully');
                     } catch (e) {
                         console.error('Error creating analyst estimates table:', e);
-                        // #region agent log
-                        fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:loadFinancials',message:'Error creating analyst estimates table',data:{error:e.message,stack:e.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                        // #endregion
                     }
                 } else {
                     console.log('[DEBUG] loadFinancials: No forward_estimates in data', {dataKeys: Object.keys(data)});
-                    // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:loadFinancials',message:'No forward_estimates in data',data:{dataKeys:Object.keys(data)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-                    // #endregion
                 }
             }, 200);
         }
@@ -22149,9 +22045,6 @@
                 hasIncomeData: !!incomeData,
                 incomeDataLength: incomeData?.length || 0
             });
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:createAnalystEstimatesTable',message:'Function entry',data:{ticker:ticker,hasEstimates:!!estimates,revenueKeys:estimates?.revenue?Object.keys(estimates.revenue):[],epsKeys:estimates?.eps?Object.keys(estimates.eps):[],hasIncomeData:!!incomeData,incomeDataLength:incomeData?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
             
             const container = document.getElementById('analystEstimatesTable');
             if (!container) {
@@ -22175,9 +22068,6 @@
                 revenueCount: Object.keys(revenueEstimates).length,
                 epsCount: Object.keys(epsEstimates).length
             });
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:createAnalystEstimatesTable',message:'Current date calculated',data:{currentYear:currentYear,currentMonth:currentMonth,currentQuarter:currentQuarter,revenueCount:Object.keys(revenueEstimates).length,epsCount:Object.keys(epsEstimates).length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            // #endregion
             
             // Get all quarters from estimates
             const allQuarters = new Set([...Object.keys(revenueEstimates), ...Object.keys(epsEstimates)]);
@@ -22208,9 +22098,6 @@
             });
             console.log('[DEBUG] createAnalystEstimatesTable: Quarters with actuals (expanded):', JSON.stringify(quartersWithActualsList, null, 2));
             console.log('[DEBUG] createAnalystEstimatesTable: All quarters (expanded):', JSON.stringify(allQuartersList, null, 2));
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:createAnalystEstimatesTable',message:'Quarters with actuals',data:{quartersWithActuals:Array.from(quartersWithActuals),allQuarters:Array.from(allQuarters),incomeDataLength:incomeData?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-            // #endregion
             
             // Filter to show quarters that don't have actuals yet (like Finviz does)
             // Sort all quarters chronologically
@@ -22242,9 +22129,6 @@
                 
                 console.log(`[DEBUG] Quarter ${quarter}: isCurrentOrFuture=${isCurrentOrFuture}, hasNoActuals=${hasNoActuals}, shouldShow=${shouldShow}`);
                 
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:createAnalystEstimatesTable',message:'Quarter filter check',data:{quarter:quarter,quarterYear:quarterYear,quarterNum:quarterNum,currentYear:currentYear,currentQuarter:currentQuarter,isCurrentOrFuture:isCurrentOrFuture,hasNoActuals:hasNoActuals,shouldShow:shouldShow},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-                // #endregion
                 
                 return shouldShow;
             }).slice(0, 4); // Take next 4 quarters
@@ -22276,9 +22160,6 @@
             });
             console.log('[DEBUG] createAnalystEstimatesTable: Filter details for each quarter', filterDetails);
             console.log('[DEBUG] createAnalystEstimatesTable: Filter details (JSON):', JSON.stringify(filterDetails, null, 2));
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/6899fb1b-3689-4a1d-9375-229b6e232b4c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:createAnalystEstimatesTable',message:'After filtering',data:{allQuarters:sortedQuarters,futureQuarters:futureQuarters,futureCount:futureQuarters.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-            // #endregion
             
             if (futureQuarters.length === 0) {
                 console.log('[DEBUG] createAnalystEstimatesTable: No future quarters found, showing message');
