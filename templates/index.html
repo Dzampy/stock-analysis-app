@@ -4999,6 +4999,35 @@
             </div>
         </div>
 
+        <!-- Latest Updates Section -->
+        <div id="latestUpdatesSection" style="margin-bottom: 30px;">
+            <div class="card" style="background: var(--gradient-primary); padding: 0; overflow: hidden; position: relative;">
+                <div style="padding: 30px; position: relative; z-index: 2;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                        <div>
+                            <h2 style="margin: 0; color: white; font-size: 1.8em; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                                <span>📢</span> Latest Updates
+                            </h2>
+                            <p style="margin: 8px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 0.95em;" id="appVersion">
+                                Version <span id="versionNumber">-</span>
+                            </p>
+                        </div>
+                        <button onclick="toggleUpdatesSection()" style="padding: 10px 20px; background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 8px; color: white; cursor: pointer; font-weight: 600; transition: all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                            <span id="updatesToggleText">▼ Collapse</span>
+                        </button>
+                    </div>
+                    
+                    <div id="updatesContent" style="color: white;">
+                        <div style="text-align: center; padding: 40px;">
+                            <div class="spinner" style="border-top-color: white; border-color: rgba(255, 255, 255, 0.3);"></div>
+                            <p style="margin-top: 20px; color: rgba(255, 255, 255, 0.9);">Loading updates...</p>
+                        </div>
+                    </div>
+                </div>
+                <div style="position: absolute; top: 0; right: 0; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); border-radius: 50%; transform: translate(30%, -30%); pointer-events: none;"></div>
+            </div>
+        </div>
+
         <!-- Stock Analysis Section -->
         <div id="stockAnalysisSection" class="hidden">
         <div style="display: grid; grid-template-columns: 1fr 350px; gap: 30px; margin-bottom: 30px;">

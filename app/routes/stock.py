@@ -10,6 +10,7 @@ from app.utils.json_utils import clean_for_json
 from app.utils.logger import logger
 from app.utils.error_handler import NotFoundError, ExternalAPIError, create_error_response
 from app.config import CACHE_TIMEOUTS
+from app.utils.updates import get_latest_updates, get_current_version
 
 bp = Blueprint('stock', __name__)
 
@@ -238,4 +239,26 @@ def get_stock(ticker):
     
     logger.info(f"Successfully prepared stock data response for {ticker.upper()}")
     return jsonify(response_data)
+
+
+@bp.route('/api/updates')
+@cache_if_available(3600)  # Cache for 1 hour
+def get_updates():
+    """Get latest application updates"""
+    try:
+        limit = request.args.get('limit', 5, type=int)
+        updates = get_latest_updates(limit)
+        version = get_current_version()
+        
+        return jsonify({
+            'success': True,
+            'version': version,
+            'updates': updates
+        })
+    except Exception as e:
+        logger.exception("Error fetching updates")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
