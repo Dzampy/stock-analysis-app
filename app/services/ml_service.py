@@ -2076,16 +2076,16 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
                     f"ML model predicts positive 6-month return (+{expected_return_6m:.1f}%)")
             elif expected_return_6m < -10:
 
-            technical_score -= 25  # Increased from 15
+                technical_score -= 25  # Increased from 15
 
-            warnings.append(
-                f"ML model predicts negative 6-month return ({expected_return_6m:.1f}%)")
-        elif expected_return_6m < -5:
+                warnings.append(
+                    f"ML model predicts negative 6-month return ({expected_return_6m:.1f}%)")
+            elif expected_return_6m < -5:
 
-            technical_score -= 20  # Increased from 10
+                technical_score -= 20  # Increased from 10
 
-            warnings.append(
-                f"ML model predicts weak 6-month return ({expected_return_6m:.1f}%)")
+                warnings.append(
+                    f"ML model predicts weak 6-month return ({expected_return_6m:.1f}%)")
             elif expected_return_6m < 0:
                 technical_score -= 10  # New: small penalty for any negative return
 
