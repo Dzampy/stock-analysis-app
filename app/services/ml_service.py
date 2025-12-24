@@ -684,7 +684,7 @@ def _train_random_forest_model(ticker: str,
             )
 
         # Train final model on all training data
-                model.fit(X_train_scaled, y_train)
+            model.fit(X_train_scaled, y_train)
 
         # Calculate training score for logging
         train_score = model.score(X_train_scaled, y_train)
@@ -739,7 +739,7 @@ def _train_random_forest_model(ticker: str,
         # Store flag indicating if model is better than baseline
         model.is_better_than_baseline = model.cv_r2_score > 0.0
                 
-                return model, scaler
+        return model, scaler
         
     except Exception as e:
         logger.exception(f"Error training model for {ticker}: {e}")
@@ -1431,11 +1431,11 @@ def get_prediction_accuracy(
                 error_abs = abs(error_pct)
 
                 accuracy_results.append({
-                'date': pred_date_str,
-                'predicted': float(pred_price),
-                'actual': float(actual_price),
-                'error_pct': float(error_pct),
-                'error_abs': float(error_abs)
+                    'date': pred_date_str,
+                    'predicted': float(pred_price),
+                    'actual': float(actual_price),
+                    'error_pct': float(error_pct),
+                    'error_abs': float(error_abs)
                 })
 
             except Exception as e:
@@ -1445,19 +1445,19 @@ def get_prediction_accuracy(
                 continue
 
         if len(accuracy_results) < 3:
-                return None
+            return None
 
-                # Calculate aggregate metrics
-                errors_abs = [r['error_abs'] for r in accuracy_results]
-                errors_pct = [r['error_pct'] for r in accuracy_results]
+            # Calculate aggregate metrics
+            errors_abs = [r['error_abs'] for r in accuracy_results]
+            errors_pct = [r['error_pct'] for r in accuracy_results]
 
-                mean_error = np.mean(errors_abs)
-                median_error = np.median(errors_abs)
-                std_error = np.std(errors_abs)
+            mean_error = np.mean(errors_abs)
+            median_error = np.median(errors_abs)
+            std_error = np.std(errors_abs)
 
-                # Calculate percentage of predictions within reasonable ranges
-                within_range_20pct = sum(
-            1 for e in errors_abs if e <= 20) / len(errors_abs) * 100
+            # Calculate percentage of predictions within reasonable ranges
+            within_range_20pct = sum(
+                1 for e in errors_abs if e <= 20) / len(errors_abs) * 100
         within_range_30pct = sum(
             1 for e in errors_abs if e <= 30) / len(errors_abs) * 100
         within_range_50pct = sum(
@@ -2065,28 +2065,28 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
             # Individual ML prediction impact (increased penalties/bonuses)
         if expected_return_6m > 20:
 
-                technical_score += 20  # Increased from 15
+            technical_score += 20  # Increased from 15
 
-                reasons.append(
-                    f"ML model predicts strong 6-month return (+{expected_return_6m:.1f}%)")
+            reasons.append(
+                f"ML model predicts strong 6-month return (+{expected_return_6m:.1f}%)")
         elif expected_return_6m > 10:
 
-                technical_score += 15  # Increased from 10
+            technical_score += 15  # Increased from 10
 
-                reasons.append(
-                    f"ML model predicts positive 6-month return (+{expected_return_6m:.1f}%)")
+            reasons.append(
+                f"ML model predicts positive 6-month return (+{expected_return_6m:.1f}%)")
         elif expected_return_6m < -10:
 
-                technical_score -= 25  # Increased from 15
+            technical_score -= 25  # Increased from 15
 
-                warnings.append(
-                    f"ML model predicts negative 6-month return ({expected_return_6m:.1f}%)")
+            warnings.append(
+                f"ML model predicts negative 6-month return ({expected_return_6m:.1f}%)")
         elif expected_return_6m < -5:
 
-                technical_score -= 20  # Increased from 10
+            technical_score -= 20  # Increased from 10
 
-                warnings.append(
-                    f"ML model predicts weak 6-month return ({expected_return_6m:.1f}%)")
+            warnings.append(
+                f"ML model predicts weak 6-month return ({expected_return_6m:.1f}%)")
             elif expected_return_6m < 0:
                 technical_score -= 10  # New: small penalty for any negative return
 
