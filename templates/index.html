@@ -4333,7 +4333,7 @@
         
         <!-- Breadcrumbs -->
         <div id="breadcrumbs" class="breadcrumbs">
-            <a href="#" onclick="showWelcome(); return false;" class="breadcrumb-link">Home</a>
+            <a href="#" onclick="if(typeof window.showWelcome === 'function') { window.showWelcome(); } else { console.error('showWelcome not available'); } return false;" class="breadcrumb-link">Home</a>
             <span class="breadcrumb-separator">›</span>
             <span id="breadcrumbCurrent" class="breadcrumb-current">Welcome</span>
         </div>
@@ -4342,7 +4342,7 @@
         <nav class="sidebar-nav">
             <!-- Analysis Group -->
             <div class="nav-group">
-                <div class="nav-group-header" onclick="toggleNavGroup('analysis')">
+                <div class="nav-group-header" onclick="if(typeof window.toggleNavGroup === 'function') { window.toggleNavGroup('analysis'); } else { console.error('navigateToSection not available'); alert('Please wait, page is still loading...'); } return false;">
                     <span class="nav-group-icon">📊</span>
                     <span class="nav-group-title">Analysis</span>
                     <span class="nav-group-chevron" id="chevron-analysis">▼</span>
@@ -4371,7 +4371,7 @@
             
             <!-- Market Data Group -->
             <div class="nav-group">
-                <div class="nav-group-header" onclick="toggleNavGroup('marketData')">
+                <div class="nav-group-header" onclick="if(typeof window.toggleNavGroup === 'function') { window.toggleNavGroup('marketData'); } else { console.error('navigateToSection not available'); alert('Please wait, page is still loading...'); } return false;">
                     <span class="nav-group-icon">📰</span>
                     <span class="nav-group-title">Market Data</span>
                     <span class="nav-group-chevron" id="chevron-marketData">▼</span>
@@ -4391,7 +4391,7 @@
             
             <!-- Portfolio & Tracking Group -->
             <div class="nav-group">
-                <div class="nav-group-header" onclick="toggleNavGroup('portfolio')">
+                <div class="nav-group-header" onclick="if(typeof window.toggleNavGroup === 'function') { window.toggleNavGroup('portfolio'); } else { console.error('navigateToSection not available'); alert('Please wait, page is still loading...'); } return false;">
                     <span class="nav-group-icon">💼</span>
                     <span class="nav-group-title">Portfolio & Tracking</span>
                     <span class="nav-group-chevron" id="chevron-portfolio">▼</span>
@@ -4411,7 +4411,7 @@
             
             <!-- Research Group -->
             <div class="nav-group">
-                <div class="nav-group-header" onclick="toggleNavGroup('research')">
+                <div class="nav-group-header" onclick="if(typeof window.toggleNavGroup === 'function') { window.toggleNavGroup('research'); } else { console.error('navigateToSection not available'); alert('Please wait, page is still loading...'); } return false;">
                     <span class="nav-group-icon">🔍</span>
                     <span class="nav-group-title">Research</span>
                     <span class="nav-group-chevron" id="chevron-research">▼</span>
@@ -23959,7 +23959,6 @@
         if (typeof showWatchlistGroupManager !== 'undefined') window.showWatchlistGroupManager = showWatchlistGroupManager;
         
         console.log('✅ Functions exported to window scope');
-        }
     </script>
 </body>
 </html>
