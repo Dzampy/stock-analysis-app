@@ -9887,24 +9887,22 @@
                 </div>
             `;
             
-            try {
-                const response = await fetch(`/api/social-sentiment/${ticker}?days=${timeRange}`);
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to fetch social sentiment');
+            const result = await fetchJSON(`/api/social-sentiment/${ticker}?days=${timeRange}`, {}, container);
+            
+            if (!result.success) {
+                // Add retry button to error message
+                const errorContainer = container;
+                if (errorContainer && errorContainer.innerHTML.includes('❌ Error')) {
+                    const retryButton = document.createElement('button');
+                    retryButton.textContent = 'Retry';
+                    retryButton.onclick = () => loadSocialSentiment();
+                    retryButton.style.cssText = 'margin-top: 15px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;';
+                    errorContainer.appendChild(retryButton);
                 }
-                
-                displaySocialSentiment(data, ticker);
-            } catch (error) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #ef4444;">
-                        <p style="font-size: 1.2em; margin-bottom: 10px;">❌ Error</p>
-                        <p>${error.message}</p>
-                        <button onclick="loadSocialSentiment()" style="margin-top: 15px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
-                    </div>
-                `;
+                return; // Error already displayed by fetchJSON
             }
+            
+            displaySocialSentiment(result.data, ticker);
         }
 
         async function loadWatchlistSocialSentiment() {
@@ -10261,23 +10259,13 @@
                 </div>
             `;
             
-            try {
-                const response = await fetch(`/api/ai-recommendations/${ticker}`);
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to fetch recommendations');
-                }
-                
-                displayAIRecommendations(data, ticker);
-            } catch (error) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #ef4444;">
-                        <p style="font-size: 1.2em; margin-bottom: 10px;">❌ Error</p>
-                        <p>${error.message}</p>
-                    </div>
-                `;
+            const result = await fetchJSON(`/api/ai-recommendations/${ticker}`, {}, container);
+            
+            if (!result.success) {
+                return; // Error already displayed by fetchJSON
             }
+            
+            displayAIRecommendations(result.data, ticker);
         }
 
         async function loadPredictionHistory(ticker = null) {
