@@ -20048,10 +20048,10 @@
                             borderWidth: 2,
                             borderRadius: 8,
                             borderSkipped: false,
-                            barThickness: 50,
-                            maxBarThickness: 50,
-                            barPercentage: 0.6,
-                            categoryPercentage: 0.8
+                            barThickness: 45,
+                            maxBarThickness: 45,
+                            barPercentage: 0.5,
+                            categoryPercentage: 0.7
                         },
                         ...(showGrowth ? [] : (expectations && expectations.some(e => e !== null && e !== undefined && !isNaN(e) && e !== 0)) ? [{
                             label: 'Estimate',
@@ -20114,7 +20114,7 @@
                                     size: 11,
                                     weight: '600'
                                 },
-                                padding: 8
+                                padding: 12
                             },
                             grid: {
                                 color: getComputedStyle(document.documentElement).getPropertyValue('--chart-grid').trim() || 'rgba(255, 255, 255, 0.05)',
@@ -20131,7 +20131,7 @@
                                     size: 11,
                                     weight: '600'
                                 },
-                                padding: 10
+                                padding: 15
                             },
                             grid: {
                                 display: false
