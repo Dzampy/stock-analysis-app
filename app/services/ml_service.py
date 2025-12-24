@@ -568,7 +568,7 @@ def _train_random_forest_model(ticker: str,
             f"Training Random Forest model with {len(X_train)} samples and {len(feature_names)} features")
 
                 # Scale features
-                scaler = StandardScaler()
+        scaler = StandardScaler()
                 X_train_scaled = scaler.fit_transform(X_train)
                 
         # Cross-validation for model validation (TimeSeriesSplit for time
