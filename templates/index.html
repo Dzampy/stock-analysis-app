@@ -11833,6 +11833,8 @@
                     }
                 });
             } catch (error) {
+                console.error('Error creating revenue chart:', error);
+            } catch (error) {
                 console.error('Error creating trading strategy chart:', error);
             }
         }
