@@ -99,6 +99,110 @@ def get_portfolio_data():
         raise ExternalAPIError('Failed to calculate portfolio data', service='portfolio')
 
 
+@bp.route('/api/portfolio-history', methods=['POST'])
+def get_portfolio_history():
+    """Get portfolio value history over time"""
+    try:
+        positions = request.json.get('positions', [])
+        if not positions:
+            return jsonify({'error': 'No positions provided'}), 400
+        
+        import yfinance as yf
+        import pandas as pd
+        from datetime import datetime, timedelta
+        import time
+        
+        # Get historical prices for all positions (last 90 days)
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=90)
+        
+        history_data = []
+        tickers = [pos.get('ticker', '').upper().strip() for pos in positions if pos.get('ticker')]
+        
+        if not tickers:
+            return jsonify({'error': 'No valid tickers found'}), 400
+        
+        # Fetch historical prices for each ticker
+        ticker_prices = {}
+        for ticker in tickers:
+            try:
+                stock = yf.Ticker(ticker)
+                hist = stock.history(start=start_date, end=end_date)
+                if not hist.empty:
+                    ticker_prices[ticker] = hist['Close'].to_dict()
+                time.sleep(0.2)  # Rate limiting
+            except Exception as e:
+                logger.warning(f"Error fetching history for {ticker}: {str(e)}")
+                continue
+        
+        if not ticker_prices:
+            return jsonify({'error': 'Unable to fetch historical data'}), 500
+        
+        # Get all unique dates from all tickers
+        all_dates = set()
+        for prices in ticker_prices.values():
+            all_dates.update(prices.keys())
+        
+        all_dates = sorted(all_dates)
+        
+        # Calculate portfolio value for each date
+        portfolio_history = []
+        for date in all_dates:
+            total_value = 0
+            for pos in positions:
+                ticker = pos.get('ticker', '').upper().strip()
+                shares = float(pos.get('shares', 0))
+                
+                if ticker in ticker_prices:
+                    # Find closest price to this date (or use previous price if not available)
+                    date_str = date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date)
+                    prices = ticker_prices[ticker]
+                    
+                    # Find price for this date or the most recent price before this date
+                    price = None
+                    for price_date in sorted(prices.keys(), reverse=True):
+                        if price_date <= date:
+                            price = prices[price_date]
+                            break
+                    
+                    if price:
+                        total_value += shares * float(price)
+            
+            if total_value > 0:
+                portfolio_history.append({
+                    'date': date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date),
+                    'value': round(total_value, 2)
+                })
+        
+        # Also get S&P 500 for comparison (optional)
+        sp500_history = []
+        try:
+            sp500 = yf.Ticker('^GSPC')
+            sp500_hist = sp500.history(start=start_date, end=end_date)
+            if not sp500_hist.empty:
+                # Normalize to start at 100 for percentage comparison
+                base_value = float(sp500_hist['Close'].iloc[0])
+                for date, close_price in sp500_hist['Close'].items():
+                    normalized = (float(close_price) / base_value) * 100
+                    sp500_history.append({
+                        'date': date.strftime('%Y-%m-%d') if hasattr(date, 'strftime') else str(date),
+                        'value': round(normalized, 2)
+                    })
+        except Exception as e:
+            logger.warning(f"Error fetching S&P 500 history: {str(e)}")
+        
+        return jsonify(clean_for_json({
+            'history': portfolio_history,
+            'sp500_history': sp500_history,
+            'start_date': start_date.strftime('%Y-%m-%d'),
+            'end_date': end_date.strftime('%Y-%m-%d')
+        }))
+        
+    except Exception as e:
+        logger.exception(f"Error calculating portfolio history")
+        raise ExternalAPIError('Failed to calculate portfolio history', service='portfolio')
+
+
 @bp.route('/api/analyze-watchlist-summary', methods=['POST'])
 def analyze_watchlist_summary():
     """Analyze watchlist and provide summary"""

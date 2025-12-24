@@ -83,6 +83,20 @@ def get_financials(ticker):
             logger.warning(f"Failed to get peer comparison for {ticker_upper}: {str(peer_error)}")
             # Don't fail the whole request if peer comparison fails
         
+        # Add sector averages (optional, don't fail if it doesn't work)
+        try:
+            sector = financials.get('sector', '')
+            industry = financials.get('industry', '')
+            if sector and sector != 'N/A':
+                from app.services.sector_service import get_sector_averages
+                sector_averages = get_sector_averages(sector, industry)
+                if sector_averages:
+                    financials['sector_averages'] = sector_averages
+                    logger.info(f"Added sector averages for {ticker_upper} (sector: {sector})")
+        except Exception as sector_error:
+            logger.warning(f"Failed to get sector averages for {ticker_upper}: {str(sector_error)}")
+            # Don't fail the whole request if sector averages fails
+        
         logger.info(f"Successfully prepared financials data for {ticker_upper}")
         return jsonify(clean_for_json(financials))
         

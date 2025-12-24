@@ -9589,13 +9589,15 @@
         }
 
         // Universal fetch helper with error handling and retry
-        async function safeFetch(url, options = {}, retries = 2) {
+        async function safeFetch(url, options = {}, retries = 3) {
             const defaultOptions = {
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 ...options
             };
+            
+            let lastError = null;
             
             for (let attempt = 0; attempt <= retries; attempt++) {
                 try {
@@ -9612,48 +9614,100 @@
                             errorMessage = response.statusText || errorMessage;
                         }
                         
-                        // Retry on 5xx errors (server errors)
-                        if (response.status >= 500 && attempt < retries) {
-                            await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // Exponential backoff
+                        lastError = new Error(errorMessage);
+                        
+                        // Retry on 5xx errors (server errors) and 429 (rate limit)
+                        const shouldRetry = (response.status >= 500 || response.status === 429) && attempt < retries;
+                        
+                        if (shouldRetry) {
+                            // Exponential backoff: 1s, 2s, 4s with jitter
+                            const baseDelay = Math.pow(2, attempt) * 1000;
+                            const jitter = Math.random() * 1000;
+                            const delay = baseDelay + jitter;
+                            console.log(`Retrying request (attempt ${attempt + 1}/${retries + 1}) after ${Math.round(delay)}ms...`);
+                            await new Promise(resolve => setTimeout(resolve, delay));
                             continue;
                         }
                         
-                        throw new Error(errorMessage);
+                        throw lastError;
+                    }
+                    
+                    // Success - store timestamp for data freshness tracking
+                    if (window.dataTimestamps) {
+                        window.dataTimestamps[url] = Date.now();
                     }
                     
                     return response;
                 } catch (error) {
-                    // Network errors - retry
-                    if (error.name === 'TypeError' && error.message.includes('fetch') && attempt < retries) {
-                        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+                    lastError = error;
+                    
+                    // Network errors, timeout, or connection errors - retry
+                    const isNetworkError = error.name === 'TypeError' && 
+                                         (error.message.includes('fetch') || 
+                                          error.message.includes('network') ||
+                                          error.message.includes('Failed to fetch'));
+                    
+                    if (isNetworkError && attempt < retries) {
+                        // Exponential backoff: 1s, 2s, 4s with jitter
+                        const baseDelay = Math.pow(2, attempt) * 1000;
+                        const jitter = Math.random() * 1000;
+                        const delay = baseDelay + jitter;
+                        console.log(`Network error, retrying (attempt ${attempt + 1}/${retries + 1}) after ${Math.round(delay)}ms...`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
                         continue;
                     }
                     
                     // Last attempt failed or non-retryable error
                     if (attempt === retries) {
-                        throw error;
+                        throw lastError;
                     }
                 }
             }
+            
+            // Should never reach here, but just in case
+            throw lastError || new Error('Request failed after all retries');
         }
         
-        // Helper to fetch JSON with automatic error handling
+        // Helper to fetch JSON with automatic error handling and retry mechanism
         async function fetchJSON(url, options = {}, containerElement = null) {
             try {
                 const response = await safeFetch(url, options);
                 const data = await response.json();
-                return { success: true, data };
+                
+                // Store timestamp for data freshness tracking
+                if (window.dataTimestamps) {
+                    window.dataTimestamps[url] = Date.now();
+                } else {
+                    window.dataTimestamps = {};
+                    window.dataTimestamps[url] = Date.now();
+                }
+                
+                return { success: true, data, timestamp: Date.now() };
             } catch (error) {
                 console.error(`Error fetching ${url}:`, error);
                 
                 // Show user-friendly error if container is provided
                 if (containerElement) {
                     const errorMessage = error.message || 'An unexpected error occurred';
+                    const isNetworkError = error.message && (
+                        error.message.includes('fetch') || 
+                        error.message.includes('network') ||
+                        error.message.includes('Failed to fetch')
+                    );
+                    
+                    const errorDetails = isNetworkError 
+                        ? 'Network connection error. Please check your internet connection and try again.'
+                        : errorMessage;
+                    
                     containerElement.innerHTML = `
                         <div style="text-align: center; padding: 40px; color: #ef4444;">
-                            <p style="font-size: 1.2em; margin-bottom: 10px;">❌ Error</p>
-                            <p style="margin-bottom: 15px;">${errorMessage}</p>
-                            <button onclick="location.reload()" style="margin-top: 15px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
+                            <div style="font-size: 3em; margin-bottom: 15px;">❌</div>
+                            <p style="font-size: 1.2em; margin-bottom: 10px; font-weight: 600;">Error Loading Data</p>
+                            <p style="margin-bottom: 20px; color: var(--text-secondary); max-width: 500px; margin-left: auto; margin-right: auto;">${errorDetails}</p>
+                            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                                <button onclick="location.reload()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s;" onmouseover="this.style.background='#5568d3'" onmouseout="this.style.background='#667eea'">🔄 Reload Page</button>
+                                <button onclick="window.location.reload()" style="padding: 10px 20px; background: var(--input-bg); color: var(--text-primary); border: 2px solid var(--input-border); border-radius: 8px; cursor: pointer; font-weight: 600;">Retry Request</button>
+                            </div>
                         </div>
                     `;
                 } else {
@@ -12003,13 +12057,61 @@
             container.innerHTML = html;
         }
 
+        // Initialize data timestamps tracking
+        if (!window.dataTimestamps) {
+            window.dataTimestamps = {};
+        }
+        
+        // Universal function to track data timestamp for any URL/endpoint
+        function trackDataTimestamp(url, timestamp = null) {
+            if (!window.dataTimestamps) {
+                window.dataTimestamps = {};
+            }
+            window.dataTimestamps[url] = timestamp || Date.now();
+        }
+        
+        // Universal function to get data freshness for a URL
+        function getDataFreshness(url) {
+            if (!window.dataTimestamps || !window.dataTimestamps[url]) {
+                return null;
+            }
+            const timestamp = window.dataTimestamps[url];
+            const diffMs = Date.now() - timestamp;
+            const diffMinutes = Math.floor(diffMs / 60000);
+            return { timestamp, diffMinutes, isFresh: diffMinutes < 15 };
+        }
+        
         // Data Freshness Functions
-        function updateDataFreshnessIndicator(timestamp) {
-            const indicator = document.getElementById('dataFreshnessIndicator');
-            const lastUpdatedEl = document.getElementById('dataLastUpdated');
-            const refreshBtn = document.getElementById('refreshDataBtn');
+        function updateDataFreshnessIndicator(timestamp, containerId = null) {
+            // Use default indicator if no containerId provided (for Stock Analysis section)
+            const indicator = containerId ? 
+                document.getElementById(`${containerId}_freshnessIndicator`) : 
+                document.getElementById('dataFreshnessIndicator');
+            const lastUpdatedEl = containerId ? 
+                document.getElementById(`${containerId}_lastUpdated`) : 
+                document.getElementById('dataLastUpdated');
+            const refreshBtn = containerId ? 
+                indicator?.querySelector('button') : 
+                document.getElementById('refreshDataBtn');
             
-            if (!indicator || !lastUpdatedEl) return;
+            if (!indicator || !lastUpdatedEl) {
+                // If indicator doesn't exist and containerId is provided, create it
+                if (containerId) {
+                    const container = document.getElementById(containerId);
+                    if (container) {
+                        const freshnessHtml = `
+                            <div id="${containerId}_freshnessIndicator" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; padding: 8px 12px; background: var(--metric-bg); border-radius: 8px; font-size: 0.85em; border-left: 3px solid #10b981;">
+                                <span id="${containerId}_lastUpdated" style="color: var(--text-secondary);"></span>
+                                <button onclick="refreshSectionData('${containerId}')" style="padding: 4px 8px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em; font-weight: 600;">🔄 Refresh</button>
+                            </div>
+                        `;
+                        container.insertAdjacentHTML('afterbegin', freshnessHtml);
+                        // Recursively call with newly created elements
+                        return updateDataFreshnessIndicator(timestamp, containerId);
+                    }
+                }
+                return;
+            }
             
             if (!timestamp) {
                 indicator.style.display = 'none';
@@ -12019,23 +12121,27 @@
             indicator.style.display = 'flex';
             
             const now = new Date();
-            const lastUpdated = new Date(timestamp);
+            const lastUpdated = typeof timestamp === 'string' ? new Date(timestamp) : new Date(timestamp);
             const diffMs = now - lastUpdated;
             const diffMinutes = Math.floor(diffMs / 60000);
             const diffSeconds = Math.floor((diffMs % 60000) / 1000);
             
             let timeText = '';
             let status = 'fresh';
+            let statusColor = '#10b981'; // Green for fresh
             
             if (diffMinutes < 1) {
                 timeText = `Updated ${diffSeconds} second${diffSeconds !== 1 ? 's' : ''} ago`;
                 status = 'fresh';
+                statusColor = '#10b981';
             } else if (diffMinutes < 5) {
                 timeText = `Updated ${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
                 status = 'fresh';
+                statusColor = '#10b981';
             } else if (diffMinutes < 15) {
                 timeText = `Updated ${diffMinutes} minutes ago`;
                 status = 'stale';
+                statusColor = '#f59e0b'; // Yellow for stale
             } else {
                 const diffHours = Math.floor(diffMinutes / 60);
                 if (diffHours < 1) {
@@ -12047,31 +12153,78 @@
                     timeText = `Updated ${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
                 }
                 status = 'very-stale';
+                statusColor = '#ef4444'; // Red for very stale
             }
             
             lastUpdatedEl.textContent = timeText;
-            indicator.className = `data-freshness-indicator ${status}`;
+            lastUpdatedEl.style.color = statusColor;
             
-            // Show refresh button if data is older than 5 minutes
-            if (diffMinutes >= 5) {
-                refreshBtn.style.display = 'inline-block';
-                if (diffMinutes >= 15) {
-                    refreshBtn.classList.add('stale');
-                } else {
-                    refreshBtn.classList.remove('stale');
-                }
+            // Update indicator styling based on status
+            if (containerId) {
+                indicator.style.borderLeft = `3px solid ${statusColor}`;
             } else {
-                refreshBtn.style.display = 'none';
-                refreshBtn.classList.remove('stale');
+                indicator.className = `data-freshness-indicator ${status}`;
             }
             
-            // Update every minute
-            if (diffMinutes < 60) {
-                setTimeout(() => {
+            // Show refresh button if data is older than 15 minutes
+            if (refreshBtn) {
+                if (diffMinutes >= 15) {
+                    refreshBtn.style.display = 'inline-block';
+                    if (containerId) {
+                        refreshBtn.style.display = 'inline-block';
+                    } else {
+                        refreshBtn.style.display = 'inline-block';
+                        refreshBtn.classList.add('stale');
+                    }
+                } else if (diffMinutes >= 5) {
+                    refreshBtn.style.display = 'inline-block';
+                    if (!containerId) {
+                        refreshBtn.classList.remove('stale');
+                    }
+                } else {
+                    refreshBtn.style.display = 'none';
+                    if (!containerId) {
+                        refreshBtn.classList.remove('stale');
+                    }
+                }
+            }
+            
+            // Update every minute for default indicator (Stock Analysis)
+            if (!containerId && diffMinutes < 60) {
+                if (window.freshnessUpdateInterval) {
+                    clearInterval(window.freshnessUpdateInterval);
+                }
+                window.freshnessUpdateInterval = setTimeout(() => {
                     if (currentData && currentData.lastUpdated) {
                         updateDataFreshnessIndicator(currentData.lastUpdated);
                     }
                 }, 60000);
+            }
+        }
+        
+        // Helper function to refresh section data (can be overridden per section)
+        function refreshSectionData(containerId) {
+            // Map container IDs to their refresh functions
+            const refreshFunctions = {
+                'financialsContent': () => {
+                    const ticker = document.getElementById('financialsTickerInput')?.value?.trim().toUpperCase();
+                    if (ticker) {
+                        loadFinancials();
+                    }
+                },
+                'portfolioTableContainer': () => calculatePortfolio(false),
+                'portfolioPerformanceContainer': () => calculatePortfolio(true),
+                'aiRecommendationsContent': loadAIRecommendations,
+                'backtestContent': loadBacktest,
+                // Add more mappings as needed
+            };
+            
+            const refreshFn = refreshFunctions[containerId];
+            if (refreshFn && typeof refreshFn === 'function') {
+                refreshFn();
+            } else {
+                // Default: reload page
+                console.warn(`No refresh function found for container: ${containerId}`);
             }
         }
 
@@ -16353,17 +16506,21 @@
             try {
                 // Add to recent searches
                 console.log('[DEBUG] loadFinancials: Fetching financials data for', ticker);
-                const response = await fetch(`/api/financials/${ticker}`);
-                const data = await response.json();
+                const result = await fetchJSON(`/api/financials/${ticker}`, {}, container);
+                
+                if (!result.success) {
+                    return; // Error already displayed by fetchJSON
+                }
+                
+                const data = result.data;
+                trackDataTimestamp(`/api/financials/${ticker}`, result.timestamp || Date.now());
+                updateDataFreshnessIndicator(result.timestamp || new Date().toISOString(), 'financialsContent');
+                
                 console.log('[DEBUG] loadFinancials: Data received', {
                     hasData: !!data,
                     hasForwardEstimates: !!data.forward_estimates,
                     dataKeys: Object.keys(data || {})
                 });
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to fetch financial data');
-                }
 
                 // Add to recent searches
                 const companyName = data.company_name || ticker;
@@ -16547,6 +16704,7 @@
                     <h3 style="display: flex; align-items: center; gap: 10px;">
                         🧠 Overview
                         <span style="font-size: 0.7em; font-weight: normal; color: var(--text-secondary);">(Snapshot)</span>
+                        ${data.sector_averages ? `<span style="font-size: 0.7em; font-weight: normal; color: #667eea; margin-left: auto;">📊 Sector: ${data.sector_averages.sector} (avg from ${data.sector_averages.sample_size} companies)</span>` : ''}
                     </h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
             `;
@@ -16855,6 +17013,144 @@
             }
 
             html += `</div></div>`;
+
+            // 2.5. 📊 Sector Comparison Section
+            if (data.sector_averages && data.sector_averages.averages) {
+                const sectorAvgs = data.sector_averages.averages;
+                const info = data.info || {};
+                
+                html += `
+                    <div class="card" style="margin-bottom: 30px;">
+                        <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                            📊 Sector Comparison
+                            <span style="font-size: 0.7em; font-weight: normal; color: var(--text-secondary);">(${data.sector_averages.sector} - Average from ${data.sector_averages.sample_size} companies)</span>
+                        </h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                `;
+                
+                // Helper function to format comparison
+                const formatComparison = (current, sectorAvg, format = 'number', unit = '') => {
+                    if (current === null || current === undefined || sectorAvg === null || sectorAvg === undefined) {
+                        return { html: '', color: 'var(--text-secondary)' };
+                    }
+                    
+                    const diff = current - sectorAvg;
+                    const diffPercent = sectorAvg !== 0 ? (diff / Math.abs(sectorAvg)) * 100 : 0;
+                    const isBetter = Math.abs(diffPercent) > 5; // Only highlight if > 5% difference
+                    const color = isBetter ? (diff > 0 ? '#10b981' : '#ef4444') : 'var(--text-secondary)';
+                    const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
+                    
+                    let currentFormatted = '';
+                    let sectorFormatted = '';
+                    
+                    if (format === 'percent') {
+                        currentFormatted = (current * 100).toFixed(2) + '%';
+                        sectorFormatted = (sectorAvg * 100).toFixed(2) + '%';
+                    } else if (format === 'ratio') {
+                        currentFormatted = current.toFixed(2) + unit;
+                        sectorFormatted = sectorAvg.toFixed(2) + unit;
+                    } else {
+                        currentFormatted = current.toFixed(2) + unit;
+                        sectorFormatted = sectorAvg.toFixed(2) + unit;
+                    }
+                    
+                    return {
+                        html: `
+                            <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px; border-left: 3px solid ${color};">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div style="font-size: 0.85em; color: var(--text-secondary); font-weight: 600;">Current</div>
+                                    <div style="font-size: 1.2em; font-weight: 700; color: var(--text-primary);">${currentFormatted}</div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
+                                    <div style="font-size: 0.85em; color: var(--text-secondary);">Sector Avg</div>
+                                    <div style="font-size: 1em; font-weight: 600; color: var(--text-secondary);">${sectorFormatted}</div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
+                                    <div style="font-size: 0.8em; color: var(--text-secondary);">vs. Sector</div>
+                                    <div style="font-size: 0.9em; font-weight: 600; color: ${color};">
+                                        ${arrow} ${Math.abs(diffPercent).toFixed(1)}%
+                                    </div>
+                                </div>
+                            </div>
+                        `,
+                        color: color
+                    };
+                };
+                
+                // P/E Ratio
+                if (info.trailingPE !== null && info.trailingPE !== undefined && sectorAvgs.pe_ratio !== null && sectorAvgs.pe_ratio !== undefined) {
+                    const comp = formatComparison(info.trailingPE, sectorAvgs.pe_ratio, 'ratio', '×');
+                    html += `
+                        <div>
+                            <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">P/E Ratio</div>
+                            ${comp.html}
+                        </div>
+                    `;
+                }
+                
+                // Profit Margin
+                if (info.profitMargins !== null && info.profitMargins !== undefined && sectorAvgs.profit_margin !== null && sectorAvgs.profit_margin !== undefined) {
+                    const comp = formatComparison(info.profitMargins, sectorAvgs.profit_margin, 'percent');
+                    html += `
+                        <div>
+                            <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">Profit Margin</div>
+                            ${comp.html}
+                        </div>
+                    `;
+                }
+                
+                // Operating Margin
+                if (info.operatingMargins !== null && info.operatingMargins !== undefined && sectorAvgs.operating_margin !== null && sectorAvgs.operating_margin !== undefined) {
+                    const comp = formatComparison(info.operatingMargins, sectorAvgs.operating_margin, 'percent');
+                    html += `
+                        <div>
+                            <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">Operating Margin</div>
+                            ${comp.html}
+                        </div>
+                    `;
+                }
+                
+                // Revenue Growth
+                if (info.revenueGrowth !== null && info.revenueGrowth !== undefined && sectorAvgs.revenue_growth !== null && sectorAvgs.revenue_growth !== undefined) {
+                    const comp = formatComparison(info.revenueGrowth, sectorAvgs.revenue_growth, 'percent');
+                    html += `
+                        <div>
+                            <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">Revenue Growth</div>
+                            ${comp.html}
+                        </div>
+                    `;
+                }
+                
+                // ROE
+                if (info.returnOnEquity !== null && info.returnOnEquity !== undefined && sectorAvgs.return_on_equity !== null && sectorAvgs.return_on_equity !== undefined) {
+                    const comp = formatComparison(info.returnOnEquity, sectorAvgs.return_on_equity, 'percent');
+                    html += `
+                        <div>
+                            <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">Return on Equity (ROE)</div>
+                            ${comp.html}
+                        </div>
+                    `;
+                }
+                
+                // Debt to Equity
+                if (info.debtToEquity !== null && info.debtToEquity !== undefined && sectorAvgs.debt_to_equity !== null && sectorAvgs.debt_to_equity !== undefined) {
+                    const comp = formatComparison(info.debtToEquity, sectorAvgs.debt_to_equity, 'ratio', '×');
+                    html += `
+                        <div>
+                            <div style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">Debt to Equity</div>
+                            ${comp.html}
+                        </div>
+                    `;
+                }
+                
+                html += `
+                        </div>
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(102, 126, 234, 0.05); border-radius: 10px; font-size: 0.85em; color: var(--text-secondary);">
+                            <strong>💡 Tip:</strong> Porovnání se sektorem pomáhá posoudit, jak si firma vede relativně ke konkurenci. Zelená šipka ↑ = nad průměrem, červená ↓ = pod průměrem.
+                        </div>
+                    </div>
+                `;
+            }
 
             // 2. 📈 Performance Section (Revenue, Earnings) - Advanced Bar Charts
             const incomeData = data.income_statement?.[financialsPeriod] || [];
@@ -21534,6 +21830,19 @@
                     </div>
                 </div>
                 
+                <div style="padding: 25px; background: var(--bg-card); border: 2px solid var(--border-color); border-radius: 12px; margin-bottom: 30px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0; color: var(--text-primary);">Portfolio Value History (90 Days)</h3>
+                        <button onclick="loadPortfolioHistory()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">🔄 Refresh History</button>
+                    </div>
+                    <div id="portfolioHistoryChartContainer" style="position: relative; height: 350px;">
+                        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                            <div class="spinner" style="margin: 0 auto 20px;"></div>
+                            <p>Loading portfolio history...</p>
+                        </div>
+                    </div>
+                </div>
+                
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px; margin-bottom: 30px;">
                     <div style="padding: 25px; background: var(--bg-card); border: 2px solid var(--border-color); border-radius: 12px;">
                         <h3 style="margin-bottom: 20px; color: var(--text-primary);">Sector Allocation</h3>
@@ -21552,7 +21861,160 @@
             setTimeout(() => {
                 renderSectorChart(data);
                 renderGainersLosersChart(data);
+                loadPortfolioHistory(); // Load portfolio history
             }, 100);
+        }
+        
+        async function loadPortfolioHistory() {
+            if (portfolioPositions.length === 0) {
+                const container = document.getElementById('portfolioHistoryChartContainer');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                            <p>No positions in portfolio. Add positions to view history.</p>
+                        </div>
+                    `;
+                }
+                return;
+            }
+            
+            const container = document.getElementById('portfolioHistoryChartContainer');
+            if (!container) return;
+            
+            try {
+                const result = await fetchJSON('/api/portfolio-history', {
+                    method: 'POST',
+                    body: JSON.stringify({ positions: portfolioPositions })
+                }, container);
+                
+                if (!result.success) {
+                    return; // Error already displayed
+                }
+                
+                const historyData = result.data;
+                trackDataTimestamp('/api/portfolio-history', result.timestamp || Date.now());
+                
+                renderPortfolioHistoryChart(historyData);
+            } catch (error) {
+                console.error('Error loading portfolio history:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ef4444;">
+                        <p>Error loading portfolio history: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function renderPortfolioHistoryChart(historyData) {
+            const container = document.getElementById('portfolioHistoryChartContainer');
+            if (!container) return;
+            
+            const history = historyData.history || [];
+            const sp500History = historyData.sp500_history || [];
+            
+            if (history.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <p>No history data available.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = '<canvas id="portfolioHistoryChart" style="max-height: 350px;"></canvas>';
+            
+            const ctx = document.getElementById('portfolioHistoryChart');
+            if (!ctx) return;
+            
+            // Normalize portfolio values to percentage (start at 100)
+            const baseValue = history[0]?.value || 1;
+            const portfolioLabels = history.map(h => h.date);
+            const portfolioValues = history.map(h => ((h.value / baseValue) * 100).toFixed(2));
+            
+            const datasets = [{
+                label: 'Portfolio Value',
+                data: portfolioValues,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }];
+            
+            // Add S&P 500 comparison if available
+            if (sp500History.length > 0) {
+                const sp500Labels = sp500History.map(h => h.date);
+                const sp500Values = sp500History.map(h => h.value); // Already normalized
+                
+                // Match dates
+                const alignedSp500Values = portfolioLabels.map(date => {
+                    const match = sp500History.find(h => h.date === date);
+                    return match ? match.value : null;
+                });
+                
+                datasets.push({
+                    label: 'S&P 500 (normalized)',
+                    data: alignedSp500Values,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.4,
+                    borderDash: [5, 5]
+                });
+            }
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: portfolioLabels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: 'var(--text-primary)'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + parseFloat(context.parsed.y).toFixed(2) + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: 'var(--text-secondary)',
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: {
+                                color: 'var(--border-color)'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: 'var(--text-secondary)',
+                                callback: function(value) {
+                                    return value.toFixed(0) + '%';
+                                }
+                            },
+                            grid: {
+                                color: 'var(--border-color)'
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         function renderSectorChart(data) {
