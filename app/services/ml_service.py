@@ -1111,16 +1111,30 @@ def predict_price(features, current_price, df=None):
 
             predictions[timeframe] = {
                 'price': float(predicted_price),
-
                 'confidence': float(confidence)
-
             }
 
             # Calculate expected return from CAPPED predicted price to match displayed price
             # This ensures percentage matches what the user actually sees
-            expected_return = ((predicted_price - current_price) /
-                               current_price) * 100 if current_price > 0 else 0
+            # CRITICAL: Use the same current_price that was used to calculate predicted_price
+            if current_price <= 0:
+                expected_return = 0.0
+            else:
+                expected_return = ((predicted_price - current_price) / current_price) * 100
+                # Ensure expected_return is a valid float
+                if not isinstance(expected_return, (int, float)) or not np.isfinite(expected_return):
+                    logger.warning(f"Invalid expected_return for {timeframe}: {expected_return}, predicted_price={predicted_price}, current_price={current_price}")
+                    expected_return = 0.0
+            
+            # Additional validation: if predicted_price equals current_price, expected_return should be 0
+            if abs(predicted_price - current_price) < 0.01:
+                expected_return = 0.0
+            
             expected_returns[timeframe] = float(expected_return)
+            
+            # Debug logging for 12M to diagnose the issue
+            if timeframe == '12m':
+                logger.debug(f"12M prediction: current_price=${current_price:.2f}, predicted_price=${predicted_price:.2f}, expected_return={expected_return:.2f}%")
 
             # Confidence intervals using percentage-based ranges (more realistic than std-based)
             # Use timeframe-specific percentage ranges that scale reasonably
