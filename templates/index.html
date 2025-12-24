@@ -5544,7 +5544,8 @@
             if (targetSection) {
                 
                 targetSection.classList.remove('hidden');
-                targetSection.style.removeProperty('display'); // Remove inline display to use CSS                const computed = window.getComputedStyle(targetSection);
+                targetSection.style.removeProperty('display'); // Remove inline display to use CSS
+                const computed = window.getComputedStyle(targetSection);
                 
                 console.log('Showing section:', sectionId, 'has hidden class:', targetSection.classList.contains('hidden'), 'computed display:', window.getComputedStyle(targetSection).display);
                 
