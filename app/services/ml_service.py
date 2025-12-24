@@ -847,12 +847,20 @@ def predict_price(features, current_price, df=None):
         cache_key = f"rf_v{MODEL_CACHE_VERSION}_{ticker}"
         
         # Check cache
+        model = None
+        scaler = None
         if cache_key in _model_cache:
-            model = _model_cache[cache_key]
-            scaler = _scaler_cache.get(cache_key)
-            logger.debug(f"Using cached model for {ticker}")
-        else:
-
+            cached_model = _model_cache[cache_key]
+            # Only use cached model if it's not None
+            if cached_model is not None:
+                model = cached_model
+                scaler = _scaler_cache.get(cache_key)
+                logger.debug(f"Using cached model for {ticker}")
+            else:
+                logger.debug(f"Cached model is None for {ticker}, will use momentum-based estimates")
+        
+        # If no valid model from cache, train new one
+        if model is None:
             # Train new model with extended historical data
             logger.info(f"Training new ML model for {ticker}")
             model, scaler = _train_random_forest_model(
@@ -861,9 +869,16 @@ def predict_price(features, current_price, df=None):
                 _model_cache[cache_key] = model
                 if scaler:
                     _scaler_cache[cache_key] = scaler
-        logger.info(f"Model trained and cached for {ticker}")
+                logger.info(f"Model trained and cached for {ticker}")
+            else:
+                # Training failed - cache None to avoid retrying immediately
+                _model_cache[cache_key] = None
+                if scaler:
+                    _scaler_cache[cache_key] = scaler
+                logger.warning(f"Model training failed for {ticker}")
         
-        if not model:
+        # CRITICAL: Check if model is None after cache lookup/training
+        if model is None:
             # Model training failed - use momentum-based estimates with clear
             # warning
             logger.warning(
