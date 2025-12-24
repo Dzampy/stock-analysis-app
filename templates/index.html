@@ -17021,11 +17021,11 @@
                 
                 html += `
                     <div class="card" style="margin-bottom: 30px;">
-                        <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                        <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-size: 1.1em;">
                             📊 Sector Comparison
                             <span style="font-size: 0.7em; font-weight: normal; color: var(--text-secondary);">(${data.sector_averages.sector} - Average from ${data.sector_averages.sample_size} companies)</span>
                         </h3>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                 `;
                 
                 // Helper function to format comparison
@@ -17056,18 +17056,18 @@
                     
                     return {
                         html: `
-                            <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px; border-left: 3px solid ${color};">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <div style="font-size: 0.85em; color: var(--text-secondary); font-weight: 600;">Current</div>
-                                    <div style="font-size: 1.2em; font-weight: 700; color: var(--text-primary);">${currentFormatted}</div>
+                            <div style="padding: 10px; background: var(--metric-bg); border-radius: 8px; border-left: 3px solid ${color};">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <div style="font-size: 0.8em; color: var(--text-secondary); font-weight: 600;">Current</div>
+                                    <div style="font-size: 1em; font-weight: 700; color: var(--text-primary);">${currentFormatted}</div>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
-                                    <div style="font-size: 0.85em; color: var(--text-secondary);">Sector Avg</div>
-                                    <div style="font-size: 1em; font-weight: 600; color: var(--text-secondary);">${sectorFormatted}</div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-top: 6px; border-top: 1px solid var(--border-color);">
+                                    <div style="font-size: 0.75em; color: var(--text-secondary);">Sector Avg</div>
+                                    <div style="font-size: 0.85em; font-weight: 600; color: var(--text-secondary);">${sectorFormatted}</div>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color);">
-                                    <div style="font-size: 0.8em; color: var(--text-secondary);">vs. Sector</div>
-                                    <div style="font-size: 0.9em; font-weight: 600; color: ${color};">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-color);">
+                                    <div style="font-size: 0.75em; color: var(--text-secondary);">vs. Sector</div>
+                                    <div style="font-size: 0.85em; font-weight: 600; color: ${color};">
                                         ${arrow} ${Math.abs(diffPercent).toFixed(1)}%
                                     </div>
                                 </div>
@@ -17145,7 +17145,7 @@
                 
                 html += `
                         </div>
-                        <div style="margin-top: 20px; padding: 15px; background: rgba(102, 126, 234, 0.05); border-radius: 10px; font-size: 0.85em; color: var(--text-secondary);">
+                        <div style="margin-top: 12px; padding: 10px; background: rgba(102, 126, 234, 0.05); border-radius: 8px; font-size: 0.8em; color: var(--text-secondary);">
                             <strong>💡 Tip:</strong> Porovnání se sektorem pomáhá posoudit, jak si firma vede relativně ke konkurenci. Zelená šipka ↑ = nad průměrem, červená ↓ = pod průměrem.
                         </div>
                     </div>
