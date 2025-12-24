@@ -17171,15 +17171,17 @@
             if (incomeData.length > 0) {
                 html += `
                     <!-- Revenue Chart -->
-                    <div style="margin-bottom: 40px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <div style="margin-bottom: 50px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                             <h4 style="margin: 0; font-size: 1.2em; color: var(--text-primary);">${data.company_name || ticker} Revenue</h4>
                             <div style="display: flex; gap: 5px; background: var(--metric-bg); padding: 4px; border-radius: 8px;">
                                 <button class="performance-tab-btn active" onclick="switchPerformanceTab('revenue', 'value')" data-metric="revenue" data-type="value" style="padding: 6px 14px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;">Revenue</button>
                                 <button class="performance-tab-btn" onclick="switchPerformanceTab('revenue', 'growth')" data-metric="revenue" data-type="growth" style="padding: 6px 14px; background: transparent; color: var(--text-primary); border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;">Revenue Growth</button>
                             </div>
                         </div>
-                        <canvas id="revenueChart" style="max-height: 350px; min-height: 300px; width: 100%; display: block;"></canvas>
+                        <div style="padding: 25px; background: var(--metric-bg); border-radius: 12px;">
+                            <canvas id="revenueChart" style="max-height: 450px; min-height: 400px; width: 100% !important; display: block;"></canvas>
+                        </div>
                     </div>
                     
                     <!-- EPS Chart -->
