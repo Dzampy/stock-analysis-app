@@ -4488,7 +4488,7 @@
         </div>
 
         <!-- Welcome Section -->
-        <div id="welcomeSection" class="welcome-section hidden" style="display: none !important;">
+        <div id="welcomeSection" class="welcome-section hidden">
             <div class="welcome-header">
                 <h2>Welcome to Stock Analysis Tool! 👋</h2>
                 <p>Get started with professional stock analysis in just a few clicks. Perfect for beginners and experienced investors alike.</p>
@@ -23937,6 +23937,9 @@
         if (typeof toggleExplanation !== 'undefined') window.toggleExplanation = toggleExplanation;
         if (typeof toggleWatchlistGroup !== 'undefined') window.toggleWatchlistGroup = toggleWatchlistGroup;
         if (typeof showWatchlistGroupManager !== 'undefined') window.showWatchlistGroupManager = showWatchlistGroupManager;
+        
+        console.log('✅ Functions exported to window scope');
+        }
     </script>
 </body>
 </html>
