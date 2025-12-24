@@ -18450,8 +18450,8 @@
                 // Render sparklines
                 renderSparklines();
                 
-                // Create sector comparison bars
-                if (data.peer_comparison && data.peer_comparison.peers && data.peer_comparison.peers.length > 0) {
+                // Create sector comparison bars - REMOVED
+                if (false && data.peer_comparison && data.peer_comparison.peers && data.peer_comparison.peers.length > 0) {
                     try {
                         createSectorComparisonChart(data, ticker);
                     } catch (e) {
