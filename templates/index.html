@@ -4507,7 +4507,7 @@
                     </div>
                 </div>
                 
-                <div class="quick-start-card" onclick="showNews(); document.getElementById('newsTickerInput').focus();">
+                <div class="quick-start-card" onclick="if(typeof window.showNews === 'function') { window.showNews(); setTimeout(function() { const input = document.getElementById('newsTickerInput'); if(input) input.focus(); }, 300); } else { console.error('showNews not available'); alert('Loading... Please wait a moment and try again.'); }">
                     <div style="position: relative;">
                         <div class="quick-start-card-icon">📰</div>
                         <div style="position: absolute; top: -10px; right: -10px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 8px 12px; border-radius: 20px; font-size: 0.7em; font-weight: 700; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">NEW</div>
