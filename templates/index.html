@@ -17170,31 +17170,34 @@
             
             if (incomeData.length > 0) {
                 html += `
-                    <!-- Revenue Chart -->
-                    <div style="margin-bottom: 50px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-                            <h4 style="margin: 0; font-size: 1.2em; color: var(--text-primary);">${data.company_name || ticker} Revenue</h4>
-                            <div style="display: flex; gap: 5px; background: var(--metric-bg); padding: 4px; border-radius: 8px;">
-                                <button class="performance-tab-btn active" onclick="switchPerformanceTab('revenue', 'value')" data-metric="revenue" data-type="value" style="padding: 6px 14px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;">Revenue</button>
-                                <button class="performance-tab-btn" onclick="switchPerformanceTab('revenue', 'growth')" data-metric="revenue" data-type="growth" style="padding: 6px 14px; background: transparent; color: var(--text-primary); border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;">Revenue Growth</button>
+                    <!-- Revenue and EPS Charts Side by Side -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+                        <!-- Revenue Chart -->
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                                <h4 style="margin: 0; font-size: 1.2em; color: var(--text-primary);">${data.company_name || ticker} Revenue</h4>
+                                <div style="display: flex; gap: 5px; background: var(--metric-bg); padding: 4px; border-radius: 8px;">
+                                    <button class="performance-tab-btn active" onclick="switchPerformanceTab('revenue', 'value')" data-metric="revenue" data-type="value" style="padding: 6px 14px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;">Revenue</button>
+                                    <button class="performance-tab-btn" onclick="switchPerformanceTab('revenue', 'growth')" data-metric="revenue" data-type="growth" style="padding: 6px 14px; background: transparent; color: var(--text-primary); border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;">Revenue Growth</button>
+                                </div>
+                            </div>
+                            <div style="padding: 25px; background: var(--metric-bg); border-radius: 12px;">
+                                <canvas id="revenueChart" style="max-height: 700px; min-height: 600px; height: 600px; width: 100% !important; display: block;"></canvas>
                             </div>
                         </div>
-                        <div style="padding: 25px; background: var(--metric-bg); border-radius: 12px;">
-                            <canvas id="revenueChart" style="max-height: 700px; min-height: 600px; height: 600px; width: 100% !important; display: block;"></canvas>
-                        </div>
-                    </div>
-                    
-                    <!-- EPS Chart -->
-                    <div style="margin-bottom: 40px; margin-top: 30px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-                            <h4 style="margin: 0; font-size: 1.2em; color: var(--text-primary);">${data.company_name || ticker} EPS</h4>
-                            <div style="display: flex; gap: 5px; background: var(--metric-bg); padding: 4px; border-radius: 8px;">
-                                <button class="performance-tab-btn active" onclick="switchPerformanceTab('eps', 'value')" data-metric="eps" data-type="value" style="padding: 6px 14px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;">EPS</button>
-                                <button class="performance-tab-btn" onclick="switchPerformanceTab('eps', 'growth')" data-metric="eps" data-type="growth" style="padding: 6px 14px; background: transparent; color: var(--text-primary); border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;">EPS Growth</button>
+                        
+                        <!-- EPS Chart -->
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                                <h4 style="margin: 0; font-size: 1.2em; color: var(--text-primary);">${data.company_name || ticker} EPS</h4>
+                                <div style="display: flex; gap: 5px; background: var(--metric-bg); padding: 4px; border-radius: 8px;">
+                                    <button class="performance-tab-btn active" onclick="switchPerformanceTab('eps', 'value')" data-metric="eps" data-type="value" style="padding: 6px 14px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;">EPS</button>
+                                    <button class="performance-tab-btn" onclick="switchPerformanceTab('eps', 'growth')" data-metric="eps" data-type="growth" style="padding: 6px 14px; background: transparent; color: var(--text-primary); border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9em;">EPS Growth</button>
+                                </div>
                             </div>
-                        </div>
-                        <div style="padding: 25px; background: var(--metric-bg); border-radius: 12px;">
-                            <canvas id="epsChart" style="max-height: 700px; min-height: 600px; height: 600px; width: 100% !important;"></canvas>
+                            <div style="padding: 25px; background: var(--metric-bg); border-radius: 12px;">
+                                <canvas id="epsChart" style="max-height: 700px; min-height: 600px; height: 600px; width: 100% !important;"></canvas>
+                            </div>
                         </div>
                     </div>
                     
@@ -17219,11 +17222,11 @@
                 `;
             }
 
-            // 2.6. Forward-Looking Data (Analyst Estimates)
+            // 2.6. Forward-Looking Data (Analyst Estimates) - Smaller, compact version
             if (data.forward_estimates && (data.forward_estimates.revenue || data.forward_estimates.eps)) {
                 html += `
-                    <div class="card" style="margin-bottom: 30px;">
-                        <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                    <div class="card" style="margin-bottom: 30px; max-width: 500px;">
+                        <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-size: 1.1em;">
                             🔮 Forward-Looking Data
                             <span style="font-size: 0.7em; font-weight: normal; color: var(--text-secondary);">(Analyst Estimates)</span>
                         </h3>
@@ -22951,12 +22954,12 @@
             console.log('[DEBUG] createAnalystEstimatesTable: Creating table with', futureQuarters.length, 'quarters');
             
             let html = `
-                <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <table style="width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.9em;">
                     <thead>
                         <tr style="background: var(--metric-bg); border-bottom: 2px solid var(--border-color);">
-                            <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-primary);">Quarter</th>
-                            <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">Revenue Estimate</th>
-                            <th style="padding: 12px; text-align: right; font-weight: 600; color: var(--text-primary);">EPS Estimate</th>
+                            <th style="padding: 8px 10px; text-align: left; font-weight: 600; color: var(--text-primary); font-size: 0.9em;">Quarter</th>
+                            <th style="padding: 8px 10px; text-align: right; font-weight: 600; color: var(--text-primary); font-size: 0.9em;">Revenue Est.</th>
+                            <th style="padding: 8px 10px; text-align: right; font-weight: 600; color: var(--text-primary); font-size: 0.9em;">EPS Est.</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -22985,11 +22988,11 @@
                 
                 html += `
                     <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 12px; font-weight: 600; color: var(--text-primary);">${quarterDisplay}</td>
-                        <td style="padding: 12px; text-align: right; color: var(--text-primary);">
+                        <td style="padding: 8px 10px; font-weight: 600; color: var(--text-primary); font-size: 0.9em;">${quarterDisplay}</td>
+                        <td style="padding: 8px 10px; text-align: right; color: var(--text-primary); font-size: 0.9em;">
                             ${revenueDisplay}
                         </td>
-                        <td style="padding: 12px; text-align: right; color: var(--text-primary);">
+                        <td style="padding: 8px 10px; text-align: right; color: var(--text-primary); font-size: 0.9em;">
                             ${epsEst !== null && epsEst !== undefined ? '$' + epsEst.toFixed(2) : 'N/A'}
                         </td>
                     </tr>
