@@ -909,26 +909,102 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
             except:
                 pass
         
+        current_assets = None
+        current_liabilities = None
         if current_assets_row is not None and current_liabilities_row is not None:
             try:
                 if len(current_assets_row) > 0 and len(current_liabilities_row) > 0:
-                    ca = float(current_assets_row.iloc[0] if hasattr(current_assets_row, 'iloc') else list(current_assets_row.values())[0])
-                    cl = float(current_liabilities_row.iloc[0] if hasattr(current_liabilities_row, 'iloc') else list(current_liabilities_row.values())[0])
-                    if cl != 0:
-                        current_ratio = ca / cl
+                    current_assets = float(current_assets_row.iloc[0] if hasattr(current_assets_row, 'iloc') else list(current_assets_row.values())[0])
+                    current_liabilities = float(current_liabilities_row.iloc[0] if hasattr(current_liabilities_row, 'iloc') else list(current_liabilities_row.values())[0])
+                    if current_liabilities != 0:
+                        current_ratio = current_assets / current_liabilities
             except:
                 pass
         
+        # Get Total Assets and Total Liabilities
+        total_assets_row = find_row(quarterly_bs, ['total assets'])
+        total_liabilities_row = find_row(quarterly_bs, ['total liabilities', 'total liabilities and stockholders equity'])
+        
+        total_assets = None
+        total_liabilities = None
+        if total_assets_row is not None and len(total_assets_row) > 0:
+            try:
+                total_assets = float(total_assets_row.iloc[0] if hasattr(total_assets_row, 'iloc') else list(total_assets_row.values())[0])
+            except:
+                pass
+        
+        if total_liabilities_row is not None and len(total_liabilities_row) > 0:
+            try:
+                total_liabilities = float(total_liabilities_row.iloc[0] if hasattr(total_liabilities_row, 'iloc') else list(total_liabilities_row.values())[0])
+            except:
+                pass
+        
+        # Get Long-term and Short-term Debt
+        long_term_debt_row = find_row(quarterly_bs, ['long term debt', 'long-term debt', 'long term debt and capital lease obligation'])
+        short_term_debt_row = find_row(quarterly_bs, ['short term debt', 'short-term debt', 'current debt', 'current portion of long term debt'])
+        
+        long_term_debt = None
+        short_term_debt = None
+        if long_term_debt_row is not None and len(long_term_debt_row) > 0:
+            try:
+                long_term_debt = float(long_term_debt_row.iloc[0] if hasattr(long_term_debt_row, 'iloc') else list(long_term_debt_row.values())[0])
+            except:
+                pass
+        
+        if short_term_debt_row is not None and len(short_term_debt_row) > 0:
+            try:
+                short_term_debt = float(short_term_debt_row.iloc[0] if hasattr(short_term_debt_row, 'iloc') else list(short_term_debt_row.values())[0])
+            except:
+                pass
+        
+        # Get Inventory for Quick Ratio
+        inventory_row = find_row(quarterly_bs, ['inventory', 'total inventory'])
+        inventory = None
+        if inventory_row is not None and len(inventory_row) > 0:
+            try:
+                inventory = float(inventory_row.iloc[0] if hasattr(inventory_row, 'iloc') else list(inventory_row.values())[0])
+            except:
+                pass
+        
+        # Calculate derived metrics
         net_debt = None
         if total_debt is not None and cash is not None:
             net_debt = total_debt - cash
+        
+        working_capital = None
+        if current_assets is not None and current_liabilities is not None:
+            working_capital = current_assets - current_liabilities
+        
+        quick_ratio = None
+        if current_assets is not None and current_liabilities is not None and current_liabilities != 0:
+            inventory_value = inventory if inventory is not None else 0
+            quick_ratio = (current_assets - inventory_value) / current_liabilities
+        
+        debt_to_equity = None
+        if total_debt is not None and equity is not None and equity != 0:
+            debt_to_equity = total_debt / equity
+        
+        debt_to_assets = None
+        if total_debt is not None and total_assets is not None and total_assets != 0:
+            debt_to_assets = total_debt / total_assets
         
         financials['balance_sheet'] = {
             'cash': cash,
             'total_debt': total_debt,
             'net_debt': net_debt,
             'equity': equity,
-            'current_ratio': current_ratio
+            'current_ratio': current_ratio,
+            'current_assets': current_assets,
+            'current_liabilities': current_liabilities,
+            'total_assets': total_assets,
+            'total_liabilities': total_liabilities,
+            'long_term_debt': long_term_debt,
+            'short_term_debt': short_term_debt,
+            'inventory': inventory,
+            'working_capital': working_capital,
+            'quick_ratio': quick_ratio,
+            'debt_to_equity': debt_to_equity,
+            'debt_to_assets': debt_to_assets
         }
         
         # Generate Red Flags

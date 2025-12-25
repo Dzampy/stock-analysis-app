@@ -17587,6 +17587,290 @@
                         </div>
                     </div>
                 `;
+                
+                // Balance Sheet Details Section
+                const hasDetailedData = (bs.total_assets !== null && bs.total_assets !== undefined) ||
+                                       (bs.total_liabilities !== null && bs.total_liabilities !== undefined) ||
+                                       (bs.current_assets !== null && bs.current_assets !== undefined) ||
+                                       (bs.current_liabilities !== null && bs.current_liabilities !== undefined) ||
+                                       (bs.long_term_debt !== null && bs.long_term_debt !== undefined) ||
+                                       (bs.short_term_debt !== null && bs.short_term_debt !== undefined) ||
+                                       (bs.working_capital !== null && bs.working_capital !== undefined) ||
+                                       (bs.quick_ratio !== null && bs.quick_ratio !== undefined) ||
+                                       (bs.debt_to_equity !== null && bs.debt_to_equity !== undefined) ||
+                                       (bs.debt_to_assets !== null && bs.debt_to_assets !== undefined);
+                
+                if (hasDetailedData) {
+                    html += `
+                        <div class="card" style="margin-top: 30px; margin-bottom: 30px;">
+                            <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                                📊 Balance Sheet Details
+                            </h3>
+                    `;
+                    
+                    // Total Assets and Total Liabilities
+                    if ((bs.total_assets !== null && bs.total_assets !== undefined) || (bs.total_liabilities !== null && bs.total_liabilities !== undefined)) {
+                        html += `
+                            <div style="margin-bottom: 25px;">
+                                <h4 style="margin: 0 0 15px 0; font-size: 1.1em; color: var(--text-primary);">Total Assets & Liabilities</h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        `;
+                        
+                        if (bs.total_assets !== null && bs.total_assets !== undefined) {
+                            html += `
+                                <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px;">
+                                    <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Total Assets</div>
+                                    <div style="font-size: 1.5em; font-weight: 700; color: var(--text-primary);">${formatCurrency(bs.total_assets)}</div>
+                                    <div style="font-size: 0.75em; color: var(--text-tertiary); margin-top: 5px;">Celková aktiva</div>
+                                </div>
+                            `;
+                        }
+                        
+                        if (bs.total_liabilities !== null && bs.total_liabilities !== undefined) {
+                            html += `
+                                <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px;">
+                                    <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Total Liabilities</div>
+                                    <div style="font-size: 1.5em; font-weight: 700; color: var(--text-primary);">${formatCurrency(bs.total_liabilities)}</div>
+                                    <div style="font-size: 0.75em; color: var(--text-tertiary); margin-top: 5px;">Celková pasiva</div>
+                                </div>
+                            `;
+                        }
+                        
+                        html += `</div></div>`;
+                    }
+                    
+                    // Current Assets and Current Liabilities
+                    if ((bs.current_assets !== null && bs.current_assets !== undefined) || (bs.current_liabilities !== null && bs.current_liabilities !== undefined)) {
+                        html += `
+                            <div style="margin-bottom: 25px;">
+                                <h4 style="margin: 0 0 15px 0; font-size: 1.1em; color: var(--text-primary);">Current Assets & Liabilities</h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        `;
+                        
+                        if (bs.current_assets !== null && bs.current_assets !== undefined) {
+                            html += `
+                                <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px;">
+                                    <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Current Assets</div>
+                                    <div style="font-size: 1.5em; font-weight: 700; color: var(--text-primary);">${formatCurrency(bs.current_assets)}</div>
+                                    <div style="font-size: 0.75em; color: var(--text-tertiary); margin-top: 5px;">Krátkodobá aktiva</div>
+                                </div>
+                            `;
+                        }
+                        
+                        if (bs.current_liabilities !== null && bs.current_liabilities !== undefined) {
+                            html += `
+                                <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px;">
+                                    <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Current Liabilities</div>
+                                    <div style="font-size: 1.5em; font-weight: 700; color: var(--text-primary);">${formatCurrency(bs.current_liabilities)}</div>
+                                    <div style="font-size: 0.75em; color: var(--text-tertiary); margin-top: 5px;">Krátkodobé závazky</div>
+                                </div>
+                            `;
+                        }
+                        
+                        html += `</div></div>`;
+                    }
+                    
+                    // Working Capital
+                    if (bs.working_capital !== null && bs.working_capital !== undefined) {
+                        let wcStatus = 'Mixed';
+                        let wcColor = '#f59e0b';
+                        let wcEmoji = '🟡';
+                        let wcDesc = '';
+                        if (bs.working_capital > 0) {
+                            wcStatus = 'Strong';
+                            wcColor = '#10b981';
+                            wcEmoji = '🟢';
+                            wcDesc = 'Pozitivní working capital - firma může financovat provoz';
+                        } else {
+                            wcStatus = 'Weak';
+                            wcColor = '#ef4444';
+                            wcEmoji = '🔴';
+                            wcDesc = 'Negativní working capital - potenciální problémy s likviditou';
+                        }
+                        html += `
+                            <div style="margin-bottom: 25px;">
+                                <h4 style="margin: 0 0 15px 0; font-size: 1.1em; color: var(--text-primary);">Working Capital</h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                                    <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px; border-left: 4px solid ${wcColor};">
+                                        <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Working Capital</div>
+                                        <div style="font-size: 1.5em; font-weight: 700; color: ${wcColor};">${formatCurrency(bs.working_capital)}</div>
+                                        <div style="font-size: 0.75em; color: var(--text-tertiary); margin-top: 5px;">${wcEmoji} ${wcStatus} - ${wcDesc}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Long-term and Short-term Debt
+                    if ((bs.long_term_debt !== null && bs.long_term_debt !== undefined) || (bs.short_term_debt !== null && bs.short_term_debt !== undefined)) {
+                        html += `
+                            <div style="margin-bottom: 25px;">
+                                <h4 style="margin: 0 0 15px 0; font-size: 1.1em; color: var(--text-primary);">Debt Breakdown</h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        `;
+                        
+                        if (bs.long_term_debt !== null && bs.long_term_debt !== undefined) {
+                            html += `
+                                <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px;">
+                                    <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Long-term Debt</div>
+                                    <div style="font-size: 1.5em; font-weight: 700; color: var(--text-primary);">${formatCurrency(bs.long_term_debt)}</div>
+                                    <div style="font-size: 0.75em; color: var(--text-tertiary); margin-top: 5px;">Dlouhodobý dluh</div>
+                                </div>
+                            `;
+                        }
+                        
+                        if (bs.short_term_debt !== null && bs.short_term_debt !== undefined) {
+                            html += `
+                                <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px;">
+                                    <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Short-term Debt</div>
+                                    <div style="font-size: 1.5em; font-weight: 700; color: var(--text-primary);">${formatCurrency(bs.short_term_debt)}</div>
+                                    <div style="font-size: 0.75em; color: var(--text-tertiary); margin-top: 5px;">Krátkodobý dluh</div>
+                                </div>
+                            `;
+                        }
+                        
+                        html += `</div></div>`;
+                    }
+                    
+                    // Quick Ratio
+                    if (bs.quick_ratio !== null && bs.quick_ratio !== undefined) {
+                        let qrStatus = 'Mixed';
+                        let qrColor = '#f59e0b';
+                        let qrEmoji = '🟡';
+                        let qrDesc = '';
+                        if (bs.quick_ratio >= 1) {
+                            qrStatus = 'Strong';
+                            qrColor = '#10b981';
+                            qrEmoji = '🟢';
+                            qrDesc = 'Výborná likvidita (bez zásob)';
+                        } else if (bs.quick_ratio >= 0.5) {
+                            qrDesc = 'Dostatečná likvidita';
+                        } else {
+                            qrStatus = 'Weak';
+                            qrColor = '#ef4444';
+                            qrEmoji = '🔴';
+                            qrDesc = 'Nízká likvidita (bez zásob)';
+                        }
+                        html += `
+                            <div style="margin-bottom: 25px;">
+                                <h4 style="margin: 0 0 15px 0; font-size: 1.1em; color: var(--text-primary);">Liquidity Ratios</h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                                    <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px; border-left: 4px solid ${qrColor};">
+                                        <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Quick Ratio</div>
+                                        <span class="info-badge tooltip" style="cursor: help; font-size: 0.9em;">ℹ️
+                                            <span class="tooltiptext" style="max-width: 300px; white-space: normal;">
+                                                <strong>Quick Ratio</strong><br>
+                                                (Current Assets - Inventory) / Current Liabilities<br><br>
+                                                Měří likviditu bez započtení zásob. &gt;1 = může splatit krátkodobé závazky i bez prodeje zásob.
+                                            </span>
+                                        </span>
+                                        <div style="font-size: 1.5em; font-weight: 700; color: ${qrColor}; margin-top: 5px;">${(bs.quick_ratio !== null && bs.quick_ratio !== undefined && !isNaN(bs.quick_ratio) && typeof bs.quick_ratio === 'number') ? bs.quick_ratio.toFixed(2) : 'N/A'}</div>
+                                        <div style="font-size: 0.75em; color: var(--text-tertiary); margin-top: 5px;">${qrEmoji} ${qrStatus} - ${qrDesc}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Debt Ratios
+                    if ((bs.debt_to_equity !== null && bs.debt_to_equity !== undefined) || (bs.debt_to_assets !== null && bs.debt_to_assets !== undefined)) {
+                        html += `
+                            <div style="margin-bottom: 25px;">
+                                <h4 style="margin: 0 0 15px 0; font-size: 1.1em; color: var(--text-primary);">Debt Ratios</h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        `;
+                        
+                        if (bs.debt_to_equity !== null && bs.debt_to_equity !== undefined) {
+                            let dteStatus = 'Mixed';
+                            let dteColor = '#f59e0b';
+                            let dteEmoji = '🟡';
+                            let dteDesc = '';
+                            if (bs.debt_to_equity < 1) {
+                                dteStatus = 'Strong';
+                                dteColor = '#10b981';
+                                dteEmoji = '🟢';
+                                dteDesc = 'Zdravý poměr dluhu k vlastnímu kapitálu';
+                            } else if (bs.debt_to_equity < 2) {
+                                dteDesc = 'Přijatelný poměr dluhu';
+                            } else {
+                                dteStatus = 'Weak';
+                                dteColor = '#ef4444';
+                                dteEmoji = '🔴';
+                                dteDesc = 'Vysoký poměr dluhu - rizikové';
+                            }
+                            html += `
+                                <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px; border-left: 4px solid ${dteColor};">
+                                    <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Debt-to-Equity</div>
+                                    <span class="info-badge tooltip" style="cursor: help; font-size: 0.9em;">ℹ️
+                                        <span class="tooltiptext" style="max-width: 300px; white-space: normal;">
+                                            <strong>Debt-to-Equity Ratio</strong><br>
+                                            Total Debt / Equity<br><br>
+                                            Nižší je lepší. &lt;1 = zdravé, 1-2 = přijatelné, &gt;2 = rizikové.
+                                        </span>
+                                    </span>
+                                    <div style="font-size: 1.5em; font-weight: 700; color: ${dteColor}; margin-top: 5px;">${(bs.debt_to_equity !== null && bs.debt_to_equity !== undefined && !isNaN(bs.debt_to_equity) && typeof bs.debt_to_equity === 'number') ? bs.debt_to_equity.toFixed(2) + '×' : 'N/A'}</div>
+                                    <div style="font-size: 0.75em; color: var(--text-tertiary); margin-top: 5px;">${dteEmoji} ${dteStatus} - ${dteDesc}</div>
+                                </div>
+                            `;
+                        }
+                        
+                        if (bs.debt_to_assets !== null && bs.debt_to_assets !== undefined) {
+                            let dtaStatus = 'Mixed';
+                            let dtaColor = '#f59e0b';
+                            let dtaEmoji = '🟡';
+                            let dtaDesc = '';
+                            if (bs.debt_to_assets < 0.3) {
+                                dtaStatus = 'Strong';
+                                dtaColor = '#10b981';
+                                dtaEmoji = '🟢';
+                                dtaDesc = 'Nízký dluh vzhledem k aktivům';
+                            } else if (bs.debt_to_assets < 0.6) {
+                                dtaDesc = 'Střední dluh vzhledem k aktivům';
+                            } else {
+                                dtaStatus = 'Weak';
+                                dtaColor = '#ef4444';
+                                dtaEmoji = '🔴';
+                                dtaDesc = 'Vysoký dluh vzhledem k aktivům';
+                            }
+                            html += `
+                                <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px; border-left: 4px solid ${dtaColor};">
+                                    <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Debt-to-Assets</div>
+                                    <span class="info-badge tooltip" style="cursor: help; font-size: 0.9em;">ℹ️
+                                        <span class="tooltiptext" style="max-width: 300px; white-space: normal;">
+                                            <strong>Debt-to-Assets Ratio</strong><br>
+                                            Total Debt / Total Assets<br><br>
+                                            &lt;0.3 = nízký dluh, 0.3-0.6 = střední, &gt;0.6 = vysoký dluh.
+                                        </span>
+                                    </span>
+                                    <div style="font-size: 1.5em; font-weight: 700; color: ${dtaColor}; margin-top: 5px;">${(bs.debt_to_assets !== null && bs.debt_to_assets !== undefined && !isNaN(bs.debt_to_assets) && typeof bs.debt_to_assets === 'number') ? (bs.debt_to_assets * 100).toFixed(1) + '%' : 'N/A'}</div>
+                                    <div style="font-size: 0.75em; color: var(--text-tertiary); margin-top: 5px;">${dtaEmoji} ${dtaStatus} - ${dtaDesc}</div>
+                                </div>
+                            `;
+                        }
+                        
+                        html += `</div></div>`;
+                    }
+                    
+                    // Balance Sheet Structure Visualization
+                    if (bs.total_assets !== null && bs.total_assets !== undefined) {
+                        html += `
+                            <div style="margin-top: 30px; margin-bottom: 20px;">
+                                <h4 style="margin: 0 0 15px 0; font-size: 1.1em; color: var(--text-primary);">Balance Sheet Structure</h4>
+                                <span class="info-badge tooltip" style="cursor: help; font-size: 0.9em;">ℹ️
+                                    <span class="tooltiptext" style="max-width: 350px; white-space: normal;">
+                                        <strong>Struktura Balance Sheet</strong><br>
+                                        Graf ukazuje, jak jsou aktiva a pasiva strukturována. Aktiva = co firma vlastní, Pasiva = co firma dluží + vlastní kapitál.
+                                    </span>
+                                </span>
+                                <div style="position: relative; height: 400px; margin-top: 20px; background: var(--metric-bg); border-radius: 12px; padding: 20px;">
+                                    <canvas id="balanceSheetStructureChart-${ticker}"></canvas>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    html += `</div>`;
+                }
                 console.log('[Financials] Balance Sheet HTML created, length after:', html.length);
                 console.log('[Financials] Balance Sheet HTML snippet:', html.substring(html.length - 500));
             } else {
@@ -18500,6 +18784,17 @@
                     }
                 }
                 
+                // Create Balance Sheet Structure Chart
+                if (data.balance_sheet && data.balance_sheet.total_assets !== null && data.balance_sheet.total_assets !== undefined) {
+                    try {
+                        setTimeout(() => {
+                            createBalanceSheetStructureChart(data.balance_sheet, ticker);
+                        }, 100);
+                    } catch (e) {
+                        console.error('Error creating balance sheet structure chart:', e);
+                    }
+                }
+                
                 // Create analyst estimates table
                 console.log('[DEBUG] loadFinancials: Checking forward_estimates', {
                     hasForwardEstimates: !!data.forward_estimates,
@@ -19306,6 +19601,179 @@
                                     const total = tooltipItems.reduce((sum, item) => sum + item.parsed.y, 0);
                                     return `Total: ${formatCurrency(total)}`;
                                 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createBalanceSheetStructureChart(balanceSheet, ticker) {
+            const ctx = document.getElementById(`balanceSheetStructureChart-${ticker}`);
+            if (!ctx || typeof Chart === 'undefined') {
+                console.warn('[Balance Sheet Chart] Canvas or Chart.js not available');
+                return;
+            }
+            
+            const bs = balanceSheet;
+            if (!bs || (bs.total_assets === null || bs.total_assets === undefined)) {
+                console.warn('[Balance Sheet Chart] No balance sheet data available');
+                return;
+            }
+            
+            console.log('[Balance Sheet Chart] Creating chart with data:', bs);
+            
+            // Calculate values for Assets and Liabilities + Equity
+            const cash = bs.cash || 0;
+            const currentAssets = bs.current_assets || 0;
+            const totalAssets = bs.total_assets || 0;
+            const nonCurrentAssets = totalAssets - currentAssets;
+            const currentAssetsMinusCash = Math.max(0, currentAssets - cash);
+            
+            const currentLiabilities = bs.current_liabilities || 0;
+            const longTermDebt = bs.long_term_debt || 0;
+            const shortTermDebt = bs.short_term_debt || 0;
+            const totalLiabilities = bs.total_liabilities || 0;
+            const equity = bs.equity || 0;
+            const otherLiabilities = Math.max(0, totalLiabilities - currentLiabilities - (longTermDebt + shortTermDebt));
+            
+            const isDark = document.body.classList.contains('dark-mode');
+            const chartTextColor = isDark ? '#e5e7eb' : '#1f2937';
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Assets', 'Liabilities & Equity'],
+                    datasets: [
+                        {
+                            label: '💰 Cash',
+                            data: [cash, 0],
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                            borderColor: '#10b981',
+                            borderWidth: 2
+                        },
+                        {
+                            label: '📦 Current Assets (ex Cash)',
+                            data: [currentAssetsMinusCash, 0],
+                            backgroundColor: 'rgba(102, 126, 234, 0.7)',
+                            borderColor: '#667eea',
+                            borderWidth: 2
+                        },
+                        {
+                            label: '🏢 Non-Current Assets',
+                            data: [nonCurrentAssets, 0],
+                            backgroundColor: 'rgba(102, 126, 234, 0.5)',
+                            borderColor: '#667eea',
+                            borderWidth: 2
+                        },
+                        {
+                            label: '⚡ Current Liabilities',
+                            data: [0, currentLiabilities],
+                            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                            borderColor: '#ef4444',
+                            borderWidth: 2
+                        },
+                        {
+                            label: '📊 Long-term Debt',
+                            data: [0, longTermDebt],
+                            backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                            borderColor: '#f59e0b',
+                            borderWidth: 2
+                        },
+                        {
+                            label: '📊 Short-term Debt',
+                            data: [0, shortTermDebt],
+                            backgroundColor: 'rgba(245, 158, 11, 0.5)',
+                            borderColor: '#f59e0b',
+                            borderWidth: 2
+                        },
+                        {
+                            label: '📋 Other Liabilities',
+                            data: [0, otherLiabilities],
+                            backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                            borderColor: '#ef4444',
+                            borderWidth: 2
+                        },
+                        {
+                            label: '💎 Equity',
+                            data: [0, equity],
+                            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                            borderColor: '#10b981',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: chartTextColor,
+                                font: {
+                                    size: 12,
+                                    weight: '600'
+                                },
+                                padding: 12,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? 'rgba(0, 0, 0, 0.9)' : 'rgba(0, 0, 0, 0.85)',
+                            padding: 12,
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label.replace(/[💰📦🏢⚡📊📋💎]/g, '').trim();
+                                    const value = formatCurrency(context.parsed.x);
+                                    const percent = context.dataset.label.includes('Assets') || context.parsed.x === 0
+                                        ? totalAssets > 0 ? ((context.parsed.x / totalAssets) * 100).toFixed(1) + '%'
+                                        : '0%'
+                                        : (totalAssets > 0 ? ((context.parsed.x / totalAssets) * 100).toFixed(1) + '%' : '0%');
+                                    return `${label}: ${value} (${percent})`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                },
+                                color: chartTextColor,
+                                font: {
+                                    size: 11,
+                                    weight: '600'
+                                }
+                            },
+                            grid: {
+                                color: gridColor,
+                                drawBorder: false
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            ticks: {
+                                color: chartTextColor,
+                                font: {
+                                    size: 12,
+                                    weight: '600'
+                                }
+                            },
+                            grid: {
+                                display: false
                             }
                         }
                     }
