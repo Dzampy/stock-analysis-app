@@ -2984,6 +2984,14 @@
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
 
+        .education-tab-content {
+            margin-top: 20px;
+        }
+
+        .education-tab-content.hidden {
+            display: none;
+        }
+
         .portfolio-tab-content {
             margin-top: 25px;
         }
@@ -4426,6 +4434,20 @@
                 </div>
             </div>
             
+            <!-- Learn Group -->
+            <div class="nav-group">
+                <div class="nav-group-header" onclick="if(typeof window.toggleNavGroup === 'function') { window.toggleNavGroup('learn'); } else { console.error('navigateToSection not available'); alert('Please wait, page is still loading...'); } return false;">
+                    <span class="nav-group-icon">🎓</span>
+                    <span class="nav-group-title">Learn</span>
+                    <span class="nav-group-chevron" id="chevron-learn">▼</span>
+                </div>
+                <div class="nav-group-items" id="nav-group-learn">
+                    <a href="#" class="nav-item" data-section="educationSection" onclick="if(typeof window.navigateToSection === 'function') { window.navigateToSection('educationSection'); } else { console.error('navigateToSection not available'); alert('Please wait, page is still loading...'); } return false;">
+                        <span>📚 Educational Content</span>
+                    </a>
+                </div>
+            </div>
+            
             <!-- Settings (no group) -->
             <div class="nav-group">
                 <a href="#" class="nav-item nav-item-single" data-section="settingsSection" onclick="if(typeof navigateToSection === 'function') { navigateToSection('settingsSection'); } else { showSettings(); } return false;">
@@ -5222,6 +5244,55 @@
             </div>
         </div>
 
+        <!-- Education Section -->
+        <div id="educationSection" class="hidden">
+            <div class="card">
+                <h2>🎓 Educational Content</h2>
+                <div class="section-description">
+                    Learn the fundamentals of investing, understand financial metrics, and master key investment concepts. Perfect for beginners!
+                </div>
+                
+                <!-- Education Tabs -->
+                <div style="display: flex; gap: 10px; margin: 25px 0; border-bottom: 2px solid var(--border-color); flex-wrap: wrap;">
+                    <button class="education-tab-btn active" onclick="switchEducationTab('metrics')" style="padding: 12px 24px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; border-bottom: 3px solid transparent; transition: all 0.3s;">📊 Metric Explanations</button>
+                    <button class="education-tab-btn" onclick="switchEducationTab('basics')" style="padding: 12px 24px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; border-bottom: 3px solid transparent; transition: all 0.3s;">📚 Investing Basics</button>
+                    <button class="education-tab-btn" onclick="switchEducationTab('glossary')" style="padding: 12px 24px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; border-bottom: 3px solid transparent; transition: all 0.3s;">📖 Glossary</button>
+                    <button class="education-tab-btn" onclick="switchEducationTab('why')" style="padding: 12px 24px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; border-bottom: 3px solid transparent; transition: all 0.3s;">💡 Why This Matters</button>
+                </div>
+
+                <!-- Metric Explanations Tab -->
+                <div id="educationMetricsTab" class="education-tab-content">
+                    <div id="metricsContent">
+                        <!-- Content will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Investing Basics Tab -->
+                <div id="educationBasicsTab" class="education-tab-content hidden">
+                    <div id="basicsContent">
+                        <!-- Content will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Glossary Tab -->
+                <div id="educationGlossaryTab" class="education-tab-content hidden">
+                    <div style="margin-bottom: 20px;">
+                        <input type="text" id="glossarySearch" placeholder="🔍 Search glossary terms..." style="width: 100%; max-width: 500px; padding: 12px; border: 2px solid var(--input-border); border-radius: 8px; background: var(--input-bg); color: var(--text-primary); font-size: 1em;" />
+                    </div>
+                    <div id="glossaryContent">
+                        <!-- Content will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Why This Matters Tab -->
+                <div id="educationWhyTab" class="education-tab-content hidden">
+                    <div id="whyContent">
+                        <!-- Content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Settings Section -->
         <div id="settingsSection" class="hidden">
             <div class="card">
@@ -5602,7 +5673,8 @@
             'screenerSection': 'Stock Screener',
             'socialSentimentSection': 'Social Sentiment',
             'settingsSection': 'Settings',
-            'watchlistSection': 'Watchlist'
+            'watchlistSection': 'Watchlist',
+            'educationSection': 'Learn'
         };
 
         // Initialize sidebar state from localStorage
@@ -5662,7 +5734,7 @@
                 'newsSection', 'earningsCalendarSection', 'economicCalendarSection',
                 'portfolioSection', 'alertsDashboardSection', 'analystInsiderSection',
                 'aiRecommendationsSection', 'socialSentimentSection', 'settingsSection',
-                'watchlistSection'
+                'watchlistSection', 'educationSection'
             ];
             
             allSections.forEach(id => {
@@ -5706,7 +5778,13 @@
                 }
                 
                 // Call specific section loaders
-                if (sectionId === 'settingsSection') {
+                if (sectionId === 'educationSection') {
+                    setTimeout(() => {
+                        console.log('Loading education section...');
+                        loadEducationContent();
+                        switchEducationTab('metrics');
+                    }, 50);
+                } else if (sectionId === 'settingsSection') {
                     setTimeout(() => {
                         console.log('Loading settings...');
                         if (typeof loadSettings === 'function') {
@@ -5817,7 +5895,7 @@
                 'newsSection', 'earningsCalendarSection', 'economicCalendarSection',
                 'portfolioSection', 'alertsDashboardSection', 'analystInsiderSection',
                 'aiRecommendationsSection', 'socialSentimentSection', 'settingsSection',
-                'watchlistSection'
+                'watchlistSection', 'educationSection'
             ];
             allSections.forEach(id => {
                 const el = document.getElementById(id);
@@ -22025,6 +22103,423 @@
                 calculatePortfolio(true);
             }
         }
+
+        // Education Section Functions
+        function switchEducationTab(tab) {
+            // Hide all tabs
+            document.querySelectorAll('.education-tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.education-tab-btn').forEach(b => {
+                b.classList.remove('active');
+                b.style.borderBottom = '3px solid transparent';
+                b.style.color = 'var(--text-secondary)';
+            });
+            
+            // Show selected tab
+            const tabMap = {
+                'metrics': 'educationMetricsTab',
+                'basics': 'educationBasicsTab',
+                'glossary': 'educationGlossaryTab',
+                'why': 'educationWhyTab'
+            };
+            
+            const tabElement = document.getElementById(tabMap[tab]);
+            if (tabElement) {
+                tabElement.classList.remove('hidden');
+            }
+            
+            // Update button style
+            document.querySelectorAll('.education-tab-btn').forEach(btn => {
+                if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(`'${tab}'`)) {
+                    btn.classList.add('active');
+                    btn.style.borderBottom = '3px solid #667eea';
+                    btn.style.color = '#667eea';
+                }
+            });
+            
+            // Load content if needed
+            if (tab === 'metrics') {
+                loadMetricsContent();
+            } else if (tab === 'basics') {
+                loadBasicsContent();
+            } else if (tab === 'glossary') {
+                loadGlossaryContent();
+            } else if (tab === 'why') {
+                loadWhyContent();
+            }
+        }
+        window.switchEducationTab = switchEducationTab;
+
+        function loadEducationContent() {
+            console.log('Loading education content...');
+            loadMetricsContent();
+        }
+
+        function loadMetricsContent() {
+            const container = document.getElementById('metricsContent');
+            if (!container) return;
+            
+            container.innerHTML = `
+                <div style="max-width: 1200px; margin: 0 auto;">
+                    <h3 style="margin-bottom: 30px; color: var(--text-primary);">📊 Metric Explanations</h3>
+                    <p style="margin-bottom: 30px; color: var(--text-secondary); line-height: 1.6;">
+                        Understand what financial and technical metrics mean, how they're calculated, and how to interpret them for better investment decisions.
+                    </p>
+                    
+                    <div style="display: grid; gap: 30px;">
+                        <!-- Technical Metrics -->
+                        <div class="metric-category" style="padding: 25px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h4 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.3em;">📈 Technical Metrics</h4>
+                            
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">RSI (Relative Strength Index)</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> RSI is a momentum oscillator that measures the speed and magnitude of price changes. It ranges from 0 to 100.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> RSI = 100 - (100 / (1 + RS)), where RS = Average Gain / Average Loss over 14 periods
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>RSI > 70:</strong> Overbought - stock may be overvalued, consider selling</li>
+                                    <li><strong>RSI < 30:</strong> Oversold - stock may be undervalued, consider buying</li>
+                                    <li><strong>RSI 30-70:</strong> Neutral range - no strong signal</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> RSI works best in trending markets. In ranging markets, it can give false signals. Use it with other indicators for confirmation.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">MACD (Moving Average Convergence Divergence)</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> MACD is a trend-following momentum indicator that shows the relationship between two moving averages of a stock's price.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> MACD Line = 12-period EMA - 26-period EMA. Signal Line = 9-period EMA of MACD Line.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>MACD crosses above Signal:</strong> Bullish signal - consider buying</li>
+                                    <li><strong>MACD crosses below Signal:</strong> Bearish signal - consider selling</li>
+                                    <li><strong>MACD above zero:</strong> Bullish momentum</li>
+                                    <li><strong>MACD below zero:</strong> Bearish momentum</li>
+                                </ul>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px;">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">Bollinger Bands</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> Bollinger Bands consist of a middle band (SMA) and two outer bands that are standard deviations away from the middle band.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> Upper Band = SMA(20) + (2 × Standard Deviation). Lower Band = SMA(20) - (2 × Standard Deviation).
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>Price touches upper band:</strong> Stock may be overbought</li>
+                                    <li><strong>Price touches lower band:</strong> Stock may be oversold</li>
+                                    <li><strong>Bands widen:</strong> Increased volatility</li>
+                                    <li><strong>Bands narrow:</strong> Decreased volatility, possible breakout coming</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Fundamental Metrics -->
+                        <div class="metric-category" style="padding: 25px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h4 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.3em;">💰 Fundamental Metrics</h4>
+                            
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">P/E Ratio (Price-to-Earnings)</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> P/E ratio compares a company's stock price to its earnings per share (EPS).
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> P/E Ratio = Stock Price / Earnings Per Share (EPS)
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>High P/E (>20-25):</strong> Stock may be overvalued, or investors expect high growth</li>
+                                    <li><strong>Low P/E (<15):</strong> Stock may be undervalued, or company has low growth expectations</li>
+                                    <li><strong>Industry comparison:</strong> Compare to industry average - P/E ratios vary by sector</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> P/E ratio is most useful when comparing companies in the same industry. Tech stocks typically have higher P/E ratios than utilities.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">Market Cap (Market Capitalization)</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> Market cap is the total value of all outstanding shares of a company.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> Market Cap = Stock Price × Number of Outstanding Shares
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Categories:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>Large Cap:</strong> > $10 billion (more stable, lower growth potential)</li>
+                                    <li><strong>Mid Cap:</strong> $2-10 billion (balanced risk/reward)</li>
+                                    <li><strong>Small Cap:</strong> $300M - $2B (higher risk, higher growth potential)</li>
+                                    <li><strong>Micro Cap:</strong> < $300M (very high risk)</li>
+                                </ul>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px;">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">EPS (Earnings Per Share)</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> EPS measures the portion of a company's profit allocated to each outstanding share of common stock.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> EPS = (Net Income - Preferred Dividends) / Average Outstanding Shares
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>Higher EPS:</strong> Company is more profitable per share</li>
+                                    <li><strong>Growing EPS:</strong> Company is growing earnings (positive sign)</li>
+                                    <li><strong>Negative EPS:</strong> Company is losing money</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> Compare EPS growth rate year-over-year. Consistent EPS growth is a strong indicator of a healthy company.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 40px; padding: 20px; background: #f0f4ff; border-radius: 8px; border-left: 4px solid #667eea;">
+                        <p style="margin: 0; color: var(--text-secondary); line-height: 1.6;">
+                            <strong>💡 Pro Tip:</strong> No single metric tells the whole story. Always use multiple metrics together and compare them to industry averages for a complete picture.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadBasicsContent() {
+            const container = document.getElementById('basicsContent');
+            if (!container) return;
+            
+            container.innerHTML = `
+                <div style="max-width: 1200px; margin: 0 auto;">
+                    <h3 style="margin-bottom: 30px; color: var(--text-primary);">📚 Investing Basics Guide</h3>
+                    
+                    <div style="display: grid; gap: 30px;">
+                        <!-- Getting Started -->
+                        <div style="padding: 25px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h4 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.3em;">🚀 Getting Started</h4>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary);">What are Stocks?</h5>
+                                <p style="color: var(--text-secondary); line-height: 1.6;">
+                                    Stocks (also called shares or equities) represent ownership in a company. When you buy a stock, you become a partial owner of that company and are entitled to a portion of its profits and assets.
+                                </p>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary);">Types of Investing</h5>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>Buy & Hold:</strong> Long-term strategy - buy quality stocks and hold them for years</li>
+                                    <li><strong>Swing Trading:</strong> Hold positions for days to weeks, based on technical analysis</li>
+                                    <li><strong>Day Trading:</strong> Buy and sell within the same day (high risk, requires expertise)</li>
+                                </ul>
+                            </div>
+                            
+                            <div>
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary);">How to Start</h5>
+                                <ol style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li>Open a brokerage account (e.g., Interactive Brokers, TD Ameritrade, Robinhood)</li>
+                                    <li>Fund your account with money you can afford to lose</li>
+                                    <li>Start with small positions to learn</li>
+                                    <li>Use paper trading (simulated trading) to practice</li>
+                                </ol>
+                            </div>
+                        </div>
+
+                        <!-- Investment Strategies -->
+                        <div style="padding: 25px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h4 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.3em;">💼 Investment Strategies</h4>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary);">Value Investing</h5>
+                                <p style="color: var(--text-secondary); line-height: 1.6;">
+                                    Buy stocks that appear undervalued based on fundamental analysis. Look for companies with low P/E ratios, strong balance sheets, and consistent earnings. Famous value investors include Warren Buffett and Benjamin Graham.
+                                </p>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary);">Growth Investing</h5>
+                                <p style="color: var(--text-secondary); line-height: 1.6;">
+                                    Invest in companies with strong earnings growth potential, even if they're expensive. Focus on revenue growth, expanding markets, and innovative products. Typically includes tech and biotech stocks.
+                                </p>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary);">Dividend Investing</h5>
+                                <p style="color: var(--text-secondary); line-height: 1.6;">
+                                    Focus on companies that pay regular dividends. Ideal for income-seeking investors. Look for companies with high dividend yields, consistent payout history, and strong cash flows.
+                                </p>
+                            </div>
+                            
+                            <div>
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary);">Index Investing</h5>
+                                <p style="color: var(--text-secondary); line-height: 1.6;">
+                                    Buy index funds or ETFs that track market indices (e.g., S&P 500). Low fees, diversification, and long-term returns. Best for passive investors who want market-average returns with minimal effort.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Risk Management -->
+                        <div style="padding: 25px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h4 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.3em;">🛡️ Risk Management</h4>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary);">Diversification</h5>
+                                <p style="color: var(--text-secondary); line-height: 1.6;">
+                                    Don't put all your eggs in one basket. Spread investments across different sectors, industries, and asset classes. A well-diversified portfolio reduces risk.
+                                </p>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary);">Position Sizing</h5>
+                                <p style="color: var(--text-secondary); line-height: 1.6;">
+                                    Don't invest more than 5-10% of your portfolio in a single stock. Larger positions mean higher risk if the stock performs poorly.
+                                </p>
+                            </div>
+                            
+                            <div>
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary);">Stop Loss</h5>
+                                <p style="color: var(--text-secondary); line-height: 1.6;">
+                                    Set a price at which you'll automatically sell to limit losses. For example, if you buy at $100, set a stop loss at $90 (10% loss). This protects you from significant losses.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadGlossaryContent() {
+            const container = document.getElementById('glossaryContent');
+            if (!container) return;
+            
+            const glossaryTerms = [
+                { term: 'Assets', definition: 'Everything a company owns that has value, including cash, inventory, property, and equipment.' },
+                { term: 'Bear Market', definition: 'A market condition where stock prices are falling, typically by 20% or more from recent highs.' },
+                { term: 'Bull Market', definition: 'A market condition where stock prices are rising or expected to rise.' },
+                { term: 'Beta', definition: 'A measure of a stock\'s volatility compared to the overall market. Beta > 1 means more volatile, < 1 means less volatile.' },
+                { term: 'Dividend', definition: 'A portion of a company\'s profits paid to shareholders, typically quarterly.' },
+                { term: 'Equity', definition: 'The value of assets minus liabilities. Also refers to stocks (ownership shares in a company).' },
+                { term: 'EPS', definition: 'Earnings Per Share - company profit divided by number of outstanding shares.' },
+                { term: 'Liability', definition: 'Everything a company owes, including debt, accounts payable, and obligations.' },
+                { term: 'Market Cap', definition: 'Market Capitalization - total value of all outstanding shares (Price × Shares).' },
+                { term: 'P/E Ratio', definition: 'Price-to-Earnings ratio - stock price divided by earnings per share.' },
+                { term: 'ROE', definition: 'Return on Equity - measures how efficiently a company uses shareholders\' equity to generate profits.' },
+                { term: 'Volatility', definition: 'The degree of variation in a stock\'s price over time. Higher volatility means bigger price swings.' }
+            ];
+            
+            let html = `
+                <div style="max-width: 1200px; margin: 0 auto;">
+                    <div id="glossaryTerms" style="display: grid; gap: 15px;">
+            `;
+            
+            glossaryTerms.forEach(item => {
+                html += `
+                    <div class="glossary-term" style="padding: 20px; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color);">
+                        <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">${item.term}</h5>
+                        <p style="margin: 0; color: var(--text-secondary); line-height: 1.6;">${item.definition}</p>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+            
+            // Add search functionality
+            const searchInput = document.getElementById('glossarySearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const query = e.target.value.toLowerCase();
+                    const terms = container.querySelectorAll('.glossary-term');
+                    terms.forEach(term => {
+                        const text = term.textContent.toLowerCase();
+                        term.style.display = text.includes(query) ? 'block' : 'none';
+                    });
+                });
+            }
+        }
+
+        function loadWhyContent() {
+            const container = document.getElementById('whyContent');
+            if (!container) return;
+            
+            container.innerHTML = `
+                <div style="max-width: 1200px; margin: 0 auto;">
+                    <h3 style="margin-bottom: 30px; color: var(--text-primary);">💡 Why This Matters</h3>
+                    <p style="margin-bottom: 30px; color: var(--text-secondary); line-height: 1.6;">
+                        Different metrics matter more depending on your investment strategy. Here's why certain metrics are crucial for different types of investors.
+                    </p>
+                    
+                    <div style="display: grid; gap: 30px;">
+                        <!-- Value Investors -->
+                        <div style="padding: 25px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h4 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.3em;">💰 For Value Investors</h4>
+                            <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.8;">
+                                <li><strong>P/E Ratio:</strong> Helps identify undervalued stocks. Low P/E may indicate a bargain.</li>
+                                <li><strong>Debt-to-Equity:</strong> Shows financial health. Low debt means less risk and more stability.</li>
+                                <li><strong>Book Value:</strong> Indicates intrinsic value. Stocks trading below book value may be undervalued.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Growth Investors -->
+                        <div style="padding: 25px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h4 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.3em;">🚀 For Growth Investors</h4>
+                            <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.8;">
+                                <li><strong>Revenue Growth:</strong> Shows expanding business. Consistent growth indicates strong market position.</li>
+                                <li><strong>EPS Growth:</strong> Indicates increasing profitability. Growing EPS often leads to higher stock prices.</li>
+                                <li><strong>PEG Ratio:</strong> Combines P/E with growth. Lower PEG (often < 1) suggests good value for growth.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Dividend Investors -->
+                        <div style="padding: 25px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h4 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.3em;">📈 For Dividend Investors</h4>
+                            <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.8;">
+                                <li><strong>Dividend Yield:</strong> Shows income return. Higher yield means more income per dollar invested.</li>
+                                <li><strong>Payout Ratio:</strong> Indicates sustainability. Lower ratio (< 60%) means safer dividends.</li>
+                                <li><strong>Dividend History:</strong> Shows reliability. Companies with consistent dividend increases are preferred.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Risk Management -->
+                        <div style="padding: 25px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h4 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.3em;">🛡️ For Risk Management</h4>
+                            <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.8;">
+                                <li><strong>Beta:</strong> Measures volatility risk. Low beta (< 1) means less volatile than market.</li>
+                                <li><strong>Volatility:</strong> Shows price swing risk. Lower volatility means more stable prices.</li>
+                                <li><strong>Current Ratio:</strong> Indicates liquidity. Ratio > 1 means company can pay short-term debts.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.loadEducationContent = loadEducationContent;
 
         function loadPortfolio() {
             console.log('Loading portfolio...');
