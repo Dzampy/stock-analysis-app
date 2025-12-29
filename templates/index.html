@@ -22210,7 +22210,7 @@
                                 </ul>
                             </div>
 
-                            <div class="metric-item" style="margin-bottom: 25px;">
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
                                 <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">Bollinger Bands</h5>
                                 <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
                                     <strong>Definition:</strong> Bollinger Bands consist of a middle band (SMA) and two outer bands that are standard deviations away from the middle band.
@@ -22227,6 +22227,75 @@
                                     <li><strong>Bands widen:</strong> Increased volatility</li>
                                     <li><strong>Bands narrow:</strong> Decreased volatility, possible breakout coming</li>
                                 </ul>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">Support & Resistance Levels</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> Support is a price level where buying interest is strong enough to prevent the price from falling further. Resistance is a price level where selling pressure prevents the price from rising.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>How to identify:</strong> Look for price levels where the stock has bounced multiple times (support) or been rejected multiple times (resistance).
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>Price at support:</strong> Potential buying opportunity - price may bounce up</li>
+                                    <li><strong>Price at resistance:</strong> Potential selling opportunity - price may fall back</li>
+                                    <li><strong>Breakthrough resistance:</strong> Bullish signal - price may continue rising</li>
+                                    <li><strong>Breakthrough support:</strong> Bearish signal - price may continue falling</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> The more times a level is tested, the stronger it becomes. Volume confirmation makes breakouts more reliable.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">Moving Averages (SMA & EMA)</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> Moving averages smooth out price data to identify trends. SMA (Simple Moving Average) gives equal weight to all prices, while EMA (Exponential Moving Average) gives more weight to recent prices.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> SMA = Sum of prices over N periods / N. EMA = (Price - Previous EMA) × (2 / (N + 1)) + Previous EMA
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Common periods:</strong> 50-day (short-term), 200-day (long-term trend)
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>Price above MA:</strong> Uptrend - bullish signal</li>
+                                    <li><strong>Price below MA:</strong> Downtrend - bearish signal</li>
+                                    <li><strong>Golden Cross (50 crosses above 200):</strong> Strong bullish signal</li>
+                                    <li><strong>Death Cross (50 crosses below 200):</strong> Strong bearish signal</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> EMA reacts faster to price changes than SMA, making it better for short-term trading. SMA is better for identifying long-term trends.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px;">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">Stochastic Oscillator</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> A momentum indicator that compares a stock's closing price to its price range over a given time period. It ranges from 0 to 100.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> %K = ((Current Close - Lowest Low) / (Highest High - Lowest Low)) × 100. %D = 3-period SMA of %K
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>Above 80:</strong> Overbought - consider selling</li>
+                                    <li><strong>Below 20:</strong> Oversold - consider buying</li>
+                                    <li><strong>%K crosses above %D:</strong> Bullish signal</li>
+                                    <li><strong>%K crosses below %D:</strong> Bearish signal</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> Works best in ranging markets. In strong trends, it can stay overbought/oversold for extended periods.
+                                </p>
                             </div>
                         </div>
 
@@ -22274,7 +22343,7 @@
                                 </ul>
                             </div>
 
-                            <div class="metric-item" style="margin-bottom: 25px;">
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
                                 <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">EPS (Earnings Per Share)</h5>
                                 <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
                                     <strong>Definition:</strong> EPS measures the portion of a company's profit allocated to each outstanding share of common stock.
@@ -22292,6 +22361,301 @@
                                 </ul>
                                 <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
                                     <strong>Tip:</strong> Compare EPS growth rate year-over-year. Consistent EPS growth is a strong indicator of a healthy company.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">P/B Ratio (Price-to-Book)</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> P/B ratio compares a stock's market price to its book value (assets minus liabilities).
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> P/B Ratio = Stock Price / Book Value Per Share
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>P/B < 1:</strong> Stock may be undervalued - trading below book value</li>
+                                    <li><strong>P/B 1-3:</strong> Fair value range for most companies</li>
+                                    <li><strong>P/B > 3:</strong> Stock may be overvalued, or company has intangible assets</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> Most useful for asset-heavy companies (banks, manufacturing). Less relevant for tech companies with intangible assets.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">P/S Ratio (Price-to-Sales)</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> P/S ratio compares a stock's market cap to its annual revenue.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> P/S Ratio = Market Cap / Annual Revenue
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>P/S < 1:</strong> Potentially undervalued - market cap less than annual sales</li>
+                                    <li><strong>P/S 1-3:</strong> Typical range for mature companies</li>
+                                    <li><strong>P/S > 3:</strong> High growth expectations or overvaluation</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> Useful for companies with negative earnings or inconsistent profits. Compare to industry average.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">Revenue Growth</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> The percentage change in revenue from one period to another (quarter-over-quarter or year-over-year).
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> Revenue Growth = ((Current Revenue - Previous Revenue) / Previous Revenue) × 100%
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>High growth (>20%):</strong> Company is expanding rapidly (growth stock)</li>
+                                    <li><strong>Moderate growth (5-20%):</strong> Healthy, sustainable growth</li>
+                                    <li><strong>Low/negative growth:</strong> Company may be stagnating or declining</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> Consistent revenue growth over multiple quarters is a strong positive signal. Compare to industry growth rate.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">Profit Margins (Gross, Operating, Net)</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> Margins show what percentage of revenue becomes profit at different stages.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formulas:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>Gross Margin:</strong> (Revenue - COGS) / Revenue × 100%</li>
+                                    <li><strong>Operating Margin:</strong> Operating Income / Revenue × 100%</li>
+                                    <li><strong>Net Margin:</strong> Net Income / Revenue × 100%</li>
+                                </ul>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>Gross Margin:</strong> Efficiency of production - higher is better</li>
+                                    <li><strong>Operating Margin:</strong> Efficiency after operating expenses - shows operational profitability</li>
+                                    <li><strong>Net Margin:</strong> Final profitability after all expenses and taxes</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> Compare margins to industry averages. Tech companies typically have higher margins than retailers.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">ROE, ROA, ROIC (Return Metrics)</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definitions:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>ROE (Return on Equity):</strong> How efficiently company uses shareholders' equity</li>
+                                    <li><strong>ROA (Return on Assets):</strong> How efficiently company uses its assets</li>
+                                    <li><strong>ROIC (Return on Invested Capital):</strong> How efficiently company uses invested capital</li>
+                                </ul>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formulas:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>ROE:</strong> Net Income / Shareholders' Equity × 100%</li>
+                                    <li><strong>ROA:</strong> Net Income / Total Assets × 100%</li>
+                                    <li><strong>ROIC:</strong> (Net Income - Dividends) / (Debt + Equity) × 100%</li>
+                                </ul>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>ROE > 15%:</strong> Excellent - company generates strong returns</li>
+                                    <li><strong>ROA > 5%:</strong> Good asset efficiency</li>
+                                    <li><strong>ROIC > 10%:</strong> Company creates value for investors</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> ROIC is often considered the best metric as it accounts for both debt and equity financing.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">Debt-to-Equity Ratio</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> Measures how much debt a company uses to finance its operations relative to equity.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> Debt-to-Equity = Total Debt / Total Equity
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>Ratio < 0.5:</strong> Low debt - conservative, less risky</li>
+                                    <li><strong>Ratio 0.5-2.0:</strong> Moderate debt - typical range</li>
+                                    <li><strong>Ratio > 2.0:</strong> High debt - higher risk, but may indicate growth investment</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> Compare to industry average. Capital-intensive industries (utilities, real estate) typically have higher ratios.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">Current Ratio</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> Measures a company's ability to pay short-term obligations with short-term assets.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> Current Ratio = Current Assets / Current Liabilities
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>Ratio > 1:</strong> Company can pay short-term debts - healthy liquidity</li>
+                                    <li><strong>Ratio < 1:</strong> Company may struggle to pay short-term debts - liquidity risk</li>
+                                    <li><strong>Ratio 1.5-3.0:</strong> Ideal range - good liquidity without excess idle assets</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> Too high (>3) may indicate inefficient use of assets. Too low (<1) indicates financial stress.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">FCF (Free Cash Flow)</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> Cash available after paying operating expenses and capital expenditures. Shows true profitability.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> FCF = Operating Cash Flow - Capital Expenditures (CapEx)
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>Positive FCF:</strong> Company generates cash - can pay dividends, buy back shares, or invest</li>
+                                    <li><strong>Negative FCF:</strong> Company consumes cash - may need to borrow or issue stock</li>
+                                    <li><strong>Growing FCF:</strong> Strong signal of financial health and growth potential</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> FCF is often more reliable than earnings as it's harder to manipulate. Warren Buffett's favorite metric.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Metrics -->
+                        <div class="metric-category" style="padding: 25px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h4 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.3em;">🚀 Advanced Metrics</h4>
+                            
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">Beta</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> Measures a stock's volatility relative to the overall market (typically S&P 500).
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> Beta = Covariance(Stock Returns, Market Returns) / Variance(Market Returns)
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>Beta = 1:</strong> Stock moves with the market</li>
+                                    <li><strong>Beta > 1:</strong> Stock is more volatile than market (e.g., Beta 1.5 = 50% more volatile)</li>
+                                    <li><strong>Beta < 1:</strong> Stock is less volatile than market (e.g., Beta 0.5 = 50% less volatile)</li>
+                                    <li><strong>Beta < 0:</strong> Stock moves opposite to market (rare, usually defensive stocks)</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> High beta stocks offer higher returns but more risk. Low beta stocks are more stable but may offer lower returns.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">Volatility</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> Measures how much a stock's price fluctuates over time. Usually measured as standard deviation of returns.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>How it's measured:</strong> Standard deviation of daily/weekly/monthly returns, or implied volatility from options.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>High volatility (>30%):</strong> Large price swings - higher risk and potential reward</li>
+                                    <li><strong>Low volatility (<15%):</strong> Stable price - lower risk, more predictable</li>
+                                    <li><strong>Volatility clustering:</strong> High volatility periods often follow high volatility periods</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> Volatility is not the same as risk. A volatile stock can still be a good long-term investment if fundamentals are strong.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">Dividend Yield</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> Annual dividend payment divided by stock price, expressed as a percentage.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> Dividend Yield = (Annual Dividend Per Share / Stock Price) × 100%
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>Yield 2-4%:</strong> Typical for dividend-paying stocks</li>
+                                    <li><strong>Yield > 4%:</strong> High yield - attractive for income investors, but verify sustainability</li>
+                                    <li><strong>Yield < 1%:</strong> Low yield - company may prioritize growth over dividends</li>
+                                    <li><strong>No dividend:</strong> Company reinvests profits (common for growth stocks)</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> Very high yields (>8%) may indicate dividend cut risk. Check payout ratio and dividend history.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px; padding-bottom: 25px; border-bottom: 1px solid var(--border-color);">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">PEG Ratio (Price/Earnings to Growth)</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> P/E ratio adjusted for growth rate. Helps identify if a growth stock is fairly valued.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> PEG Ratio = P/E Ratio / Annual EPS Growth Rate
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>PEG < 1:</strong> Potentially undervalued - growth rate exceeds P/E ratio</li>
+                                    <li><strong>PEG = 1:</strong> Fairly valued - growth matches valuation</li>
+                                    <li><strong>PEG > 1:</strong> Potentially overvalued - P/E ratio exceeds growth rate</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> Most useful for growth stocks. A stock with P/E 30 and 30% growth has PEG 1.0, which may be reasonable.
+                                </p>
+                            </div>
+
+                            <div class="metric-item" style="margin-bottom: 25px;">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">EV/EBITDA (Enterprise Value to EBITDA)</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Definition:</strong> Measures company value relative to earnings before interest, taxes, depreciation, and amortization.
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Formula:</strong> EV/EBITDA = Enterprise Value / EBITDA, where EV = Market Cap + Debt - Cash
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Interpretation:</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.6;">
+                                    <li><strong>EV/EBITDA < 10:</strong> Potentially undervalued or mature company</li>
+                                    <li><strong>EV/EBITDA 10-15:</strong> Typical range for most companies</li>
+                                    <li><strong>EV/EBITDA > 15:</strong> High growth expectations or overvaluation</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Tip:</strong> Useful for comparing companies with different debt levels and tax situations. Common in M&A analysis.
                                 </p>
                             </div>
                         </div>
@@ -22404,6 +22768,77 @@
                                 </p>
                             </div>
                         </div>
+
+                        <!-- Reading Financial Statements -->
+                        <div style="padding: 25px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h4 style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.3em;">📄 Reading Financial Statements</h4>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary);">Income Statement (Profit & Loss)</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    Shows company's revenues and expenses over a period (quarter or year). Key components:
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.8;">
+                                    <li><strong>Revenue (Top Line):</strong> Total sales - what company earns</li>
+                                    <li><strong>Cost of Goods Sold (COGS):</strong> Direct costs of producing goods/services</li>
+                                    <li><strong>Gross Profit:</strong> Revenue - COGS - shows production efficiency</li>
+                                    <li><strong>Operating Expenses:</strong> R&D, marketing, salaries, overhead</li>
+                                    <li><strong>Operating Income:</strong> Gross Profit - Operating Expenses</li>
+                                    <li><strong>Net Income (Bottom Line):</strong> Final profit after all expenses and taxes</li>
+                                </ul>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>What to look for:</strong> Growing revenue, expanding margins, consistent profitability. Compare trends over multiple periods.
+                                </p>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px;">
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary);">Balance Sheet</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    Snapshot of company's financial position at a specific point in time. Shows what company owns and owes. Formula: <strong>Assets = Liabilities + Equity</strong>
+                                </p>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Assets (What company owns):</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.8;">
+                                    <li><strong>Current Assets:</strong> Cash, accounts receivable, inventory (convertible to cash within 1 year)</li>
+                                    <li><strong>Non-Current Assets:</strong> Property, equipment, intangible assets (long-term)</li>
+                                </ul>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Liabilities (What company owes):</strong>
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.8;">
+                                    <li><strong>Current Liabilities:</strong> Accounts payable, short-term debt (due within 1 year)</li>
+                                    <li><strong>Long-Term Liabilities:</strong> Long-term debt, bonds (due after 1 year)</li>
+                                </ul>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Equity:</strong> Shareholders' equity = Assets - Liabilities (what shareholders own)
+                                </p>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>What to look for:</strong> Healthy current ratio (>1), manageable debt levels, growing equity over time.
+                                </p>
+                            </div>
+                            
+                            <div>
+                                <h5 style="margin-bottom: 10px; color: var(--text-primary);">Cash Flow Statement</h5>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    Tracks actual cash moving in and out of the company. Shows liquidity and cash generation ability. Three main sections:
+                                </p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.8;">
+                                    <li><strong>Operating Cash Flow:</strong> Cash from core business operations (most important - should be positive and growing)</li>
+                                    <li><strong>Investing Cash Flow:</strong> Cash from buying/selling assets (usually negative as companies invest)</li>
+                                    <li><strong>Financing Cash Flow:</strong> Cash from borrowing, issuing stock, or paying dividends</li>
+                                </ul>
+                                <p style="margin-bottom: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>Free Cash Flow:</strong> Operating Cash Flow - Capital Expenditures. Shows cash available for dividends, buybacks, or growth.
+                                </p>
+                                <p style="margin-top: 10px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>What to look for:</strong> Positive operating cash flow, growing free cash flow, cash generation matching or exceeding net income. Negative operating cash flow is a red flag.
+                                </p>
+                                <p style="margin-top: 10px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; color: var(--text-secondary); line-height: 1.6;">
+                                    <strong>💡 Key Insight:</strong> A company can show profits on the income statement but still have negative cash flow. Cash flow is harder to manipulate and more reliable indicator of financial health.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -22414,38 +22849,161 @@
             if (!container) return;
             
             const glossaryTerms = [
-                { term: 'Assets', definition: 'Everything a company owns that has value, including cash, inventory, property, and equipment.' },
-                { term: 'Bear Market', definition: 'A market condition where stock prices are falling, typically by 20% or more from recent highs.' },
-                { term: 'Bull Market', definition: 'A market condition where stock prices are rising or expected to rise.' },
-                { term: 'Beta', definition: 'A measure of a stock\'s volatility compared to the overall market. Beta > 1 means more volatile, < 1 means less volatile.' },
-                { term: 'Dividend', definition: 'A portion of a company\'s profits paid to shareholders, typically quarterly.' },
-                { term: 'Equity', definition: 'The value of assets minus liabilities. Also refers to stocks (ownership shares in a company).' },
-                { term: 'EPS', definition: 'Earnings Per Share - company profit divided by number of outstanding shares.' },
-                { term: 'Liability', definition: 'Everything a company owes, including debt, accounts payable, and obligations.' },
-                { term: 'Market Cap', definition: 'Market Capitalization - total value of all outstanding shares (Price × Shares).' },
-                { term: 'P/E Ratio', definition: 'Price-to-Earnings ratio - stock price divided by earnings per share.' },
-                { term: 'ROE', definition: 'Return on Equity - measures how efficiently a company uses shareholders\' equity to generate profits.' },
-                { term: 'Volatility', definition: 'The degree of variation in a stock\'s price over time. Higher volatility means bigger price swings.' }
+                // Fundamental Terms
+                { term: 'Assets', category: 'Fundamental', definition: 'Everything a company owns that has value, including cash, inventory, property, and equipment.' },
+                { term: 'Liabilities', category: 'Fundamental', definition: 'Everything a company owes, including debt, accounts payable, and obligations.' },
+                { term: 'Equity', category: 'Fundamental', definition: 'The value of assets minus liabilities. Also refers to stocks (ownership shares in a company).' },
+                { term: 'Revenue', category: 'Fundamental', definition: 'Total income from sales of goods or services before expenses are deducted. Also called "top line".' },
+                { term: 'Earnings', category: 'Fundamental', definition: 'Company profit after all expenses, taxes, and costs. Also called "net income" or "bottom line".' },
+                { term: 'EPS', category: 'Fundamental', definition: 'Earnings Per Share - company profit divided by number of outstanding shares.' },
+                { term: 'Market Cap', category: 'Fundamental', definition: 'Market Capitalization - total value of all outstanding shares (Price × Shares).' },
+                { term: 'Enterprise Value (EV)', category: 'Fundamental', definition: 'Total company value including market cap, debt, and minus cash. Used in M&A analysis.' },
+                { term: 'Book Value', category: 'Fundamental', definition: 'The value of a company\'s assets minus its liabilities. What would be left if company liquidated.' },
+                { term: 'Cash Flow', category: 'Fundamental', definition: 'The net amount of cash moving in and out of a business. Operating cash flow shows day-to-day operations.' },
+                { term: 'Free Cash Flow (FCF)', category: 'Fundamental', definition: 'Cash available after paying operating expenses and capital expenditures. Shows true profitability.' },
+                { term: 'EBITDA', category: 'Fundamental', definition: 'Earnings Before Interest, Taxes, Depreciation, and Amortization. Operating profitability measure.' },
+                { term: 'ROE', category: 'Fundamental', definition: 'Return on Equity - measures how efficiently a company uses shareholders\' equity to generate profits.' },
+                { term: 'ROA', category: 'Fundamental', definition: 'Return on Assets - measures how efficiently a company uses its assets to generate profits.' },
+                { term: 'ROIC', category: 'Fundamental', definition: 'Return on Invested Capital - measures efficiency of capital allocation (debt + equity).' },
+                { term: 'Working Capital', category: 'Fundamental', definition: 'Current assets minus current liabilities. Measures short-term financial health and liquidity.' },
+                { term: 'Current Ratio', category: 'Fundamental', definition: 'Current assets divided by current liabilities. Measures ability to pay short-term debts.' },
+                { term: 'Quick Ratio', category: 'Fundamental', definition: '(Current Assets - Inventory) / Current Liabilities. More conservative liquidity measure.' },
+                { term: 'Debt-to-Equity', category: 'Fundamental', definition: 'Total debt divided by total equity. Shows how much debt a company uses vs. equity financing.' },
+                { term: 'P/E Ratio', category: 'Fundamental', definition: 'Price-to-Earnings ratio - stock price divided by earnings per share.' },
+                { term: 'P/B Ratio', category: 'Fundamental', definition: 'Price-to-Book ratio - stock price divided by book value per share.' },
+                { term: 'P/S Ratio', category: 'Fundamental', definition: 'Price-to-Sales ratio - market cap divided by annual revenue.' },
+                { term: 'PEG Ratio', category: 'Fundamental', definition: 'Price/Earnings to Growth ratio - P/E divided by annual EPS growth rate.' },
+                { term: 'EV/EBITDA', category: 'Fundamental', definition: 'Enterprise Value to EBITDA. Valuation metric useful for comparing companies with different debt levels.' },
+                { term: 'Dividend', category: 'Fundamental', definition: 'A portion of a company\'s profits paid to shareholders, typically quarterly.' },
+                { term: 'Dividend Yield', category: 'Fundamental', definition: 'Annual dividend payment divided by stock price, expressed as percentage.' },
+                { term: 'Payout Ratio', category: 'Fundamental', definition: 'Percentage of earnings paid as dividends. Lower ratio means more sustainable dividends.' },
+                
+                // Technical Terms
+                { term: 'RSI', category: 'Technical', definition: 'Relative Strength Index - momentum oscillator (0-100) measuring speed of price changes. >70 overbought, <30 oversold.' },
+                { term: 'MACD', category: 'Technical', definition: 'Moving Average Convergence Divergence - trend-following momentum indicator showing relationship between two MAs.' },
+                { term: 'Bollinger Bands', category: 'Technical', definition: 'Technical indicator with middle SMA and two outer bands (standard deviations). Shows volatility.' },
+                { term: 'Support Level', category: 'Technical', definition: 'Price level where buying interest is strong enough to prevent price from falling further.' },
+                { term: 'Resistance Level', category: 'Technical', definition: 'Price level where selling pressure prevents price from rising further.' },
+                { term: 'Moving Average (MA)', category: 'Technical', definition: 'Average price over a period. SMA gives equal weight, EMA gives more weight to recent prices.' },
+                { term: 'SMA', category: 'Technical', definition: 'Simple Moving Average - average of prices over N periods with equal weighting.' },
+                { term: 'EMA', category: 'Technical', definition: 'Exponential Moving Average - moving average that gives more weight to recent prices.' },
+                { term: 'Volume', category: 'Technical', definition: 'Number of shares traded in a given period. High volume confirms price movements.' },
+                { term: 'Beta', category: 'Technical', definition: 'Measure of stock\'s volatility compared to market. >1 more volatile, <1 less volatile, =1 moves with market.' },
+                { term: 'Volatility', category: 'Technical', definition: 'Degree of variation in stock price over time. Higher volatility means bigger price swings.' },
+                { term: 'Alpha', category: 'Technical', definition: 'Measure of investment performance relative to a benchmark. Positive alpha = outperformance.' },
+                { term: 'Candlestick', category: 'Technical', definition: 'Price chart showing open, high, low, close. Green/white = price up, red/black = price down.' },
+                { term: 'Golden Cross', category: 'Technical', definition: 'Technical signal when short-term MA crosses above long-term MA (e.g., 50-day crosses 200-day).' },
+                { term: 'Death Cross', category: 'Technical', definition: 'Technical signal when short-term MA crosses below long-term MA. Bearish signal.' },
+                { term: 'Stochastic Oscillator', category: 'Technical', definition: 'Momentum indicator (0-100) comparing closing price to price range. >80 overbought, <20 oversold.' },
+                { term: 'ATR', category: 'Technical', definition: 'Average True Range - measures market volatility by averaging true ranges over a period.' },
+                
+                // Market Terms
+                { term: 'Bull Market', category: 'Market', definition: 'Market condition where stock prices are rising or expected to rise. Generally optimistic sentiment.' },
+                { term: 'Bear Market', category: 'Market', definition: 'Market condition where stock prices are falling, typically by 20% or more from recent highs.' },
+                { term: 'IPO', category: 'Market', definition: 'Initial Public Offering - when a private company first sells shares to the public.' },
+                { term: 'Secondary Offering', category: 'Market', definition: 'When a public company issues additional shares after IPO, diluting existing shareholders.' },
+                { term: 'Stock Split', category: 'Market', definition: 'When a company increases number of shares and reduces price proportionally (e.g., 2-for-1 split).' },
+                { term: 'Reverse Split', category: 'Market', definition: 'When a company reduces number of shares and increases price proportionally. Often done to avoid delisting.' },
+                { term: 'Market Order', category: 'Market', definition: 'Order to buy or sell immediately at current market price. Fastest execution but no price control.' },
+                { term: 'Limit Order', category: 'Market', definition: 'Order to buy or sell only at specified price or better. Guarantees price but not execution.' },
+                { term: 'Stop Loss', category: 'Market', definition: 'Order to sell when price falls to specified level, limiting losses.' },
+                { term: 'Stop Limit', category: 'Market', definition: 'Combination order: stop order triggers limit order at specified price.' },
+                
+                // Options Terms
+                { term: 'Call Option', category: 'Options', definition: 'Right to buy stock at specified price (strike) before expiration date.' },
+                { term: 'Put Option', category: 'Options', definition: 'Right to sell stock at specified price (strike) before expiration date.' },
+                { term: 'Strike Price', category: 'Options', definition: 'Price at which option holder can buy (call) or sell (put) the underlying stock.' },
+                { term: 'Expiration Date', category: 'Options', definition: 'Date when option expires and becomes worthless if not exercised.' },
+                { term: 'Premium', category: 'Options', definition: 'Price paid to buy an option. Maximum loss for option buyer.' },
+                { term: 'In the Money', category: 'Options', definition: 'Option with intrinsic value. Call: stock price > strike. Put: stock price < strike.' },
+                { term: 'Out of the Money', category: 'Options', definition: 'Option with no intrinsic value. Call: stock price < strike. Put: stock price > strike.' },
+                
+                // Additional Terms
+                { term: 'Sector', category: 'Market', definition: 'Group of companies in same industry (e.g., Technology, Healthcare, Financials).' },
+                { term: 'Index', category: 'Market', definition: 'Basket of stocks representing market or sector (e.g., S&P 500, NASDAQ, Dow Jones).' },
+                { term: 'ETF', category: 'Market', definition: 'Exchange-Traded Fund - basket of stocks traded like a stock. Provides diversification.' },
+                { term: 'Mutual Fund', category: 'Market', definition: 'Pooled investment vehicle managed by professionals, buying/selling at end of day at NAV.' },
+                { term: 'Blue Chip', category: 'Market', definition: 'Large, well-established, financially stable company with reliable earnings (e.g., Apple, Microsoft).' },
+                { term: 'Penny Stock', category: 'Market', definition: 'Stock trading below $5 per share. High risk, often low liquidity.' },
+                { term: 'Market Maker', category: 'Market', definition: 'Financial firm that provides liquidity by buying and selling securities, earning bid-ask spread.' },
+                { term: 'Bid Price', category: 'Market', definition: 'Highest price a buyer is willing to pay for a stock.' },
+                { term: 'Ask Price', category: 'Market', definition: 'Lowest price a seller is willing to accept for a stock.' },
+                { term: 'Spread', category: 'Market', definition: 'Difference between bid and ask price. Lower spread means better liquidity.' },
+                { term: 'Liquidity', category: 'Market', definition: 'Ease of buying/selling without significantly affecting price. High volume = high liquidity.' },
+                { term: 'Insider Trading', category: 'Market', definition: 'Trading by company executives, directors, or large shareholders. Legal if reported, illegal if on non-public info.' },
+                { term: 'Short Selling', category: 'Market', definition: 'Borrowing shares to sell, hoping to buy back cheaper later. Profits when stock price falls.' },
+                { term: 'Short Interest', category: 'Market', definition: 'Number of shares sold short. High short interest may indicate bearish sentiment.' }
             ];
+            
+            // Sort terms alphabetically
+            glossaryTerms.sort((a, b) => a.term.localeCompare(b.term));
+            
+            // Group by category
+            const categories = {};
+            glossaryTerms.forEach(item => {
+                if (!categories[item.category]) {
+                    categories[item.category] = [];
+                }
+                categories[item.category].push(item);
+            });
             
             let html = `
                 <div style="max-width: 1200px; margin: 0 auto;">
+                    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="glossary-filter-btn active" onclick="filterGlossary('all')" style="padding: 8px 16px; border: 2px solid #667eea; background: #667eea; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">All</button>
+                        <button class="glossary-filter-btn" onclick="filterGlossary('Fundamental')" style="padding: 8px 16px; border: 2px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); border-radius: 6px; cursor: pointer; font-weight: 600;">💰 Fundamental</button>
+                        <button class="glossary-filter-btn" onclick="filterGlossary('Technical')" style="padding: 8px 16px; border: 2px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); border-radius: 6px; cursor: pointer; font-weight: 600;">📈 Technical</button>
+                        <button class="glossary-filter-btn" onclick="filterGlossary('Market')" style="padding: 8px 16px; border: 2px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); border-radius: 6px; cursor: pointer; font-weight: 600;">📊 Market</button>
+                        <button class="glossary-filter-btn" onclick="filterGlossary('Options')" style="padding: 8px 16px; border: 2px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); border-radius: 6px; cursor: pointer; font-weight: 600;">⚙️ Options</button>
+                    </div>
                     <div id="glossaryTerms" style="display: grid; gap: 15px;">
             `;
             
-            glossaryTerms.forEach(item => {
-                html += `
-                    <div class="glossary-term" style="padding: 20px; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color);">
-                        <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">${item.term}</h5>
-                        <p style="margin: 0; color: var(--text-secondary); line-height: 1.6;">${item.definition}</p>
-                    </div>
+            Object.keys(categories).sort().forEach(category => {
+                html += `<div class="glossary-category" data-category="${category}" style="margin-bottom: 30px;">
+                    <h4 style="margin-bottom: 15px; color: var(--text-primary); font-size: 1.2em; padding-bottom: 10px; border-bottom: 2px solid var(--border-color);">${category}</h4>
+                    <div style="display: grid; gap: 15px;">
                 `;
+                categories[category].forEach(item => {
+                    html += `
+                        <div class="glossary-term" data-category="${item.category}" style="padding: 20px; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <h5 style="margin-bottom: 10px; color: var(--text-primary); font-size: 1.1em;">${item.term}</h5>
+                            <p style="margin: 0; color: var(--text-secondary); line-height: 1.6;">${item.definition}</p>
+                        </div>
+                    `;
+                });
+                html += `</div></div>`;
             });
             
             html += `
                     </div>
                 </div>
             `;
+            
+            // Add filter function
+            window.filterGlossary = function(category) {
+                const buttons = document.querySelectorAll('.glossary-filter-btn');
+                buttons.forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.style.background = 'var(--bg-card)';
+                    btn.style.color = 'var(--text-primary)';
+                    btn.style.borderColor = 'var(--border-color)';
+                });
+                event.target.classList.add('active');
+                event.target.style.background = '#667eea';
+                event.target.style.color = 'white';
+                event.target.style.borderColor = '#667eea';
+                
+                const terms = container.querySelectorAll('.glossary-category, .glossary-term');
+                terms.forEach(term => {
+                    if (category === 'all') {
+                        term.style.display = '';
+                    } else {
+                        const termCategory = term.getAttribute('data-category');
+                        term.style.display = termCategory === category ? '' : 'none';
+                    }
+                });
+            };
             
             container.innerHTML = html;
             
