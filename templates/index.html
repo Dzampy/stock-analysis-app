@@ -1566,13 +1566,18 @@
             }
             
             body {
-                padding: var(--space-4);
+                padding: 12px;
             }
             
             .card {
-                padding: var(--space-6);
-                margin-bottom: var(--space-6);
+                padding: 16px;
+                margin-bottom: 16px;
                 border-radius: var(--radius-lg);
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
             }
             
             .header {
@@ -1638,7 +1643,7 @@
             }
             
             body {
-                padding: var(--space-3);
+                padding: 8px;
                 overflow-x: hidden;
             }
             
@@ -1656,9 +1661,27 @@
             }
             
             .card {
-                padding: var(--space-4);
+                padding: 16px;
                 border-radius: var(--radius-md);
-                margin-bottom: var(--space-4);
+                margin-bottom: 16px;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            /* Typography scale for mobile */
+            h1 {
+                font-size: 1.75rem !important;
+            }
+            
+            h2 {
+                font-size: 1.5rem !important;
+            }
+            
+            h3 {
+                font-size: 1.25rem !important;
             }
             
             .header {
@@ -1681,8 +1704,10 @@
             }
             
             .icon-btn {
-                width: 44px;
-                height: 44px;
+                width: 48px;
+                height: 48px;
+                min-width: 48px;
+                min-height: 48px;
                 font-size: 1.2rem;
             }
             
@@ -1690,6 +1715,20 @@
                 flex-direction: column;
                 text-align: center;
                 padding: var(--space-4);
+                min-height: 48px;
+            }
+            
+            /* Ensure all toggle buttons have proper touch targets */
+            .toggle-btn {
+                min-height: 48px;
+                min-width: 48px;
+                padding: 12px 16px;
+            }
+            
+            /* Nav items touch targets */
+            .nav-item {
+                min-height: 44px;
+                padding: 12px 16px;
             }
             
             .metric-icon {
@@ -1703,9 +1742,14 @@
             }
             
             .chart-container {
-                height: 250px;
+                height: 200px !important;
                 padding: var(--space-3);
                 overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            canvas {
+                touch-action: pan-x pan-y pinch-zoom;
             }
             
             .toast {
@@ -1727,12 +1771,24 @@
                 font-size: var(--font-size-base);
             }
             
-            /* Tables - horizontal scroll */
+            /* Tables - horizontal scroll with better UX */
             table {
                 display: block;
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
                 width: 100%;
+                font-size: var(--font-size-xs);
+            }
+            
+            table thead th,
+            table tbody td {
+                padding: 8px 12px;
+                white-space: nowrap;
+            }
+            
+            /* Hide less important columns on mobile */
+            table .mobile-hide {
+                display: none;
             }
             
             /* Prevent horizontal scroll on body */
@@ -3803,6 +3859,15 @@
             font-size: 1em;
             backdrop-filter: blur(10px);
         }
+        
+        /* Mobile optimizations for search */
+        @media (max-width: 768px) {
+            #globalSearchInput {
+                font-size: 16px !important; /* Prevents iOS zoom */
+                padding: 14px 40px 14px 16px !important;
+                min-height: 48px;
+            }
+        }
 
         #globalSearchInput:focus {
             outline: none;
@@ -4154,7 +4219,10 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
             z-index: 999;
+            transition: opacity 0.3s ease;
         }
 
         /* Main content padding for sidebar */
@@ -4172,6 +4240,8 @@
         @media (max-width: 1024px) {
             .sidebar {
                 transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                touch-action: pan-y;
             }
 
             .sidebar.open {
@@ -4180,6 +4250,7 @@
 
             .sidebar-overlay.active {
                 display: block;
+                opacity: 1;
             }
 
             .container {
@@ -4214,36 +4285,104 @@
                 white-space: nowrap;
             }
             
+            /* Card layout for tables on mobile */
+            .table-mobile-card {
+                display: block;
+            }
+            
+            .table-mobile-card thead {
+                display: none;
+            }
+            
+            .table-mobile-card tbody {
+                display: block;
+            }
+            
+            .table-mobile-card tbody tr {
+                display: block;
+                margin-bottom: 16px;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 12px;
+                background: var(--bg-card);
+            }
+            
+            .table-mobile-card tbody td {
+                display: flex;
+                justify-content: space-between;
+                padding: 8px 0;
+                border: none;
+                text-align: left;
+            }
+            
+            .table-mobile-card tbody td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                margin-right: 12px;
+                color: var(--text-secondary);
+            }
+            
             /* Cards - better spacing on mobile */
             .card {
-                padding: 15px;
-                margin-bottom: 15px;
+                padding: 16px;
+                margin-bottom: 16px;
+            }
+            
+            /* Single column grids on mobile */
+            .metrics-grid,
+            div[style*="grid-template-columns"] {
+                grid-template-columns: 1fr !important;
+                gap: 12px;
             }
             
             /* Inputs and buttons - bigger for touch */
             input[type="text"],
             input[type="number"],
+            input[type="search"],
             select,
             textarea {
                 font-size: 16px !important; /* Prevents zoom on iOS */
-                padding: 12px !important;
-                min-height: 44px;
+                padding: 14px 16px !important;
+                min-height: 48px;
+                border-radius: 8px;
             }
             
+            /* Touch targets - minimum 44x44px for all clickable elements */
             button,
             .btn-primary,
-            .btn-secondary {
+            .btn-secondary,
+            .nav-item,
+            .icon-btn,
+            .nav-button,
+            a.btn,
+            .link {
                 min-height: 44px;
+                min-width: 44px;
                 padding: 12px 20px !important;
                 font-size: 16px !important;
             }
             
+            /* Larger touch targets for small elements */
+            .toggle-btn,
+            .metric-card,
+            .icon-btn {
+                min-height: 48px;
+                min-width: 48px;
+                padding: 12px;
+            }
+            
             /* Charts - responsive height */
-            .chart-container,
+            .chart-container {
+                max-width: 100%;
+                height: 200px !important;
+                min-height: 200px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
             canvas {
                 max-width: 100%;
-                height: auto !important;
-                min-height: 250px;
+                touch-action: pan-x pan-y pinch-zoom;
             }
             
             /* Grid layouts - single column on mobile */
@@ -4303,7 +4442,8 @@
         }
 
         /* Mobile hamburger button */
-        .mobile-menu-button {
+        .mobile-menu-button,
+        .mobile-menu-toggle {
             display: none;
             position: fixed;
             top: 20px;
@@ -4311,17 +4451,37 @@
             z-index: 1001;
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px;
+            border-radius: 12px;
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            min-height: 48px;
+            padding: 0;
             cursor: pointer;
-            font-size: 1.5em;
+            font-size: 1.8rem;
             color: var(--text-primary);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .mobile-menu-button:hover,
+        .mobile-menu-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+        
+        .mobile-menu-button:active,
+        .mobile-menu-toggle:active {
+            transform: scale(0.95);
         }
 
         @media (max-width: 1024px) {
-            .mobile-menu-button {
-                display: block;
+            .mobile-menu-button,
+            .mobile-menu-toggle {
+                display: flex;
             }
         }
     </style>
@@ -4470,8 +4630,10 @@
         <div class="header">
             <div style="display: flex; align-items: center; gap: 15px; justify-content: flex-end; margin-bottom: 20px; flex-wrap: wrap;">
                 <div class="global-search-container" style="position: relative; max-width: 400px; width: 100%; min-width: 250px; flex: 1;">
-                    <input type="text" id="globalSearchInput" 
+                    <input type="search" id="globalSearchInput" 
                            placeholder="🔍 Search ticker..." 
+                           inputmode="search"
+                           autocomplete="off"
                            style="width: 100%; padding: 12px 40px 12px 15px; border: 2px solid rgba(255,255,255,0.3); border-radius: 8px; background: rgba(255,255,255,0.1); color: white; font-size: 1em; backdrop-filter: blur(10px); box-sizing: border-box;"
                            oninput="handleGlobalSearch(event)"
                            onfocus="showSearchDropdown()"
@@ -4641,7 +4803,7 @@
                 </div>
                 <div style="margin-bottom: 25px;">
                     <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center;">
-                        <input type="text" id="newsTickerInput" placeholder="Enter ticker (e.g., AAPL, MSFT, TSLA)" style="flex: 1; min-width: 200px; max-width: 400px; padding: 12px; border: 2px solid var(--input-border); border-radius: 10px; font-size: 14px; background: var(--input-bg); color: var(--text-primary);" onkeypress="if(event.key === 'Enter') loadNewsForTicker()" />
+                        <input type="text" id="newsTickerInput" placeholder="Enter ticker (e.g., AAPL, MSFT, TSLA)" inputmode="text" autocomplete="off" style="flex: 1; min-width: 200px; max-width: 400px; padding: 12px; border: 2px solid var(--input-border); border-radius: 10px; font-size: 14px; background: var(--input-bg); color: var(--text-primary);" onkeypress="if(event.key === 'Enter') loadNewsForTicker()" />
                         <button onclick="loadNewsForTicker()" id="loadNewsBtn" class="ripple-effect" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); transition: all 0.3s ease;">📰 Load News</button>
                         <button onclick="addNewsTickerToNewsAlerts()" id="addNewsTickerToAlertsBtn" class="ripple-effect" style="padding: 12px 24px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.3s ease; display: none;">📰 Add to News Alerts</button>
                         <button onclick="generateNewsAISummary()" id="newsAISummaryBtn" class="ripple-effect" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); transition: all 0.3s ease; display: none;">🤖 AI Summary</button>
@@ -4736,15 +4898,15 @@
                             <div style="display: flex; flex-direction: column; gap: 20px;">
                                 <div>
                                     <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">Ticker Symbol *</label>
-                                    <input type="text" id="portfolioTickerInput" placeholder="e.g., AAPL, MSFT" required style="width: 100%; padding: 12px; border: 2px solid var(--input-border); border-radius: 8px; background: var(--input-bg); color: var(--text-primary); font-size: 1em;" />
+                                    <input type="text" id="portfolioTickerInput" placeholder="e.g., AAPL, MSFT" required inputmode="text" autocomplete="off" style="width: 100%; padding: 12px; border: 2px solid var(--input-border); border-radius: 8px; background: var(--input-bg); color: var(--text-primary); font-size: 1em;" />
                                 </div>
                                 <div>
                                     <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">Number of Shares *</label>
-                                    <input type="number" id="portfolioSharesInput" placeholder="e.g., 10" required min="0.0001" step="0.0001" style="width: 100%; padding: 12px; border: 2px solid var(--input-border); border-radius: 8px; background: var(--input-bg); color: var(--text-primary); font-size: 1em;" />
+                                    <input type="number" id="portfolioSharesInput" placeholder="e.g., 10" required min="0.0001" step="0.0001" inputmode="decimal" style="width: 100%; padding: 12px; border: 2px solid var(--input-border); border-radius: 8px; background: var(--input-bg); color: var(--text-primary); font-size: 1em;" />
                                 </div>
                                 <div>
                                     <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">Purchase Price *</label>
-                                    <input type="number" id="portfolioPriceInput" placeholder="e.g., 150.50" required min="0.01" step="0.01" style="width: 100%; padding: 12px; border: 2px solid var(--input-border); border-radius: 8px; background: var(--input-bg); color: var(--text-primary); font-size: 1em;" />
+                                    <input type="number" id="portfolioPriceInput" placeholder="e.g., 150.50" required min="0.01" step="0.01" inputmode="decimal" style="width: 100%; padding: 12px; border: 2px solid var(--input-border); border-radius: 8px; background: var(--input-bg); color: var(--text-primary); font-size: 1em;" />
                                 </div>
                                 <div>
                                     <label style="display: block; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">Purchase Date</label>
@@ -4830,7 +4992,7 @@
                 
                 <div style="margin-top: 20px;">
                     <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
-                        <input type="text" id="watchlistTickerInput" placeholder="Enter ticker symbol (e.g., AAPL)" onkeypress="if(event.key==='Enter') addToWatchlistFromInput()" style="flex: 1; min-width: 200px; max-width: 300px; padding: 12px 16px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--bg-primary); color: var(--text-primary); font-size: 1em;" />
+                        <input type="text" id="watchlistTickerInput" placeholder="Enter ticker symbol (e.g., AAPL)" inputmode="text" autocomplete="off" onkeypress="if(event.key==='Enter') addToWatchlistFromInput()" style="flex: 1; min-width: 200px; max-width: 300px; padding: 12px 16px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--bg-primary); color: var(--text-primary); font-size: 1em;" />
                         <button onclick="addToWatchlistFromInput()" class="ripple-effect" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); transition: all 0.3s ease;">+ Add to Watchlist</button>
                         <button onclick="showWatchlistGroupManager(event)" class="ripple-effect" style="padding: 12px 24px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.3s ease;">📁 Manage Groups</button>
                     </div>
@@ -5288,7 +5450,7 @@
                 <div id="educationWhyTab" class="education-tab-content hidden">
                     <div id="whyContent">
                         <!-- Content will be loaded here -->
-                    </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -5561,6 +5723,73 @@
             return true;
         };
         
+        // Cached fetch function with simple in-memory cache
+        const fetchCache = new Map();
+        const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+        
+        async function cachedFetch(url, options = {}) {
+            const cacheKey = `${url}_${JSON.stringify(options)}`;
+            const now = Date.now();
+            
+            // Check cache
+            if (fetchCache.has(cacheKey)) {
+                const cached = fetchCache.get(cacheKey);
+                if (now - cached.timestamp < CACHE_DURATION) {
+                    // Return cached response as a Response-like object
+                    const cachedData = cached.data;
+                    const cachedResponse = {
+                        ok: cached.ok !== false,
+                        status: cached.status || 200,
+                        statusText: cached.statusText || 'OK',
+                        headers: new Headers(cached.headers || { 'Content-Type': 'application/json' }),
+                        json: async function() {
+                            return cachedData;
+                        },
+                        text: async function() {
+                            return JSON.stringify(cachedData);
+                        },
+                        clone: function() {
+                            return cachedFetch(url, options);
+                        }
+                    };
+                    return cachedResponse;
+                } else {
+                    // Cache expired, remove it
+                    fetchCache.delete(cacheKey);
+                }
+            }
+            
+            // Fetch from network
+            try {
+                const response = await fetch(url, options);
+                const responseClone = response.clone();
+                
+                // Cache the response data
+                try {
+                    const data = await responseClone.json();
+                    fetchCache.set(cacheKey, {
+                        data: data,
+                        timestamp: now,
+                        status: response.status,
+                        statusText: response.statusText,
+                        ok: response.ok,
+                        headers: Object.fromEntries(response.headers.entries())
+                    });
+                } catch (e) {
+                    // If JSON parsing fails, don't cache
+                    console.warn('Failed to cache response (not JSON):', url);
+                }
+                
+                return response;
+            } catch (error) {
+                console.error('Fetch error:', error);
+                throw error;
+            }
+        }
+        
+        // Make cachedFetch available globally
+        window.cachedFetch = cachedFetch;
+        
         // Latest Updates Functions
         async function loadLatestUpdates() {
             try {
@@ -5708,6 +5937,42 @@
         }
         window.toggleSidebar = toggleSidebar;
         window.toggleMobileSidebar = toggleSidebar; // Alias for mobile
+        
+        // Swipe gesture support for mobile sidebar
+        (function() {
+            let touchStartX = 0;
+            let touchEndX = 0;
+            const minSwipeDistance = 50;
+            
+            document.addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+            
+            document.addEventListener('touchend', function(e) {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, { passive: true });
+            
+            function handleSwipe() {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+                if (!sidebar || !overlay) return;
+                
+                const swipeDistance = touchEndX - touchStartX;
+                const isOpen = sidebar.classList.contains('open');
+                
+                // Swipe right to open (from left edge)
+                if (swipeDistance > minSwipeDistance && touchStartX < 50 && !isOpen) {
+                    sidebar.classList.add('open');
+                    overlay.classList.add('active');
+                }
+                // Swipe left to close (when sidebar is open)
+                else if (swipeDistance < -minSwipeDistance && isOpen) {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('active');
+                }
+            }
+        })();
 
         // Toggle nav group (collapsible)
         function toggleNavGroup(groupId) {
@@ -5876,9 +6141,63 @@
         }
         window.showWelcome = showWelcome;
 
+        // Lazy loading for charts using IntersectionObserver
+        function initLazyLoading() {
+            const chartObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const chartContainer = entry.target;
+                        // Add loading class if not already loaded
+                        if (!chartContainer.dataset.loaded) {
+                            chartContainer.classList.add('chart-loading');
+                            // Mark as observed - actual chart loading happens when data is ready
+                            chartContainer.dataset.observed = 'true';
+                        }
+                        chartObserver.unobserve(chartContainer);
+                    }
+                });
+            }, {
+                rootMargin: '50px' // Start loading 50px before chart enters viewport
+            });
+            
+            // Observe all chart containers
+            document.querySelectorAll('.chart-container').forEach(container => {
+                chartObserver.observe(container);
+            });
+        }
+        
+        // Loading state styles
+        const loadingStyles = document.createElement('style');
+        loadingStyles.textContent = `
+            .chart-loading {
+                position: relative;
+            }
+            .chart-loading::before {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 40px;
+                height: 40px;
+                border: 4px solid var(--border-color);
+                border-top-color: var(--primary-500);
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                z-index: 10;
+            }
+            @keyframes spin {
+                to { transform: translate(-50%, -50%) rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(loadingStyles);
+        
         // Initialize sidebar on page load
         document.addEventListener('DOMContentLoaded', function() {
             initSidebarState();
+            
+            // Initialize lazy loading for charts
+            initLazyLoading();
             
             // Show welcome section by default on page load (only if no navigation has occurred)
             if (currentSection === 'welcomeSection') {
@@ -10204,7 +10523,7 @@
             `;
             
             const result = await fetchJSON(`/api/social-sentiment/${ticker}?days=${timeRange}`, {}, container);
-            
+                
             if (!result.success) {
                 // Add retry button to error message
                 const errorContainer = container;
@@ -10571,11 +10890,11 @@
             container.innerHTML = createMLTrainingIndicator(ticker);
             
             const result = await fetchJSON(`/api/ai-recommendations/${ticker}`, {}, container);
-            
+                
             if (!result.success) {
                 return; // Error already displayed by fetchJSON
-            }
-            
+                }
+                
             displayAIRecommendations(result.data, ticker);
         }
 
@@ -12263,7 +12582,7 @@
                 refreshBtn.style.display = 'none';
                     if (!containerId) {
                 refreshBtn.classList.remove('stale');
-                    }
+            }
                 }
             }
             
@@ -25262,7 +25581,7 @@
                 // fetchJSON already displayed error, but check for specific backtest error details
                 if (result.error && result.error.includes('days_old')) {
                     // Try to extract additional info from the error response
-                    try {
+            try {
                         const response = await safeFetch(`/api/backtest/${ticker}`);
                 if (!response.ok) {
                             const errorData = await response.json();
@@ -25278,7 +25597,7 @@
                 }
                 return; // Error already displayed by fetchJSON
             }
-            
+                
             displayBacktestResults(result.data);
         }
         

@@ -56,3 +56,4 @@ Po úspěšném backtestu uvidíš v JSON response:
 2. Zajistit, že server načítá nový kód
 3. Otestovat s reálnými daty
 
+

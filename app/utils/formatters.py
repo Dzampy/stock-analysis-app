@@ -79,3 +79,4 @@ def format_number(value: Optional[float], decimals: int = 2) -> str:
 
 
 
+

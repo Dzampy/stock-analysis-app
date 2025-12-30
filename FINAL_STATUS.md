@@ -56,3 +56,4 @@ curl "http://localhost:5001/api/backtest/AAPL"
 **Všechny implementace jsou dokončeny v kódu!**
 Problém je pouze v tom, že server potřebuje restart s vyčištěným cache, aby použil nový kód.
 
+

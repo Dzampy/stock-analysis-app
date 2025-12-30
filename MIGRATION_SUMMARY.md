@@ -70,3 +70,4 @@ Všechny kritické slabiny byly adresovány:
 - Error handler automaticky zachytává všechny exceptions a loguje je
 
 
+
