@@ -557,19 +557,18 @@ def _train_random_forest_model(ticker: str,
         if len(X_hist) < 50:
             logger.warning(
                 f"Insufficient training samples: {len(X_hist)}, need at least 50")
-
             return None, None
 
         # Convert to numpy arrays
-                X_train = np.array(X_hist)
-                y_train = np.array(y_hist)
-                
+        X_train = np.array(X_hist)
+        y_train = np.array(y_hist)
+
         logger.info(
             f"Training Random Forest model with {len(X_train)} samples and {len(feature_names)} features")
-                
-                # Scale features
-                scaler = StandardScaler()
-                X_train_scaled = scaler.fit_transform(X_train)
+
+        # Scale features
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
                 
         # Cross-validation for model validation (TimeSeriesSplit for time
         # series data)
