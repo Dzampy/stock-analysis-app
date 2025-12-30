@@ -5727,7 +5727,8 @@
         const fetchCache = new Map();
         const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
         
-        async function cachedFetch(url, options = {}) {
+        // Define cachedFetch immediately and make it globally available
+        window.cachedFetch = async function cachedFetch(url, options = {}) {
             const cacheKey = `${url}_${JSON.stringify(options)}`;
             const now = Date.now();
             
@@ -5785,10 +5786,10 @@
                 console.error('Fetch error:', error);
                 throw error;
             }
-        }
+        };
         
-        // Make cachedFetch available globally
-        window.cachedFetch = cachedFetch;
+        // Also create a local reference for use within this script
+        const cachedFetch = window.cachedFetch;
         
         // Latest Updates Functions
         async function loadLatestUpdates() {
