@@ -5750,7 +5750,7 @@
                             return JSON.stringify(cachedData);
                         },
                         clone: function() {
-                            return cachedFetch(url, options);
+                            return window.cachedFetch(url, options);
                         }
                     };
                     return cachedResponse;
@@ -6036,7 +6036,7 @@
                 setActiveSection(sectionId);
                 
                 // Update breadcrumbs with current ticker if available
-                updateBreadcrumbs(sectionId, currentTicker || null);
+                updateBreadcrumbs(sectionId, window.currentTicker || null);
                 
                 // Close mobile sidebar
                 if (window.innerWidth <= 1024) {
@@ -6402,7 +6402,7 @@
 
             try {
                 console.log('[AUTOCOMPLETE] Fetching results for:', query);
-                const response = await cachedFetch(`/api/search/${encodeURIComponent(query)}`);
+                const response = await window.cachedFetch(`/api/search/${encodeURIComponent(query)}`);
                 if (!response.ok) {
                     throw new Error(`Search failed: ${response.status}`);
                 }
@@ -14818,7 +14818,7 @@
                 // Use new news endpoint with impact analysis (with pagination)
                 let newsPage = window.newsCurrentPage || 1;
                 let newsLimit = window.newsLimit || 20;
-                const response = await cachedFetch(`/api/news/${ticker}?page=${newsPage}&limit=${newsLimit}`);
+                const response = await window.cachedFetch(`/api/news/${ticker}?page=${newsPage}&limit=${newsLimit}`);
                 
                 if (!response.ok) {
                     throw new Error(`Failed to load news for ${ticker}`);
@@ -21512,9 +21512,9 @@
             
             try {
                 const [analystResponse, insiderResponse, institutionalResponse] = await Promise.all([
-                    cachedFetch(`/api/analyst-data/${ticker}`),
-                    cachedFetch(`/api/insider-trading/${ticker}?page=1&limit=20`),
-                    cachedFetch(`/api/institutional-analysis/${ticker}`)
+                    window.cachedFetch(`/api/analyst-data/${ticker}`),
+                    window.cachedFetch(`/api/insider-trading/${ticker}?page=1&limit=20`),
+                    window.cachedFetch(`/api/institutional-analysis/${ticker}`)
                 ]);
                 
                 // Add to recent searches
@@ -21600,15 +21600,15 @@
         async function loadInsiderPage(page, ticker) {
             window.insiderCurrentPage = page;
             try {
-                const response = await cachedFetch(`/api/insider-trading/${ticker}?page=${page}&limit=20`);
+                const response = await window.cachedFetch(`/api/insider-trading/${ticker}?page=${page}&limit=20`);
                 if (!response.ok) throw new Error('Failed to load insider data');
                 const insiderData = await response.json();
                 
                 // Reload analyst & insider section
-                const analystResponse = await cachedFetch(`/api/analyst-data/${ticker}`);
+                const analystResponse = await window.cachedFetch(`/api/analyst-data/${ticker}`);
                 const analystData = analystResponse.ok ? await analystResponse.json() : null;
                 
-                const institutionalResponse = await cachedFetch(`/api/institutional-analysis/${ticker}`);
+                const institutionalResponse = await window.cachedFetch(`/api/institutional-analysis/${ticker}`);
                 const institutionalData = institutionalResponse.ok ? await institutionalResponse.json() : null;
                 
                 displayAnalystInsider(analystData, insiderData, institutionalData, ticker);
