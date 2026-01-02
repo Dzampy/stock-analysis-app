@@ -5,8 +5,15 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import re
+import json
 from datetime import datetime
 from app.utils.logger import logger
+
+try:
+    import cloudscraper
+    CLOUDSCRAPER_AVAILABLE = True
+except ImportError:
+    CLOUDSCRAPER_AVAILABLE = False
 
 # Get SEC API key from environment
 SEC_API_KEY = os.getenv('SEC_API_KEY')
@@ -29,13 +36,156 @@ def get_yahoo_insider_trading(ticker):
             'Cache-Control': 'max-age=0',
         }
         
-        response = requests.get(url, headers=headers, timeout=15)
+        # Use cloudscraper if available (for Cloudflare protection)
+        if CLOUDSCRAPER_AVAILABLE:
+            scraper = cloudscraper.create_scraper()
+            response = scraper.get(url, headers=headers, timeout=15)
+        else:
+            response = requests.get(url, headers=headers, timeout=15)
+        
         if response.status_code != 200:
             logger.warning(f"Yahoo Finance returned status {response.status_code} for {ticker}")
             return None
         
         soup = BeautifulSoup(response.text, 'html.parser')
         transactions = []
+        
+        # First, try to find JSON data in script tags (Yahoo Finance uses React)
+        script_tags = soup.find_all('script')
+        for script in script_tags:
+            if not script.string:
+                continue
+            
+            script_text = script.string
+            
+            # Look for root.App.main or similar JSON structures
+            # Yahoo Finance often stores data in window.__PRELOADED_STATE__ or root.App.main
+            json_patterns = [
+                r'root\.App\.main\s*=\s*(\{.*?\});',
+                r'window\.__PRELOADED_STATE__\s*=\s*(\{.*?\});',
+                r'"insiderTransactions":\s*(\[.*?\])',
+                r'"InsiderTransactions":\s*(\[.*?\])',
+            ]
+            
+            for pattern in json_patterns:
+                try:
+                    matches = re.finditer(pattern, script_text, re.DOTALL)
+                    for match in matches:
+                        try:
+                            json_str = match.group(1)
+                            # Try to parse the JSON
+                            data = json.loads(json_str)
+                            
+                            # Recursively search for insider transaction data
+                            def find_insider_data(obj, path=[]):
+                                if isinstance(obj, dict):
+                                    for key, value in obj.items():
+                                        if 'insider' in key.lower() and isinstance(value, list):
+                                            return value
+                                        result = find_insider_data(value, path + [key])
+                                        if result:
+                                            return result
+                                elif isinstance(obj, list):
+                                    for item in obj:
+                                        result = find_insider_data(item, path)
+                                        if result:
+                                            return result
+                                return None
+                            
+                            insider_data = find_insider_data(data)
+                            if insider_data:
+                                logger.info(f"Found insider data in JSON for {ticker}")
+                                # Process the JSON data
+                                for item in insider_data:
+                                    try:
+                                        # Extract fields from JSON structure
+                                        date_str = item.get('filedDate') or item.get('date') or item.get('transactionDate') or 'N/A'
+                                        name = item.get('name') or item.get('insider') or item.get('filerName') or 'N/A'
+                                        transaction_text = item.get('transaction') or item.get('transactionType') or item.get('transactionText') or ''
+                                        value = item.get('value') or item.get('transactionValue') or 0
+                                        shares = item.get('shares') or item.get('transactionShares') or 0
+                                        
+                                        # Parse transaction type
+                                        transaction_type = None
+                                        transaction_lower = str(transaction_text).lower()
+                                        
+                                        if any(word in transaction_lower for word in ['sale', 'sell', 'dispose', 'disposition']):
+                                            transaction_type = 'sell'
+                                        elif any(word in transaction_lower for word in ['purchase', 'buy', 'acquisition', 'acquire', 'option', 'exercise', 'grant', 'award', 'convert', 'conversion']):
+                                            transaction_type = 'buy'
+                                        
+                                        # Convert value and shares to proper types
+                                        try:
+                                            if isinstance(value, str):
+                                                value = float(re.sub(r'[^\d.]', '', value))
+                                            else:
+                                                value = float(value) if value else 0
+                                        except:
+                                            value = 0
+                                        
+                                        try:
+                                            if isinstance(shares, str):
+                                                shares = int(float(re.sub(r'[^\d.]', '', shares)))
+                                            else:
+                                                shares = int(shares) if shares else 0
+                                        except:
+                                            shares = 0
+                                        
+                                        # Parse date
+                                        if date_str and date_str != 'N/A':
+                                            try:
+                                                if isinstance(date_str, int):
+                                                    # Unix timestamp
+                                                    date_str = datetime.fromtimestamp(date_str).strftime('%Y-%m-%d')
+                                                elif isinstance(date_str, str):
+                                                    # Try various date formats
+                                                    date_formats = [
+                                                        '%b %d, %Y', '%B %d, %Y', '%m/%d/%Y', 
+                                                        '%Y-%m-%d', '%d %b %Y', '%Y-%m-%dT%H:%M:%S'
+                                                    ]
+                                                    parsed = False
+                                                    for fmt in date_formats:
+                                                        try:
+                                                            date_str = datetime.strptime(date_str, fmt).strftime('%Y-%m-%d')
+                                                            parsed = True
+                                                            break
+                                                        except:
+                                                            continue
+                                                    if not parsed:
+                                                        date_str = str(date_str)
+                                            except:
+                                                date_str = str(date_str)
+                                        
+                                        if transaction_type and value and value > 0:
+                                            transactions.append({
+                                                'date': date_str,
+                                                'transaction_type': transaction_type,
+                                                'value': value,
+                                                'shares': shares,
+                                                'insider': name,
+                                                'position': item.get('position') or 'N/A',
+                                                'text': str(transaction_text)
+                                            })
+                                    except Exception as e:
+                                        logger.debug(f"Error parsing JSON insider item: {str(e)}")
+                                        continue
+                                
+                                if transactions:
+                                    break
+                        except json.JSONDecodeError:
+                            continue
+                        except Exception as e:
+                            logger.debug(f"Error parsing JSON from script: {str(e)}")
+                            continue
+                    
+                    if transactions:
+                        break
+                except Exception as e:
+                    logger.debug(f"Error in JSON pattern matching: {str(e)}")
+                    continue
+            
+            if transactions:
+                break
         
         # Yahoo Finance uses a table with insider transactions
         # Look for the main table containing insider data
@@ -167,9 +317,80 @@ def get_yahoo_insider_trading(ticker):
         if transactions:
             logger.info(f"Yahoo Finance returned {len(transactions)} insider transactions for {ticker}")
             return transactions
-        else:
-            logger.warning(f"No insider transactions found on Yahoo Finance for {ticker}")
-            return None
+        
+        # If no transactions found via scraping, try yfinance API as fallback
+        logger.debug(f"No transactions found via scraping for {ticker}, trying yfinance API")
+        try:
+            import yfinance as yf
+            import pandas as pd
+            
+            stock = yf.Ticker(ticker.upper())
+            insider_df = stock.insider_transactions
+            
+            if insider_df is not None and not insider_df.empty:
+                for idx, row in insider_df.tail(50).iterrows():
+                    try:
+                        row_dict = row.to_dict()
+                        
+                        transaction_type = None
+                        text = str(row_dict.get('Text', '')).lower() if row_dict.get('Text') else ''
+                        
+                        if 'sale' in text or 'sell' in text:
+                            transaction_type = 'sell'
+                        elif any(word in text for word in ['purchase', 'buy', 'acquisition', 'option', 'exercise', 'grant', 'award', 'convert']):
+                            transaction_type = 'buy'
+                        
+                        value = None
+                        val = row_dict.get('Value')
+                        if val is not None and pd.notna(val):
+                            try:
+                                value = float(val)
+                            except:
+                                pass
+                        
+                        shares = None
+                        sh = row_dict.get('Shares')
+                        if sh is not None and pd.notna(sh):
+                            try:
+                                shares = int(sh)
+                            except:
+                                pass
+                        
+                        insider = 'N/A'
+                        ins = row_dict.get('Insider')
+                        if ins is not None and pd.notna(ins):
+                            insider = str(ins)
+                        
+                        date_str = 'N/A'
+                        date_val = row_dict.get('Start Date')
+                        if date_val is not None and pd.notna(date_val):
+                            if hasattr(date_val, 'strftime'):
+                                date_str = date_val.strftime('%Y-%m-%d')
+                            else:
+                                date_str = str(date_val)
+                        
+                        if transaction_type and value and value > 0:
+                            transactions.append({
+                                'date': date_str,
+                                'transaction_type': transaction_type,
+                                'value': value,
+                                'shares': shares,
+                                'insider': insider,
+                                'position': 'N/A',
+                                'text': str(row_dict.get('Text', ''))
+                            })
+                    except Exception as row_error:
+                        logger.debug(f"Error parsing yfinance row: {str(row_error)}")
+                        continue
+                
+                if transactions:
+                    logger.info(f"yfinance API returned {len(transactions)} insider transactions for {ticker}")
+                    return transactions
+        except Exception as yf_error:
+            logger.debug(f"Error getting yfinance insider data: {str(yf_error)}")
+        
+        logger.warning(f"No insider transactions found for {ticker}")
+        return None
             
     except Exception as e:
         logger.exception(f"Error scraping Yahoo Finance insider trading for {ticker}: {str(e)}")
