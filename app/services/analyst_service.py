@@ -5,10 +5,177 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import re
+from datetime import datetime
 from app.utils.logger import logger
 
 # Get SEC API key from environment
 SEC_API_KEY = os.getenv('SEC_API_KEY')
+
+
+def get_yahoo_insider_trading(ticker):
+    """Scrape insider trading data from Yahoo Finance"""
+    try:
+        url = f"https://finance.yahoo.com/quote/{ticker.upper()}/insider-transactions/"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Cache-Control': 'max-age=0',
+        }
+        
+        response = requests.get(url, headers=headers, timeout=15)
+        if response.status_code != 200:
+            logger.warning(f"Yahoo Finance returned status {response.status_code} for {ticker}")
+            return None
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        transactions = []
+        
+        # Yahoo Finance uses a table with insider transactions
+        # Look for the main table containing insider data
+        tables = soup.find_all('table')
+        
+        for table in tables:
+            rows = table.find_all('tr')
+            if len(rows) < 2:  # Need at least header + data row
+                continue
+            
+            # Check if this looks like an insider transactions table
+            header_row = rows[0]
+            header_text = header_row.get_text().lower()
+            
+            # Yahoo Finance insider table typically has: Date, Name, Transaction, Value, Shares
+            if any(keyword in header_text for keyword in ['date', 'name', 'transaction', 'insider', 'value', 'shares']):
+                # Process data rows
+                for row in rows[1:]:
+                    try:
+                        cells = row.find_all(['td', 'th'])
+                        if len(cells) < 4:
+                            continue
+                        
+                        # Extract data from cells
+                        # Typical structure: Date, Name, Transaction, Value, Shares
+                        date_text = cells[0].get_text(strip=True) if len(cells) > 0 else ''
+                        name_text = cells[1].get_text(strip=True) if len(cells) > 1 else 'N/A'
+                        transaction_text = cells[2].get_text(strip=True) if len(cells) > 2 else ''
+                        value_text = cells[3].get_text(strip=True) if len(cells) > 3 else ''
+                        shares_text = cells[4].get_text(strip=True) if len(cells) > 4 else ''
+                        
+                        # Parse transaction type
+                        transaction_type = None
+                        transaction_lower = transaction_text.lower()
+                        
+                        if any(word in transaction_lower for word in ['sale', 'sell', 'dispose', 'disposition']):
+                            transaction_type = 'sell'
+                        elif any(word in transaction_lower for word in ['purchase', 'buy', 'acquisition', 'acquire', 'option', 'exercise', 'grant', 'award', 'convert', 'conversion']):
+                            transaction_type = 'buy'
+                        
+                        # Parse value
+                        value = None
+                        if value_text:
+                            # Remove currency symbols and commas
+                            value_clean = re.sub(r'[^\d.]', '', value_text)
+                            try:
+                                value = float(value_clean)
+                            except:
+                                pass
+                        
+                        # Parse shares
+                        shares = None
+                        if shares_text:
+                            # Remove commas and other non-numeric chars except decimal point
+                            shares_clean = re.sub(r'[^\d.]', '', shares_text)
+                            try:
+                                shares = int(float(shares_clean))  # Convert to int, handling decimals
+                            except:
+                                pass
+                        
+                        # Parse date
+                        date_str = 'N/A'
+                        if date_text:
+                            try:
+                                # Try to parse various date formats
+                                date_formats = [
+                                    '%b %d, %Y',  # Jan 15, 2024
+                                    '%B %d, %Y',   # January 15, 2024
+                                    '%m/%d/%Y',    # 01/15/2024
+                                    '%Y-%m-%d',    # 2024-01-15
+                                    '%d %b %Y',    # 15 Jan 2024
+                                ]
+                                
+                                parsed_date = None
+                                for fmt in date_formats:
+                                    try:
+                                        parsed_date = datetime.strptime(date_text, fmt)
+                                        break
+                                    except:
+                                        continue
+                                
+                                if parsed_date:
+                                    date_str = parsed_date.strftime('%Y-%m-%d')
+                                else:
+                                    date_str = date_text  # Use as-is if can't parse
+                            except:
+                                date_str = date_text
+                        
+                        # Only add if we have valid transaction type and value
+                        if transaction_type and value and value > 0:
+                            transactions.append({
+                                'date': date_str,
+                                'transaction_type': transaction_type,
+                                'value': value,
+                                'shares': shares,
+                                'insider': name_text,
+                                'position': 'N/A',  # Yahoo Finance doesn't always show position
+                                'text': transaction_text
+                            })
+                    except Exception as e:
+                        logger.debug(f"Error parsing Yahoo Finance insider row: {str(e)}")
+                        continue
+                
+                # If we found transactions, break (we found the right table)
+                if transactions:
+                    break
+        
+        # If no transactions found in tables, try alternative selectors
+        if not transactions:
+            # Look for div-based structures or other patterns
+            transaction_divs = soup.find_all(['div', 'span'], class_=lambda x: x and ('insider' in str(x).lower() or 'transaction' in str(x).lower()))
+            
+            # Also try looking for data attributes or specific Yahoo Finance patterns
+            # Yahoo Finance might use React components, so we might need to look for data in script tags
+            script_tags = soup.find_all('script')
+            for script in script_tags:
+                if script.string and 'insider' in script.string.lower():
+                    # Try to extract JSON data from script
+                    try:
+                        import json
+                        # Look for JSON objects in the script
+                        json_match = re.search(r'\{.*"insider".*\}', script.string, re.DOTALL)
+                        if json_match:
+                            # This is a simplified approach - might need more sophisticated parsing
+                            pass
+                    except:
+                        pass
+        
+        if transactions:
+            logger.info(f"Yahoo Finance returned {len(transactions)} insider transactions for {ticker}")
+            return transactions
+        else:
+            logger.warning(f"No insider transactions found on Yahoo Finance for {ticker}")
+            return None
+            
+    except Exception as e:
+        logger.exception(f"Error scraping Yahoo Finance insider trading for {ticker}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
 
 
 def get_marketbeat_insider_trading(ticker):

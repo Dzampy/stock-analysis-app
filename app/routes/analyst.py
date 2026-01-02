@@ -1,7 +1,7 @@
 """Analyst and insider routes"""
 from flask import Blueprint, jsonify
 from app.services.finviz_service import get_finviz_analyst_ratings, get_finviz_insider_trading
-from app.services.analyst_service import get_marketbeat_insider_trading, get_tipranks_insider_trading, get_sec_api_insider_trading
+from app.services.analyst_service import get_marketbeat_insider_trading, get_tipranks_insider_trading, get_sec_api_insider_trading, get_yahoo_insider_trading
 from app.utils.json_utils import clean_for_json
 from app.utils.logger import logger
 from app.utils.error_handler import NotFoundError, ExternalAPIError
@@ -159,91 +159,14 @@ def get_insider_trading(ticker):
         
         insider_transactions = []
         
-        # Try SEC API first (most reliable and official source)
-        sec_data = get_sec_api_insider_trading(ticker_upper)
-        if sec_data and len(sec_data) > 0:
-            logger.info(f"SEC API returned {len(sec_data)} transactions for {ticker_upper}")
-            insider_transactions = sec_data
+        # Use only Yahoo Finance for insider trading
+        logger.info(f"Fetching insider trading data from Yahoo Finance for {ticker_upper}")
+        yahoo_data = get_yahoo_insider_trading(ticker_upper)
+        if yahoo_data and len(yahoo_data) > 0:
+            logger.info(f"Yahoo Finance returned {len(yahoo_data)} transactions for {ticker_upper}")
+            insider_transactions = yahoo_data
         else:
-            # Fallback to Finviz
-            logger.debug(f"SEC API returned no data for {ticker_upper}, trying Finviz")
-            finviz_data = get_finviz_insider_trading(ticker_upper)
-            if finviz_data and len(finviz_data) > 0:
-                logger.info(f"Finviz returned {len(finviz_data)} transactions for {ticker_upper}")
-                insider_transactions = finviz_data
-            else:
-                # Fallback to MarketBeat
-                logger.debug(f"Finviz returned no data for {ticker_upper}, trying MarketBeat")
-                marketbeat_data = get_marketbeat_insider_trading(ticker_upper)
-                if marketbeat_data and len(marketbeat_data) > 0:
-                    logger.info(f"MarketBeat returned {len(marketbeat_data)} transactions for {ticker_upper}")
-                    insider_transactions = marketbeat_data
-                else:
-                    # Last resort: yfinance
-                    logger.debug(f"MarketBeat returned no data for {ticker_upper}, trying yfinance fallback")
-                    try:
-                        stock = yf.Ticker(ticker_upper)
-                        insider_df = stock.insider_transactions
-                        if insider_df is not None and not insider_df.empty:
-                            for idx, row in insider_df.tail(30).iterrows():
-                                try:
-                                    row_dict = row.to_dict()
-                                    
-                                    transaction_type = None
-                                    text = str(row_dict.get('Text', '')).lower() if row_dict.get('Text') else ''
-                                    
-                                    if 'sale' in text or 'sell' in text:
-                                        transaction_type = 'sell'
-                                    elif ('purchase' in text or 'buy' in text or 'acquisition' in text or
-                                          'option exercise' in text.lower() or 'exercise' in text.lower() or
-                                          'grant' in text.lower() or 'award' in text.lower() or
-                                          'conversion' in text.lower() or 'convert' in text.lower()):
-                                        transaction_type = 'buy'
-                                    
-                                    value = None
-                                    val = row_dict.get('Value')
-                                    if val is not None and pd.notna(val):
-                                        try:
-                                            value = float(val)
-                                        except:
-                                            pass
-                                    
-                                    shares = None
-                                    sh = row_dict.get('Shares')
-                                    if sh is not None and pd.notna(sh):
-                                        try:
-                                            shares = int(sh)
-                                        except:
-                                            pass
-                                    
-                                    insider = 'N/A'
-                                    ins = row_dict.get('Insider')
-                                    if ins is not None and pd.notna(ins):
-                                        insider = str(ins)
-                                    
-                                    date_str = 'N/A'
-                                    date_val = row_dict.get('Start Date')
-                                    if date_val is not None and pd.notna(date_val):
-                                        if hasattr(date_val, 'strftime'):
-                                            date_str = date_val.strftime('%Y-%m-%d')
-                                        else:
-                                            date_str = str(date_val)
-                                    
-                                    if transaction_type and value and value > 0:
-                                        insider_transactions.append({
-                                            'date': date_str,
-                                            'transaction_type': transaction_type,
-                                            'value': value,
-                                            'shares': shares,
-                                            'insider': insider,
-                                            'position': 'N/A',
-                                            'text': str(row_dict.get('Text', ''))
-                                        })
-                                except Exception as row_error:
-                                    logger.warning(f"Error parsing yfinance row: {str(row_error)}")
-                                    continue
-                    except Exception as yf_error:
-                        logger.warning(f"Error getting yfinance insider data: {str(yf_error)}")
+            logger.warning(f"Yahoo Finance returned no data for {ticker_upper}")
         
         # Process transactions into purchases and sales
         purchases = []
