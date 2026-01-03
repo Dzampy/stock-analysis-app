@@ -20,10 +20,107 @@ SEC_API_KEY = os.getenv('SEC_API_KEY')
 
 
 def get_yahoo_insider_trading(ticker):
-    """Scrape insider trading data from Yahoo Finance"""
+    """Get insider trading data from Yahoo Finance using yfinance API (same data as Yahoo Finance web)"""
     try:
-        url = f"https://finance.yahoo.com/quote/{ticker.upper()}/insider-transactions/"
-        headers = {
+        import yfinance as yf
+        import pandas as pd
+        
+        stock = yf.Ticker(ticker.upper())
+        insider_df = stock.insider_transactions
+        
+        if insider_df is None or insider_df.empty:
+            logger.warning(f"No insider transactions data from yfinance for {ticker}")
+            return None
+        
+        transactions = []
+        
+        # Process all rows (yfinance already has the correct data from Yahoo Finance)
+        for idx, row in insider_df.iterrows():
+            try:
+                row_dict = row.to_dict()
+                
+                # Parse transaction type from Text field
+                transaction_type = None
+                text = str(row_dict.get('Text', '')).lower() if row_dict.get('Text') else ''
+                
+                if any(word in text for word in ['sale', 'sell', 'dispose', 'disposition']):
+                    transaction_type = 'sell'
+                elif any(word in text for word in ['purchase', 'buy', 'acquisition', 'acquire', 'option', 'exercise', 'grant', 'award', 'convert', 'conversion']):
+                    transaction_type = 'buy'
+                
+                # Parse value
+                value = None
+                val = row_dict.get('Value')
+                if val is not None and pd.notna(val):
+                    try:
+                        value = float(val)
+                    except:
+                        pass
+                
+                # Parse shares
+                shares = None
+                sh = row_dict.get('Shares')
+                if sh is not None and pd.notna(sh):
+                    try:
+                        shares = int(float(sh))  # Handle decimals
+                    except:
+                        pass
+                
+                # Get insider name
+                insider = 'N/A'
+                ins = row_dict.get('Insider')
+                if ins is not None and pd.notna(ins):
+                    insider = str(ins)
+                
+                # Parse date - yfinance uses index or Start Date
+                date_str = 'N/A'
+                # Try index first (usually the date)
+                if hasattr(idx, 'strftime'):
+                    date_str = idx.strftime('%Y-%m-%d')
+                elif hasattr(idx, 'date'):
+                    date_str = idx.date().strftime('%Y-%m-%d')
+                else:
+                    # Fallback to Start Date field
+                    date_val = row_dict.get('Start Date')
+                    if date_val is not None and pd.notna(date_val):
+                        if hasattr(date_val, 'strftime'):
+                            date_str = date_val.strftime('%Y-%m-%d')
+                        elif hasattr(date_val, 'date'):
+                            date_str = date_val.date().strftime('%Y-%m-%d')
+                        else:
+                            date_str = str(date_val)
+                
+                # Only add if we have valid transaction type
+                if transaction_type:
+                    transactions.append({
+                        'date': date_str,
+                        'transaction_type': transaction_type,
+                        'value': value or 0,
+                        'shares': shares or 0,
+                        'insider': insider,
+                        'position': row_dict.get('Position') or 'N/A',
+                        'text': str(row_dict.get('Text', ''))
+                    })
+            except Exception as row_error:
+                logger.debug(f"Error parsing yfinance insider row: {str(row_error)}")
+                continue
+        
+        if transactions:
+            logger.info(f"yfinance API returned {len(transactions)} insider transactions for {ticker}")
+            return transactions
+        else:
+            logger.warning(f"No valid transactions parsed for {ticker}")
+            return None
+            
+    except Exception as e:
+        logger.exception(f"Error getting yfinance insider data for {ticker}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def get_marketbeat_insider_trading(ticker):
+    """Scrape insider trading data from MarketBeat"""
+    try:
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
