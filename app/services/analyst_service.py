@@ -118,7 +118,7 @@ def get_yahoo_insider_trading(ticker):
         traceback.print_exc()
         return None
 
-def get_marketbeat_insider_trading(ticker):
+
 def get_marketbeat_insider_trading(ticker):
     """Scrape insider trading data from MarketBeat"""
     try:
