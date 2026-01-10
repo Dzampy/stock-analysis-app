@@ -7534,11 +7534,11 @@
             
             // Show tabs container first
             const tabsContainer = document.getElementById('financialsTabsContainer');
-            console.log('[DEBUG] displayFinancials: tabsContainer found:', !!tabsContainer);
+            console.log('🔍 [DEBUG] displayFinancials: tabsContainer found:', !!tabsContainer);
             
             if (tabsContainer) {
                 tabsContainer.style.display = 'block';
-                console.log('[DEBUG] displayFinancials: tabsContainer displayed');
+                console.log('✅ [DEBUG] displayFinancials: tabsContainer displayed');
                 
                 // Set overview tab content
                 const overviewTab = document.getElementById('financialsOverviewTab');
@@ -7547,7 +7547,7 @@
                     // Make sure overview tab is visible and active
                     overviewTab.style.display = 'block';
                     overviewTab.classList.add('active');
-                    console.log('[DEBUG] displayFinancials: overviewTab content set');
+                    console.log('✅ [DEBUG] displayFinancials: overviewTab content set');
                 }
                 
                 // Set detailed tab as inactive initially
@@ -7571,15 +7571,27 @@
                 });
                 
                 // Render detailed financials to detailed tab
-                console.log('[DEBUG] displayFinancials: Calling renderDetailedFinancials with data:', {
-                    hasDetailedIncomeStatement: !!data.detailed_income_statement,
+                const hasDetailedData = !!data.detailed_income_statement;
+                const quarterlyLength = data.detailed_income_statement?.quarterly?.length || 0;
+                console.log('📊 [DEBUG] displayFinancials: Calling renderDetailedFinancials', {
+                    hasDetailedIncomeStatement: hasDetailedData,
                     hasQuarterly: !!(data.detailed_income_statement && data.detailed_income_statement.quarterly),
-                    quarterlyLength: data.detailed_income_statement?.quarterly?.length || 0
+                    quarterlyLength: quarterlyLength,
+                    allDataKeys: Object.keys(data || {})
                 });
-                renderDetailedFinancials(data, ticker);
+                
+                if (hasDetailedData && quarterlyLength > 0) {
+                    renderDetailedFinancials(data, ticker);
+                } else {
+                    console.warn('⚠️ [DEBUG] displayFinancials: No detailed data available - detailed_income_statement missing or empty');
+                    const detailedContent = document.getElementById('detailedFinancialsContent');
+                    if (detailedContent) {
+                        detailedContent.innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">⚠️ Detailed financial data not available from backend. Check server logs.</p>';
+                    }
+                }
             } else {
                 // Fallback if tabs don't exist yet - render directly to container
-                console.warn('[DEBUG] displayFinancials: tabsContainer not found, using fallback');
+                console.warn('⚠️ [DEBUG] displayFinancials: tabsContainer not found, using fallback');
                 container.innerHTML = html;
             }
         }
@@ -7650,23 +7662,29 @@
 
         // Render detailed financials table
         function renderDetailedFinancials(data, ticker) {
-            console.log('[DEBUG] renderDetailedFinancials: Called with data:', {
+            console.log('📋 [DEBUG] renderDetailedFinancials: Called for ticker:', ticker);
+            console.log('📋 [DEBUG] renderDetailedFinancials: Data check:', {
                 hasData: !!data,
                 hasDetailedIncomeStatement: !!data?.detailed_income_statement,
-                keys: data ? Object.keys(data) : []
+                hasQuarterly: !!(data?.detailed_income_statement?.quarterly),
+                quarterlyLength: data?.detailed_income_statement?.quarterly?.length || 0,
+                allKeys: data ? Object.keys(data).slice(0, 20) : []
             });
             
             const container = document.getElementById('detailedFinancialsContent');
             if (!container) {
-                console.error('[DEBUG] renderDetailedFinancials: detailedFinancialsContent container not found!');
+                console.error('❌ [DEBUG] renderDetailedFinancials: detailedFinancialsContent container not found!');
+                return;
+            }
+            console.log('✅ [DEBUG] renderDetailedFinancials: Container found');
+            
+            if (!data || !data.detailed_income_statement) {
+                console.warn('⚠️ [DEBUG] renderDetailedFinancials: No detailed_income_statement in data');
+                container.innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">⚠️ Detailed financial data not available. Backend may not have returned detailed_income_statement. Check server logs.</p>';
                 return;
             }
             
-            if (!data || !data.detailed_income_statement) {
-                console.warn('[DEBUG] renderDetailedFinancials: No detailed_income_statement in data');
-                container.innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">Detailed financial data not available. Backend may not have returned detailed_income_statement.</p>';
-                return;
-            }
+            console.log('✅ [DEBUG] renderDetailedFinancials: detailed_income_statement found, processing...');
             
             const quarterlyData = data.detailed_income_statement.quarterly || [];
             if (quarterlyData.length === 0) {
