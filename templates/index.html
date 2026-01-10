@@ -7773,59 +7773,35 @@
             
             console.log('✅ [DEBUG] renderDetailedFinancials: Processing', quarterlyData.length, 'metrics');
             
-            // Define order priority for metrics (same as Yahoo Finance)
-            const metricOrder = [
-                'Total Revenue',
-                'Cost Of Revenue',
-                'Gross Profit',
-                'Operating Expense',
-                'Operating Income',
-                'Net Non Operating Interest Income Expense',
-                'Other Income Expense',
-                'Pretax Income',
-                'Tax Provision',
-                'Net Income Common Stockholders',
-                'Diluted NI Available To Com Stockholders',
-                'Basic EPS',
-                'Diluted EPS',
-                'Basic Average Shares',
-                'Diluted Average Shares',
-                'Total Operating Income As Reported',
-                'Total Expenses',
-                'Net Income From Continuing And Discontinued Operation',
-                'Normalized Income',
-                'Interest Income',
-                'Interest Expense',
-                'Net Interest Income',
-                'EBIT',
-                'EBITDA',
-                'Reconciled Cost Of Revenue',
-                'Reconciled Depreciation',
-                'Net Income From Continuing Operation Net Minority Interest',
-                'Total Unusual Items Excluding Goodwill',
-                'Total Unusual Items',
-                'Normalized EBITDA',
-                'Tax Rate For Calcs',
-                'Tax Effect Of Unusual Items'
+            // Define only the metrics we want to show (in order)
+            const allowedMetrics = [
+                { search: ['total revenue', 'revenue'], label: 'Total Revenue (Tržby)' },
+                { search: ['cost of revenue', 'cost of goods sold', 'cogs'], label: 'Cost of Revenue' },
+                { search: ['gross profit'], label: 'Gross Profit (Hrubý zisk)' },
+                { search: ['operating expense', 'operating expenses', 'total operating expenses'], label: 'Operating Expenses (Provozní náklady)' },
+                { search: ['operating income', 'operating income loss', 'operating income / loss'], label: 'Operating Income / Loss (Provozní zisk / ztráta)' },
+                { search: ['ebitda'], label: 'EBITDA' },
+                { search: ['net income', 'net income common', 'net income from continuing'], label: 'Net Income (Čistý zisk / ztráta)' },
+                { search: ['diluted eps', 'basic eps', 'eps'], label: 'EPS – Earnings Per Share (Zisk na akcii)' }
             ];
             
-            // Sort metrics by priority (Yahoo Finance order)
-            const sortedMetrics = quarterlyData.sort((a, b) => {
-                const aName = (a.metric || '').toString();
-                const bName = (b.metric || '').toString();
-                const aIndex = metricOrder.findIndex(m => aName.toLowerCase().includes(m.toLowerCase()));
-                const bIndex = metricOrder.findIndex(m => bName.toLowerCase().includes(m.toLowerCase()));
-                
-                // If both found, sort by index
-                if (aIndex !== -1 && bIndex !== -1) {
-                    return aIndex - bIndex;
+            // Filter and map metrics to display
+            const sortedMetrics = [];
+            for (const allowedMetric of allowedMetrics) {
+                const found = quarterlyData.find(metric => {
+                    const metricName = (metric.metric || '').toString().toLowerCase();
+                    return allowedMetric.search.some(term => metricName.includes(term));
+                });
+                if (found) {
+                    // Use the display label instead of original metric name
+                    sortedMetrics.push({
+                        ...found,
+                        metric: allowedMetric.label
+                    });
                 }
-                // If only one found, prioritize it
-                if (aIndex !== -1) return -1;
-                if (bIndex !== -1) return 1;
-                // Otherwise alphabetical
-                return aName.localeCompare(bName);
-            });
+            }
+            
+            console.log('✅ [DEBUG] renderDetailedFinancials: Filtered to', sortedMetrics.length, 'metrics from', quarterlyData.length, 'total');
             
             // Get all unique quarter dates from all metrics
             const allDates = new Set();
