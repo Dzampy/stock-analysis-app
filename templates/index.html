@@ -7620,19 +7620,23 @@
                         console.error('❌ [DEBUG] displayFinancials: detailedFinancialsContent container not found!');
                     }
                 }
-            } else {
-                // Fallback if tabs still don't exist - render directly to container
-                console.warn('⚠️ [DEBUG] displayFinancials: tabsContainer not found after creation, using fallback');
-                container.innerHTML = html;
-            }
+                } else {
+                    // Fallback if tabs still don't exist - render directly to container
+                    console.warn('⚠️ [DEBUG] displayFinancials: tabsContainer not found after creation, using fallback');
+                    container.innerHTML = html;
+                }
             } catch (error) {
                 console.error('❌❌❌ [DEBUG] displayFinancials: ERROR CAUGHT:', error);
+                console.error('❌❌❌ [DEBUG] displayFinancials: Error message:', error.message);
                 console.error('❌❌❌ [DEBUG] displayFinancials: Error stack:', error.stack);
-                container.innerHTML = `<div style="padding: 20px; color: #ef4444;">
-                    <h3>Error rendering financials</h3>
-                    <p>${error.message}</p>
-                    <p style="font-size: 0.9em; margin-top: 10px;">Check console for details.</p>
-                </div>`;
+                const container = document.getElementById('financialsContent');
+                if (container) {
+                    container.innerHTML = `<div style="padding: 20px; color: #ef4444;">
+                        <h3>Error rendering financials</h3>
+                        <p>${error.message}</p>
+                        <p style="font-size: 0.9em; margin-top: 10px;">Check console (F12) for details.</p>
+                    </div>`;
+                }
             }
         }
 
@@ -17469,27 +17473,30 @@
         }
 
         function displayFinancials(data, ticker) {
-            console.log('🚀 [DEBUG] displayFinancials: FUNCTION CALLED with ticker:', ticker);
-            const container = document.getElementById('financialsContent');
-            console.log('🚀 [DEBUG] displayFinancials: Container found:', !!container);
-            
-            if (!container) {
-                console.error('❌ [DEBUG] displayFinancials: financialsContent container not found!');
-                return;
-            }
-            
-            // Hide initial placeholder if visible
-            const placeholder = container.querySelector('div[style*="text-align: center"]');
-            if (placeholder) {
-                placeholder.style.display = 'none';
-                console.log('✅ [DEBUG] displayFinancials: Placeholder hidden');
-            }
-            
-            // FIRST: Ensure tabs container exists and is visible BEFORE generating HTML
-            let tabsContainer = document.getElementById('financialsTabsContainer');
-            console.log('🔍 [DEBUG] displayFinancials: Looking for tabs container...', !!tabsContainer);
-            
-            if (!tabsContainer) {
+            try {
+                console.log('🚀🚀🚀 [DEBUG] displayFinancials: FUNCTION CALLED with ticker:', ticker || 'NO TICKER!');
+                console.log('🚀🚀🚀 [DEBUG] displayFinancials: Data keys:', Object.keys(data || {}).slice(0, 10));
+                
+                const container = document.getElementById('financialsContent');
+                console.log('🚀 [DEBUG] displayFinancials: Container found:', !!container);
+                
+                if (!container) {
+                    console.error('❌ [DEBUG] displayFinancials: financialsContent container not found!');
+                    return;
+                }
+                
+                // Hide initial placeholder if visible
+                const placeholder = container.querySelector('div[style*="text-align: center"]');
+                if (placeholder) {
+                    placeholder.style.display = 'none';
+                    console.log('✅ [DEBUG] displayFinancials: Placeholder hidden');
+                }
+                
+                // FIRST: Ensure tabs container exists and is visible BEFORE generating HTML
+                let tabsContainer = document.getElementById('financialsTabsContainer');
+                console.log('🔍 [DEBUG] displayFinancials: Looking for tabs container...', !!tabsContainer);
+                
+                if (!tabsContainer) {
                 console.log('🔧 [DEBUG] displayFinancials: Tabs container not found, creating it...');
                 const financialsCard = container.closest('.card') || container.parentElement;
                 if (financialsCard) {
