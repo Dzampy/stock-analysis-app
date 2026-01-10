@@ -17416,7 +17416,10 @@
                     console.log('🔍 [DEBUG] loadFinancials: annual length:', data.detailed_income_statement.annual?.length || 0);
                 }
                 
+                console.log('🎯🎯🎯 [DEBUG] loadFinancials: About to call displayFinancials with ticker:', ticker);
+                console.log('🎯🎯🎯 [DEBUG] loadFinancials: Data has keys:', Object.keys(data || {}).slice(0, 10));
                 displayFinancials(data, ticker);
+                console.log('🎯🎯🎯 [DEBUG] loadFinancials: displayFinancials call completed');
             } catch (error) {
                 container.innerHTML = `
                     <div class="error">
