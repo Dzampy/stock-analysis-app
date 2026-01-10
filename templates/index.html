@@ -7625,19 +7625,6 @@
                 console.warn('⚠️ [DEBUG] displayFinancials: tabsContainer not found after creation, using fallback');
                 container.innerHTML = html;
             }
-            } catch (error) {
-                console.error('❌❌❌ [DEBUG] displayFinancials: ERROR CAUGHT:', error);
-                console.error('❌❌❌ [DEBUG] displayFinancials: Error message:', error.message);
-                console.error('❌❌❌ [DEBUG] displayFinancials: Error stack:', error.stack);
-                const container = document.getElementById('financialsContent');
-                if (container) {
-                    container.innerHTML = `<div style="padding: 20px; color: #ef4444;">
-                        <h3>Error rendering financials</h3>
-                        <p>${error.message}</p>
-                        <p style="font-size: 0.9em; margin-top: 10px;">Check console (F12) for details.</p>
-                    </div>`;
-                }
-            }
         }
 
         // Switch between financials tabs
@@ -17473,9 +17460,7 @@
         }
 
         function displayFinancials(data, ticker) {
-            try {
-                console.log('🚀🚀🚀 [DEBUG] displayFinancials: FUNCTION CALLED with ticker:', ticker || 'NO TICKER!');
-                console.log('🚀🚀🚀 [DEBUG] displayFinancials: Data keys:', Object.keys(data || {}).slice(0, 10));
+            console.log('🚀 [DEBUG] displayFinancials: FUNCTION CALLED with ticker:', ticker);
                 
                 const container = document.getElementById('financialsContent');
                 console.log('🚀 [DEBUG] displayFinancials: Container found:', !!container);
