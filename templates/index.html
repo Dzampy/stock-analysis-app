@@ -5271,18 +5271,21 @@
                     </div>
                 </div>
                 
-                <!-- Financials Tabs (hidden initially, shown after data is loaded) -->
-                <div id="financialsTabsContainer" style="display: none; margin-top: 20px;">
+                <!-- Financials Tabs (always visible, hidden content until data is loaded) -->
+                <div id="financialsTabsContainer" style="margin-top: 20px; display: none;">
                     <div class="financials-tabs" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color);">
-                        <button class="financials-tab-btn active" data-tab="overview" onclick="switchFinancialsTab('overview')" style="padding: 12px 24px; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--text-primary); cursor: pointer; font-weight: 600; font-size: 1em; transition: all 0.3s ease; position: relative; top: 2px;">Overview</button>
-                        <button class="financials-tab-btn" data-tab="detailed" onclick="switchFinancialsTab('detailed')" style="padding: 12px 24px; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; font-size: 1em; transition: all 0.3s ease; position: relative; top: 2px;">Detailed Financials</button>
+                        <button class="financials-tab-btn active" data-tab="overview" onclick="if(typeof switchFinancialsTab === 'function') { switchFinancialsTab('overview'); } else { console.error('switchFinancialsTab not available'); } return false;" style="padding: 12px 24px; background: transparent; border: none; border-bottom: 3px solid var(--primary-500); color: var(--primary-500); cursor: pointer; font-weight: 600; font-size: 1em; transition: all 0.3s ease; position: relative; top: 2px;">Overview</button>
+                        <button class="financials-tab-btn" data-tab="detailed" onclick="if(typeof switchFinancialsTab === 'function') { switchFinancialsTab('detailed'); } else { console.error('switchFinancialsTab not available'); } return false;" style="padding: 12px 24px; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; font-size: 1em; transition: all 0.3s ease; position: relative; top: 2px;">Detailed Financials</button>
                     </div>
                     <div id="financialsOverviewTab" class="financials-tab-content active" style="display: block;">
                         <!-- Current overview content will be moved here -->
+                        <div style="padding: 20px; text-align: center; color: var(--text-secondary);">Loading overview data...</div>
                     </div>
                     <div id="financialsDetailedTab" class="financials-tab-content" style="display: none;">
                         <!-- Detailed financials table will be rendered here -->
-                        <div id="detailedFinancialsContent"></div>
+                        <div id="detailedFinancialsContent" style="padding: 20px; text-align: center; color: var(--text-secondary);">
+                            <p>Click "Load Financials" first, then switch to this tab to see detailed data.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -7532,13 +7535,17 @@
             
             html += `</div>`;
             
-            // Show tabs container first
+            // ALWAYS show tabs container - make it visible immediately
             const tabsContainer = document.getElementById('financialsTabsContainer');
             console.log('🔍 [DEBUG] displayFinancials: tabsContainer found:', !!tabsContainer);
             
             if (tabsContainer) {
+                // Force display block with !important via inline style
                 tabsContainer.style.display = 'block';
-                console.log('✅ [DEBUG] displayFinancials: tabsContainer displayed');
+                tabsContainer.style.visibility = 'visible';
+                tabsContainer.setAttribute('style', 'display: block !important; visibility: visible !important; margin-top: 20px;');
+                console.log('✅ [DEBUG] displayFinancials: tabsContainer displayed (forced)');
+                console.log('✅ [DEBUG] displayFinancials: tabsContainer computed style:', window.getComputedStyle(tabsContainer).display);
                 
                 // Set overview tab content
                 const overviewTab = document.getElementById('financialsOverviewTab');
@@ -17424,12 +17431,20 @@
         }
 
         function displayFinancials(data, ticker) {
+            console.log('🚀 [DEBUG] displayFinancials: FUNCTION CALLED with ticker:', ticker);
             const container = document.getElementById('financialsContent');
+            console.log('🚀 [DEBUG] displayFinancials: Container found:', !!container);
+            
+            if (!container) {
+                console.error('❌ [DEBUG] displayFinancials: financialsContent container not found!');
+                return;
+            }
             
             // Hide initial placeholder if visible
             const placeholder = container.querySelector('div[style*="text-align: center"]');
             if (placeholder) {
                 placeholder.style.display = 'none';
+                console.log('✅ [DEBUG] displayFinancials: Placeholder hidden');
             }
             
             // Hide skeleton/loading content
@@ -17439,9 +17454,12 @@
             
             // Validate data structure
             if (!data || typeof data !== 'object') {
+                console.error('❌ [DEBUG] displayFinancials: Invalid data structure');
                 container.innerHTML = '<p style="color: var(--text-secondary);">Invalid financial data received.</p>';
                 return;
             }
+            
+            console.log('✅ [DEBUG] displayFinancials: Data validated, starting HTML generation...');
             
             // Ensure income_statement, cash_flow, and margins are objects if they exist
             if (data.income_statement && typeof data.income_statement !== 'object') {
