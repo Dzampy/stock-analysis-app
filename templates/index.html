@@ -7737,21 +7737,28 @@
             
             // Get all unique quarter dates from all metrics
             const allDates = new Set();
-            quarterlyData.forEach(metric => {
-                if (metric.values) {
+            dataToUse.forEach(metric => {
+                if (metric.values && typeof metric.values === 'object') {
                     Object.keys(metric.values).forEach(date => allDates.add(date));
                 }
             });
             
+            console.log('📅 [DEBUG] renderDetailedFinancials: Found', allDates.size, 'unique dates');
+            
             // Sort dates (most recent first)
             const sortedDates = Array.from(allDates).sort((a, b) => {
-                const dateA = new Date(a);
-                const dateB = new Date(b);
-                return dateB - dateA; // Descending order
+                try {
+                    const dateA = new Date(a);
+                    const dateB = new Date(b);
+                    return dateB - dateA; // Descending order
+                } catch (e) {
+                    return 0;
+                }
             });
             
-            // Take first 4 quarters for display
+            // Take first 4 quarters/years for display
             const displayDates = sortedDates.slice(0, 4);
+            console.log('📅 [DEBUG] renderDetailedFinancials: Display dates:', displayDates);
             
             let html = `
                 <div class="detailed-financials-scroll">
@@ -7761,11 +7768,15 @@
                                 <th>Breakdown</th>
                                 <th>TTM</th>
                                 ${displayDates.map(date => {
-                                    const d = new Date(date);
-                                    const month = d.toLocaleString('en-US', { month: 'short' });
-                                    const day = d.getDate();
-                                    const year = d.getFullYear();
-                                    return `<th>${month} ${day}, ${year}</th>`;
+                                    try {
+                                        const d = new Date(date);
+                                        const month = d.toLocaleString('en-US', { month: 'short' });
+                                        const day = d.getDate();
+                                        const year = d.getFullYear();
+                                        return `<th>${month} ${day}, ${year}</th>`;
+                                    } catch (e) {
+                                        return `<th>${date}</th>`;
+                                    }
                                 }).join('')}
                             </tr>
                         </thead>
@@ -7773,16 +7784,21 @@
             `;
             
             // Render each metric as a row
-            quarterlyData.forEach(metric => {
+            console.log('🔄 [DEBUG] renderDetailedFinancials: Rendering', dataToUse.length, 'rows');
+            dataToUse.forEach((metric, index) => {
                 const metricName = metric.metric || 'Unknown';
                 const ttm = metric.ttm;
                 const values = metric.values || {};
+                
+                if (index < 3) {
+                    console.log(`📊 [DEBUG] renderDetailedFinancials: Row ${index}: ${metricName}, TTM: ${ttm}, has ${Object.keys(values).length} values`);
+                }
                 
                 html += '<tr>';
                 html += `<td style="font-weight: 500;">${metricName}</td>`;
                 html += `<td class="metric-value ${ttm !== null && ttm !== undefined && ttm < 0 ? 'negative' : ''}">${ttm !== null && ttm !== undefined ? formatDetailedNumber(ttm) : '-'}</td>`;
                 
-                // Add values for each quarter
+                // Add values for each quarter/year
                 displayDates.forEach(date => {
                     const value = values[date];
                     const cellClass = value !== null && value !== undefined && value < 0 ? 'negative' : '';
