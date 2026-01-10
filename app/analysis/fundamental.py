@@ -1268,51 +1268,60 @@ def get_profitability_analysis(ticker, financials_data):
                     except:
                         continue
         
-        # Combine margin data by date
-        # If Macrotrends has data, use it; otherwise fall back to yfinance calculations
-        all_dates = set()
+        # Combine margin data by date - prioritize Macrotrends data
+        # Get all unique dates from Macrotrends margin data
+        macrotrends_dates = set()
         for data in [gross_margin_data, operating_margin_data, net_margin_data]:
-            all_dates.update([d['date'] for d in data])
+            macrotrends_dates.update([d['date'] for d in data])
         
-        # Also add yfinance dates for revenue/income matching
-        all_dates.update(revenue_data.keys())
+        logger.info(f"Macrotrends data summary: gross={len(gross_margin_data)}, operating={len(operating_margin_data)}, net={len(net_margin_data)}, unique dates={len(macrotrends_dates)}")
         
         margin_trends = []
         
-        # If we have Macrotrends data, use it
-        if len(all_dates) > 0:
-            for date_str in sorted(all_dates, reverse=True)[:8]:  # Take 8 most recent quarters
+        # If we have Macrotrends data, use it exclusively for margins
+        if len(macrotrends_dates) > 0:
+            logger.info("Using Macrotrends margin data exclusively")
+            # Sort dates descending (most recent first) and take up to 12 quarters
+            sorted_macrotrends_dates = sorted(macrotrends_dates, reverse=True)[:12]
+            
+            for date_str in sorted_macrotrends_dates:
                 try:
                     date_obj = pd.Timestamp(date_str)
                     quarter_str = f"{date_obj.year}-Q{(date_obj.month - 1) // 3 + 1}"
                     
-                    # Find margins from Macrotrends for this date
+                    # Find margins from Macrotrends for this exact date
                     gross_margin = next((d['margin'] for d in gross_margin_data if d['date'] == date_str), None)
                     operating_margin = next((d['margin'] for d in operating_margin_data if d['date'] == date_str), None)
                     net_margin = next((d['margin'] for d in net_margin_data if d['date'] == date_str), None)
                     
-                    # Get revenue and income from yfinance if available
-                    revenue = revenue_data.get(date_str)
-                    operating_income = operating_income_data.get(date_str)
-                    net_income = net_income_data.get(date_str)
-                    
-                    margin_trends.append({
-                        'quarter': quarter_str,
-                        'date': date_str,
-                        'gross_margin': round(gross_margin, 2) if gross_margin is not None else None,
-                        'operating_margin': round(operating_margin, 2) if operating_margin is not None else None,
-                        'net_margin': round(net_margin, 2) if net_margin is not None else None,
-                        'revenue': revenue,
-                        'operating_income': operating_income,
-                        'net_income': net_income
-                    })
+                    # Only include if we have at least one margin value
+                    if gross_margin is not None or operating_margin is not None or net_margin is not None:
+                        # Get revenue and income from yfinance for operating leverage calculation (optional)
+                        revenue = revenue_data.get(date_str)
+                        operating_income = operating_income_data.get(date_str)
+                        net_income = net_income_data.get(date_str)
+                        
+                        margin_trends.append({
+                            'quarter': quarter_str,
+                            'date': date_str,
+                            'gross_margin': round(gross_margin, 2) if gross_margin is not None else None,
+                            'operating_margin': round(operating_margin, 2) if operating_margin is not None else None,
+                            'net_margin': round(net_margin, 2) if net_margin is not None else None,
+                            'revenue': revenue,
+                            'operating_income': operating_income,
+                            'net_income': net_income
+                        })
+                        logger.debug(f"Added margin trend for {date_str}: gross={gross_margin}, operating={operating_margin}, net={net_margin}")
                 except Exception as e:
-                    logger.debug(f"Error processing margin data for date {date_str}: {e}")
+                    logger.warning(f"Error processing margin data for date {date_str}: {e}")
                     continue
         
         # Fallback: if no Macrotrends data, calculate from yfinance (original logic)
-        if len(margin_trends) == 0 and income_stmt is not None and not income_stmt.empty:
-            logger.info(f"Macrotrends scraping failed for {ticker}, falling back to yfinance margin calculation")
+        if len(margin_trends) == 0:
+            logger.warning(f"No Macrotrends margin data available for {ticker}, falling back to yfinance margin calculation")
+            if income_stmt is None or income_stmt.empty:
+                logger.error(f"yfinance income statement also empty for {ticker}")
+                return None
             revenue_row = find_row(income_stmt, ['total revenue', 'revenue', 'net sales'])
             gross_profit_row = find_row(income_stmt, ['gross profit'])
             operating_income_row = find_row(income_stmt, ['operating income', 'income from operations'])
