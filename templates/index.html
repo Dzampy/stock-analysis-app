@@ -7535,34 +7535,26 @@
             
             html += `</div>`;
             
-            console.log('🎯🎯🎯 [DEBUG] displayFinancials: HTML generation complete, length:', html.length);
-            console.log('🎯🎯🎯 [DEBUG] displayFinancials: About to set HTML to overviewTab...');
+            // CRITICAL: Set HTML to overviewTab IMMEDIATELY after generation, before any other code
+            const overviewTab = document.getElementById('financialsOverviewTab');
+            if (overviewTab && html.length > 0) {
+                overviewTab.innerHTML = html;
+                overviewTab.style.display = 'block';
+                overviewTab.classList.add('active');
+            }
             
-            // Get tabs container again (should exist from start of function)
+            // Get tabs container and make it visible
             const finalTabsContainer = document.getElementById('financialsTabsContainer');
-            console.log('🎯🎯🎯 [DEBUG] displayFinancials: finalTabsContainer found:', !!finalTabsContainer);
             if (finalTabsContainer) {
-                // Force display block with !important via inline style
                 finalTabsContainer.style.cssText = 'display: block !important; visibility: visible !important; margin-top: 20px;';
-                console.log('✅ [DEBUG] displayFinancials: tabsContainer displayed (forced)');
                 
-                // Set overview tab content
-                const overviewTab = document.getElementById('financialsOverviewTab');
-                console.log('🔍🔍🔍 [DEBUG] displayFinancials: Looking for overviewTab:', !!overviewTab);
-                console.log('🔍🔍🔍 [DEBUG] displayFinancials: HTML length:', html.length);
+                // Ensure overview tab is visible
                 if (overviewTab) {
-                    console.log('✅✅✅ [DEBUG] displayFinancials: overviewTab FOUND, setting innerHTML...');
-                    overviewTab.innerHTML = html;
-                    // Make sure overview tab is visible and active
                     overviewTab.style.display = 'block';
                     overviewTab.classList.add('active');
-                    console.log('✅✅✅ [DEBUG] displayFinancials: overviewTab content SET, length:', html.length);
-                    console.log('✅✅✅ [DEBUG] displayFinancials: overviewTab.innerHTML length after:', overviewTab.innerHTML.length);
                 } else {
-                    console.error('❌❌❌ [DEBUG] displayFinancials: financialsOverviewTab NOT FOUND! Using fallback...');
-                    // Fallback: render to container
+                    // Fallback: render to container if overviewTab doesn't exist
                     container.innerHTML = html;
-                    console.log('✅✅✅ [DEBUG] displayFinancials: Fallback - content set to container');
                 }
                 
                 // Set detailed tab as inactive initially
