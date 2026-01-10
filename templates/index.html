@@ -7642,9 +7642,18 @@
                     const detailedContent = document.getElementById('detailedFinancialsContent');
                     if (detailedContent) {
                         console.log('✅ [DEBUG] switchFinancialsTab: detailedFinancialsContent found, innerHTML length:', detailedContent.innerHTML.length);
-                        if (!detailedContent.innerHTML || detailedContent.innerHTML.trim() === '') {
-                            console.warn('⚠️ [DEBUG] switchFinancialsTab: detailedFinancialsContent is empty!');
-                            detailedContent.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);"><p>⚠️ No detailed financial data available.</p><p style="font-size: 0.9em; margin-top: 10px;">Please check the console for details.</p></div>';
+                        if (!detailedContent.innerHTML || detailedContent.innerHTML.trim() === '' || detailedContent.innerHTML.includes('⚠️')) {
+                            console.warn('⚠️ [DEBUG] switchFinancialsTab: detailedFinancialsContent is empty or has error, trying to re-render...');
+                            
+                            // Try to re-render if we have currentFinancialsData
+                            if (typeof currentFinancialsData !== 'undefined' && currentFinancialsData) {
+                                console.log('🔄 [DEBUG] switchFinancialsTab: Re-rendering with currentFinancialsData');
+                                const ticker = document.getElementById('financialsTickerInput')?.value.trim().toUpperCase() || 'UNKNOWN';
+                                renderDetailedFinancials(currentFinancialsData, ticker);
+                            } else {
+                                console.warn('⚠️ [DEBUG] switchFinancialsTab: currentFinancialsData not available');
+                                detailedContent.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);"><p>⚠️ No detailed financial data available.</p><p style="font-size: 0.9em; margin-top: 10px;">Please load financials first, then check the console (F12) for details.</p></div>';
+                            }
                         }
                     } else {
                         console.error('❌ [DEBUG] switchFinancialsTab: detailedFinancialsContent container not found!');
