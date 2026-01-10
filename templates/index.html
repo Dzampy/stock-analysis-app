@@ -4484,6 +4484,148 @@
                 display: flex;
             }
         }
+
+        /* Financials Tabs Styling */
+        .financials-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .financials-tab-btn {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            position: relative;
+            top: 2px;
+        }
+
+        .financials-tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .financials-tab-btn.active {
+            color: var(--primary-500);
+            border-bottom-color: var(--primary-500);
+        }
+
+        .financials-tab-content {
+            display: none;
+        }
+
+        .financials-tab-content.active {
+            display: block;
+        }
+
+        /* Detailed Financials Table Styling */
+        .detailed-financials-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: var(--glass-bg);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+
+        .detailed-financials-table th {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9em;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+
+        .detailed-financials-table th:first-child {
+            min-width: 250px;
+            position: sticky;
+            left: 0;
+            z-index: 11;
+            background: var(--gradient-primary);
+        }
+
+        .detailed-financials-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            font-size: 0.9em;
+        }
+
+        .detailed-financials-table td:first-child {
+            font-weight: 500;
+            position: sticky;
+            left: 0;
+            background: var(--glass-bg);
+            z-index: 5;
+        }
+
+        .detailed-financials-table tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .detailed-financials-table tr:hover td:first-child {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .detailed-financials-table .metric-value {
+            text-align: right;
+            font-family: var(--font-mono);
+            white-space: nowrap;
+        }
+
+        .detailed-financials-table .metric-value.negative {
+            color: #ef4444;
+        }
+
+        .detailed-financials-table .metric-value.positive {
+            color: #10b981;
+        }
+
+        /* Scrollable container for table */
+        .detailed-financials-scroll {
+            overflow-x: auto;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch;
+            margin: 20px 0;
+            max-width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .financials-tabs {
+                flex-wrap: wrap;
+            }
+
+            .financials-tab-btn {
+                padding: 10px 16px;
+                font-size: 0.9em;
+            }
+
+            .detailed-financials-table {
+                font-size: 0.85em;
+            }
+
+            .detailed-financials-table th,
+            .detailed-financials-table td {
+                padding: 8px 12px;
+            }
+
+            .detailed-financials-table th:first-child,
+            .detailed-financials-table td:first-child {
+                min-width: 180px;
+            }
+        }
     </style>
 </head>
     <body>
@@ -5126,6 +5268,21 @@
                         <div style="font-size: 3em; margin-bottom: 20px;">💰</div>
                         <h3>Enter a stock ticker to view financials</h3>
                         <p style="font-size: 0.9em; margin-top: 10px; opacity: 0.7;">Get comprehensive financial analysis including revenue, earnings, cash flow, margins, and more.</p>
+                    </div>
+                </div>
+                
+                <!-- Financials Tabs (hidden initially, shown after data is loaded) -->
+                <div id="financialsTabsContainer" style="display: none; margin-top: 20px;">
+                    <div class="financials-tabs" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color);">
+                        <button class="financials-tab-btn active" data-tab="overview" onclick="switchFinancialsTab('overview')" style="padding: 12px 24px; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--text-primary); cursor: pointer; font-weight: 600; font-size: 1em; transition: all 0.3s ease; position: relative; top: 2px;">Overview</button>
+                        <button class="financials-tab-btn" data-tab="detailed" onclick="switchFinancialsTab('detailed')" style="padding: 12px 24px; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; font-size: 1em; transition: all 0.3s ease; position: relative; top: 2px;">Detailed Financials</button>
+                    </div>
+                    <div id="financialsOverviewTab" class="financials-tab-content active" style="display: block;">
+                        <!-- Current overview content will be moved here -->
+                    </div>
+                    <div id="financialsDetailedTab" class="financials-tab-content" style="display: none;">
+                        <!-- Detailed financials table will be rendered here -->
+                        <div id="detailedFinancialsContent"></div>
                     </div>
                 </div>
             </div>
@@ -7374,8 +7531,171 @@
             }
             
             html += `</div>`;
+            
+            // Set overview tab content
+            const overviewTab = document.getElementById('financialsOverviewTab');
+            if (overviewTab) {
+                overviewTab.innerHTML = html;
+            } else {
+                // Fallback if tabs don't exist yet
+                container.innerHTML = html;
+            }
+            
+            // Show tabs container and render detailed financials
+            const tabsContainer = document.getElementById('financialsTabsContainer');
+            if (tabsContainer) {
+                tabsContainer.style.display = 'block';
+                // Render detailed financials
+                renderDetailedFinancials(data, ticker);
+            }
+        }
+
+        // Switch between financials tabs
+        function switchFinancialsTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.financials-tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.tab === tabName) {
+                    btn.classList.add('active');
+                    btn.style.color = 'var(--primary-500)';
+                    btn.style.borderBottomColor = 'var(--primary-500)';
+                } else {
+                    btn.style.color = 'var(--text-secondary)';
+                    btn.style.borderBottomColor = 'transparent';
+                }
+            });
+            
+            // Update tab content
+            document.querySelectorAll('.financials-tab-content').forEach(content => {
+                content.classList.remove('active');
+                content.style.display = 'none';
+            });
+            
+            if (tabName === 'overview') {
+                const overviewTab = document.getElementById('financialsOverviewTab');
+                if (overviewTab) {
+                    overviewTab.classList.add('active');
+                    overviewTab.style.display = 'block';
+                }
+            } else if (tabName === 'detailed') {
+                const detailedTab = document.getElementById('financialsDetailedTab');
+                if (detailedTab) {
+                    detailedTab.classList.add('active');
+                    detailedTab.style.display = 'block';
+                }
+            }
+        }
+        window.switchFinancialsTab = switchFinancialsTab;
+
+        // Format number for display (millions/billions with commas)
+        function formatDetailedNumber(value) {
+            if (value === null || value === undefined || isNaN(value)) {
+                return '-';
+            }
+            
+            const absValue = Math.abs(value);
+            let formatted;
+            
+            if (absValue >= 1e9) {
+                formatted = (value / 1e9).toFixed(2) + 'B';
+            } else if (absValue >= 1e6) {
+                formatted = (value / 1e6).toFixed(2) + 'M';
+            } else if (absValue >= 1e3) {
+                formatted = (value / 1e3).toFixed(2) + 'K';
+            } else {
+                formatted = value.toFixed(2);
+            }
+            
+            // Add commas for thousands
+            const parts = formatted.split('.');
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            formatted = parts.join('.');
+            
+            return formatted;
+        }
+
+        // Render detailed financials table
+        function renderDetailedFinancials(data, ticker) {
+            const container = document.getElementById('detailedFinancialsContent');
+            if (!container) return;
+            
+            if (!data || !data.detailed_income_statement) {
+                container.innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">Detailed financial data not available.</p>';
+                return;
+            }
+            
+            const quarterlyData = data.detailed_income_statement.quarterly || [];
+            if (quarterlyData.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">No quarterly financial data available.</p>';
+                return;
+            }
+            
+            // Get all unique quarter dates from all metrics
+            const allDates = new Set();
+            quarterlyData.forEach(metric => {
+                if (metric.values) {
+                    Object.keys(metric.values).forEach(date => allDates.add(date));
+                }
+            });
+            
+            // Sort dates (most recent first)
+            const sortedDates = Array.from(allDates).sort((a, b) => {
+                const dateA = new Date(a);
+                const dateB = new Date(b);
+                return dateB - dateA; // Descending order
+            });
+            
+            // Take first 4 quarters for display
+            const displayDates = sortedDates.slice(0, 4);
+            
+            let html = `
+                <div class="detailed-financials-scroll">
+                    <table class="detailed-financials-table">
+                        <thead>
+                            <tr>
+                                <th>Breakdown</th>
+                                <th>TTM</th>
+                                ${displayDates.map(date => {
+                                    const d = new Date(date);
+                                    const month = d.toLocaleString('en-US', { month: 'short' });
+                                    const day = d.getDate();
+                                    const year = d.getFullYear();
+                                    return `<th>${month} ${day}, ${year}</th>`;
+                                }).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            // Render each metric as a row
+            quarterlyData.forEach(metric => {
+                const metricName = metric.metric || 'Unknown';
+                const ttm = metric.ttm;
+                const values = metric.values || {};
+                
+                html += '<tr>';
+                html += `<td style="font-weight: 500;">${metricName}</td>`;
+                html += `<td class="metric-value ${ttm !== null && ttm !== undefined && ttm < 0 ? 'negative' : ''}">${ttm !== null && ttm !== undefined ? formatDetailedNumber(ttm) : '-'}</td>`;
+                
+                // Add values for each quarter
+                displayDates.forEach(date => {
+                    const value = values[date];
+                    const cellClass = value !== null && value !== undefined && value < 0 ? 'negative' : '';
+                    html += `<td class="metric-value ${cellClass}">${value !== null && value !== undefined ? formatDetailedNumber(value) : '-'}</td>`;
+                });
+                
+                html += '</tr>';
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
             container.innerHTML = html;
         }
+        window.renderDetailedFinancials = renderDetailedFinancials;
 
         // Store current news data globally for impact analysis (used in stock analysis section)
         let currentStockNewsData = [];
@@ -16974,6 +17294,13 @@
 
         function displayFinancials(data, ticker) {
             const container = document.getElementById('financialsContent');
+            
+            // Hide initial placeholder if visible
+            const placeholder = container.querySelector('div[style*="text-align: center"]');
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+            
             let html = '';
             
             // Validate data structure

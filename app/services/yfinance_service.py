@@ -1209,6 +1209,105 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
         except Exception as e:
             logger.warning(f"Failed to get segment breakdown for {ticker}: {str(e)}")
         
+        # Add detailed financial statements for Detailed Financials tab
+        def convert_dataframe_to_detailed_format(df, is_quarterly=True):
+            """
+            Convert pandas DataFrame to JSON-serializable format with TTM calculation for quarterly data.
+            
+            Args:
+                df: pandas DataFrame with financial statement data
+                is_quarterly: True for quarterly data (calculate TTM), False for annual data
+                
+            Returns:
+                List of dicts with metric name, values per period, and TTM (if quarterly)
+            """
+            if df is None or df.empty:
+                return []
+            
+            result = []
+            
+            # Iterate through each row (metric) in the DataFrame
+            for metric_name in df.index:
+                try:
+                    metric_row = df.loc[metric_name]
+                    values_dict = {}
+                    
+                    # Process each column (quarter/year)
+                    for col in df.columns:
+                        try:
+                            value = metric_row[col]
+                            # Convert to float if possible, otherwise keep as None
+                            if pd.notna(value):
+                                try:
+                                    float_value = float(value)
+                                    # Format date as string
+                                    if isinstance(col, pd.Timestamp):
+                                        col_str = col.strftime('%Y-%m-%d')
+                                    else:
+                                        col_str = str(col)
+                                    values_dict[col_str] = float_value
+                                except (ValueError, TypeError):
+                                    pass
+                        except (KeyError, IndexError):
+                            pass
+                    
+                    # Calculate TTM for quarterly data (sum of last 4 quarters)
+                    ttm_value = None
+                    if is_quarterly and len(values_dict) >= 4:
+                        try:
+                            # Get sorted dates (most recent first typically)
+                            sorted_values = sorted(values_dict.items(), key=lambda x: x[0], reverse=True)
+                            # Take first 4 quarters and sum
+                            last_4_quarters = [v for _, v in sorted_values[:4]]
+                            if all(v is not None for v in last_4_quarters):
+                                ttm_value = sum(last_4_quarters)
+                        except Exception:
+                            pass
+                    
+                    # Only add if we have at least one value
+                    if values_dict:
+                        metric_data = {
+                            'metric': str(metric_name),
+                            'values': values_dict
+                        }
+                        if ttm_value is not None:
+                            metric_data['ttm'] = ttm_value
+                        result.append(metric_data)
+                        
+                except Exception as e:
+                    logger.debug(f"Error processing metric {metric_name}: {str(e)}")
+                    continue
+            
+            return result
+        
+        # Convert detailed financial statements
+        try:
+            financials['detailed_income_statement'] = {
+                'quarterly': convert_dataframe_to_detailed_format(quarterly_income, is_quarterly=True),
+                'annual': convert_dataframe_to_detailed_format(annual_income, is_quarterly=False)
+            }
+        except Exception as e:
+            logger.warning(f"Failed to convert detailed income statement for {ticker}: {str(e)}")
+            financials['detailed_income_statement'] = {'quarterly': [], 'annual': []}
+        
+        try:
+            financials['detailed_balance_sheet'] = {
+                'quarterly': convert_dataframe_to_detailed_format(quarterly_bs, is_quarterly=True),
+                'annual': convert_dataframe_to_detailed_format(annual_bs, is_quarterly=False)
+            }
+        except Exception as e:
+            logger.warning(f"Failed to convert detailed balance sheet for {ticker}: {str(e)}")
+            financials['detailed_balance_sheet'] = {'quarterly': [], 'annual': []}
+        
+        try:
+            financials['detailed_cash_flow'] = {
+                'quarterly': convert_dataframe_to_detailed_format(quarterly_cf, is_quarterly=True),
+                'annual': convert_dataframe_to_detailed_format(annual_cf, is_quarterly=False)
+            }
+        except Exception as e:
+            logger.warning(f"Failed to convert detailed cash flow for {ticker}: {str(e)}")
+            financials['detailed_cash_flow'] = {'quarterly': [], 'annual': []}
+        
         # Clean financials data to ensure all Timestamps are converted before return
         return clean_for_json(financials)
     
