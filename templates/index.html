@@ -17350,6 +17350,16 @@
                 addToRecentSearches(ticker, companyName);
                 
                 currentFinancialsData = data;
+                
+                // Debug: Check if detailed data exists
+                console.log('🔍 [DEBUG] loadFinancials: About to call displayFinancials');
+                console.log('🔍 [DEBUG] loadFinancials: Data keys:', Object.keys(data || {}));
+                console.log('🔍 [DEBUG] loadFinancials: Has detailed_income_statement?', !!data?.detailed_income_statement);
+                if (data?.detailed_income_statement) {
+                    console.log('🔍 [DEBUG] loadFinancials: quarterly length:', data.detailed_income_statement.quarterly?.length || 0);
+                    console.log('🔍 [DEBUG] loadFinancials: annual length:', data.detailed_income_statement.annual?.length || 0);
+                }
+                
                 displayFinancials(data, ticker);
             } catch (error) {
                 container.innerHTML = `
