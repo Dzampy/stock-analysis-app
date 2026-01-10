@@ -1099,66 +1099,98 @@ def scrape_macrotrends_margins(ticker: str, margin_type: str) -> List[Dict]:
         # Find header row to determine column index for margin
         header_row = all_rows[0] if all_rows else None
         margin_col_idx = 3  # Default to 4th column (0-indexed: 3)
+        date_col_idx = 0  # Date is typically first column
         
         if header_row:
             header_cells = header_row.find_all(['th', 'td'])
+            logger.debug(f"Header cells: {[cell.get_text(strip=True) for cell in header_cells]}")
+            
             for idx, cell in enumerate(header_cells):
                 header_text = cell.get_text(strip=True).lower()
-                if 'margin' in header_text or margin_type.split('-')[0] in header_text:
+                # Look for margin column more specifically
+                if 'margin' in header_text:
                     margin_col_idx = idx
-                    logger.debug(f"Found margin column at index {margin_col_idx}: {header_text}")
+                    logger.info(f"Found margin column at index {margin_col_idx}: '{cell.get_text(strip=True)}'")
                     break
+                # Also check for date column
+                if 'date' in header_text:
+                    date_col_idx = idx
+            
+            logger.info(f"Using date column index: {date_col_idx}, margin column index: {margin_col_idx}")
         
         rows = all_rows[1:] if len(all_rows) > 1 else []  # Skip header row
         margin_data = []
         
         logger.debug(f"Processing {len(rows)} data rows, margin column index: {margin_col_idx}")
         
-        for row_idx, row in enumerate(rows):
+        for row_idx, row in enumerate(rows[:20]):  # Process first 20 rows for debugging
             cells = row.find_all(['td', 'th'])
-            if len(cells) > margin_col_idx:  # Ensure we have enough columns
+            if len(cells) <= max(date_col_idx, margin_col_idx):
+                logger.debug(f"Row {row_idx}: Not enough cells ({len(cells)}), skipping")
+                continue
+                
+            try:
+                # Get date from correct column
+                date_str = cells[date_col_idx].get_text(strip=True)
+                # Get margin from correct column
+                margin_str = cells[margin_col_idx].get_text(strip=True)
+                
+                # Log raw values for debugging
+                all_cell_values = [c.get_text(strip=True) for c in cells]
+                logger.debug(f"Row {row_idx} all cells: {all_cell_values}")
+                logger.debug(f"Row {row_idx}: date_str='{date_str}', margin_str='{margin_str}'")
+                
+                # Parse date (format: YYYY-MM-DD from Macrotrends)
+                date_obj = None
                 try:
-                    date_str = cells[0].get_text(strip=True)
-                    margin_str = cells[margin_col_idx].get_text(strip=True) if len(cells) > margin_col_idx else ''
-                    
-                    logger.debug(f"Row {row_idx}: date={date_str}, margin={margin_str}")
-                    
-                    # Parse date (format: YYYY-MM-DD)
-                    date_obj = None
+                    # Macrotrends uses YYYY-MM-DD format
+                    date_obj = pd.Timestamp(date_str)
+                except:
+                    # Try alternative date formats
                     try:
-                        date_obj = pd.Timestamp(date_str)
+                        date_obj = pd.to_datetime(date_str)
                     except:
-                        # Try alternative date formats (MM/DD/YYYY, DD-MM-YYYY, etc.)
-                        try:
-                            date_obj = pd.to_datetime(date_str)
-                        except:
-                            logger.debug(f"Could not parse date: {date_str}")
-                            continue
+                        logger.debug(f"Could not parse date: '{date_str}'")
+                        continue
+                
+                # Parse margin - Macrotrends shows values like "33.33%" or "-200.00%"
+                margin_value = None
+                if margin_str and margin_str.strip():
+                    # Remove % sign and any commas/spaces
+                    margin_clean = margin_str.replace('%', '').replace(',', '').replace('$', '').strip()
                     
-                    # Parse margin (format: percentage like "-200.00%" or "25.50%")
-                    margin_value = None
-                    if margin_str and margin_str.strip():
-                        # Remove % sign and any commas, handle negative values
-                        margin_clean = margin_str.replace('%', '').replace(',', '').replace('$', '').strip()
-                        # Handle cases like "-200.00%" or "N/A" or empty
-                        if margin_clean.lower() in ['n/a', 'na', '-', ''] or margin_clean == '0.00':
-                            continue
-                        try:
-                            margin_value = float(margin_clean)
-                        except ValueError:
-                            logger.debug(f"Could not parse margin value: {margin_str}")
-                            continue
+                    # Skip invalid values
+                    if margin_clean.lower() in ['n/a', 'na', '-', '', 'null', 'none']:
+                        logger.debug(f"Skipping invalid margin value: '{margin_str}'")
+                        continue
                     
-                    if margin_value is not None and date_obj is not None:
-                        margin_data.append({
-                            'date': date_obj.strftime('%Y-%m-%d'),
-                            'margin': margin_value,
-                            'quarter': f"{date_obj.year}-Q{(date_obj.month - 1) // 3 + 1}"
-                        })
-                        logger.debug(f"Added margin data: {date_obj.strftime('%Y-%m-%d')} = {margin_value}%")
-                except Exception as e:
-                    logger.debug(f"Error parsing row {row_idx} in Macrotrends table: {e}")
-                    continue
+                    try:
+                        margin_value = float(margin_clean)
+                        # Macrotrends values are already in percentage form (e.g., 33.33 means 33.33%)
+                        # Don't multiply by 100, just use as-is
+                        logger.debug(f"Parsed margin value: {margin_value} (from '{margin_str}')")
+                    except ValueError as e:
+                        logger.debug(f"Could not parse margin value '{margin_str}': {e}")
+                        continue
+                    
+                    # Sanity check: margins should be reasonable (between -1000% and 1000%)
+                    if abs(margin_value) > 1000:
+                        logger.warning(f"Suspicious margin value {margin_value}% for {date_str}, skipping")
+                        continue
+                
+                if margin_value is not None and date_obj is not None:
+                    margin_data.append({
+                        'date': date_obj.strftime('%Y-%m-%d'),
+                        'margin': margin_value,  # Already in percentage (e.g., 33.33 means 33.33%)
+                        'quarter': f"{date_obj.year}-Q{(date_obj.month - 1) // 3 + 1}"
+                    })
+                    logger.info(f"✓ Added margin data: {date_obj.strftime('%Y-%m-%d')} = {margin_value}%")
+                else:
+                    logger.debug(f"Row {row_idx}: Missing date or margin value")
+                    
+            except Exception as e:
+                logger.warning(f"Error parsing row {row_idx} in Macrotrends table: {e}", exc_info=True)
+                continue
         
         # Sort by date descending (most recent first)
         margin_data.sort(key=lambda x: x['date'], reverse=True)
@@ -1297,9 +1329,22 @@ def get_profitability_analysis(ticker, financials_data):
                     operating_income = float(operating_income_row.iloc[i]) if operating_income_row is not None and i < len(operating_income_row) else None
                     net_income = float(net_income_row.iloc[i]) if net_income_row is not None and i < len(net_income_row) else None
                     
+                    # Calculate margins as percentages (0-100 scale, not 0-1)
+                    # Macrotrends uses percentage format, so we match that
                     gross_margin = (gross_profit / revenue * 100) if revenue and revenue > 0 and gross_profit else None
                     operating_margin = (operating_income / revenue * 100) if revenue and revenue > 0 and operating_income else None
                     net_margin = (net_income / revenue * 100) if revenue and revenue > 0 and net_income else None
+                    
+                    # Sanity check: margins should be reasonable
+                    if gross_margin is not None and abs(gross_margin) > 1000:
+                        logger.warning(f"Unrealistic gross margin {gross_margin}% for {date_str}, setting to None")
+                        gross_margin = None
+                    if operating_margin is not None and abs(operating_margin) > 1000:
+                        logger.warning(f"Unrealistic operating margin {operating_margin}% for {date_str}, setting to None")
+                        operating_margin = None
+                    if net_margin is not None and abs(net_margin) > 1000:
+                        logger.warning(f"Unrealistic net margin {net_margin}% for {date_str}, setting to None")
+                        net_margin = None
                     
                     margin_trends.append({
                         'quarter': quarter_str,
