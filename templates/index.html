@@ -7625,6 +7625,15 @@
                 console.warn('⚠️ [DEBUG] displayFinancials: tabsContainer not found after creation, using fallback');
                 container.innerHTML = html;
             }
+            } catch (error) {
+                console.error('❌❌❌ [DEBUG] displayFinancials: ERROR CAUGHT:', error);
+                console.error('❌❌❌ [DEBUG] displayFinancials: Error stack:', error.stack);
+                container.innerHTML = `<div style="padding: 20px; color: #ef4444;">
+                    <h3>Error rendering financials</h3>
+                    <p>${error.message}</p>
+                    <p style="font-size: 0.9em; margin-top: 10px;">Check console for details.</p>
+                </div>`;
+            }
         }
 
         // Switch between financials tabs
@@ -17433,7 +17442,9 @@
                 }
             });
             if (currentFinancialsData) {
-                displayFinancials(currentFinancialsData);
+                // Get ticker from input or use stored ticker
+                const ticker = document.getElementById('financialsTickerInput')?.value.trim().toUpperCase() || 'UNKNOWN';
+                displayFinancials(currentFinancialsData, ticker);
             }
         }
 
