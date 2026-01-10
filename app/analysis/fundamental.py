@@ -1027,74 +1027,131 @@ def scrape_macrotrends_margins(ticker: str, margin_type: str) -> List[Dict]:
         company_name = re.sub(r'[^a-z0-9\s-]', '', company_name)
         company_name = re.sub(r'\s+', '-', company_name).strip()
         
-        # Construct URL
+        # Construct URL - try different formats
+        # Format 1: /stocks/charts/TICKER/company-name/margin-type
+        # Format 2: /stocks/charts/TICKER/margin-type (fallback)
         url = f"https://www.macrotrends.net/stocks/charts/{ticker.upper()}/{company_name}/{margin_type}"
         
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
         
+        logger.info(f"Scraping Macrotrends margin data from: {url}")
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.content, 'html.parser')
+        logger.debug(f"Macrotrends response status: {response.status_code}, content length: {len(response.content)}")
         
         # Find the data table - it has class "historical_data_table" or is in a table with specific structure
         table = soup.find('table', {'class': lambda x: x and 'historical' in x.lower()})
         if not table:
             # Try to find any table with margin data
             tables = soup.find_all('table')
+            logger.debug(f"Found {len(tables)} tables on page, searching for margin table...")
             for t in tables:
-                if 'margin' in str(t).lower() or 'date' in str(t).lower():
+                # Look for table with "Date" header or "Net Margin" / "Gross Margin" / "Operating Margin" text
+                table_text = t.get_text().lower()
+                if 'date' in table_text and ('margin' in table_text or margin_type.split('-')[0] in table_text):
                     table = t
+                    logger.debug(f"Found margin table with text: {table_text[:200]}")
                     break
         
         if not table:
-            logger.warning(f"Could not find margin table on Macrotrends for {ticker} {margin_type}")
-            return []
+            logger.warning(f"Could not find margin table on Macrotrends for {ticker} {margin_type}. URL: {url}")
+            # Try alternative URL without company name
+            try:
+                alt_url = f"https://www.macrotrends.net/stocks/charts/{ticker.upper()}/{margin_type}"
+                logger.info(f"Trying alternative URL: {alt_url}")
+                alt_response = requests.get(alt_url, headers=headers, timeout=10)
+                alt_response.raise_for_status()
+                alt_soup = BeautifulSoup(alt_response.content, 'html.parser')
+                alt_table = alt_soup.find('table', {'class': lambda x: x and 'historical' in x.lower()})
+                if alt_table:
+                    logger.info(f"Found table using alternative URL")
+                    table = alt_table
+                    soup = alt_soup
+                else:
+                    logger.warning(f"Alternative URL also failed")
+                    return []
+            except Exception as e:
+                logger.warning(f"Alternative URL failed: {e}")
+                return []
         
         # Parse table rows (skip header)
-        rows = table.find_all('tr')[1:]  # Skip header row
+        all_rows = table.find_all('tr')
+        logger.debug(f"Found {len(all_rows)} rows in table")
+        
+        # Find header row to determine column index for margin
+        header_row = all_rows[0] if all_rows else None
+        margin_col_idx = 3  # Default to 4th column (0-indexed: 3)
+        
+        if header_row:
+            header_cells = header_row.find_all(['th', 'td'])
+            for idx, cell in enumerate(header_cells):
+                header_text = cell.get_text(strip=True).lower()
+                if 'margin' in header_text or margin_type.split('-')[0] in header_text:
+                    margin_col_idx = idx
+                    logger.debug(f"Found margin column at index {margin_col_idx}: {header_text}")
+                    break
+        
+        rows = all_rows[1:] if len(all_rows) > 1 else []  # Skip header row
         margin_data = []
         
-        for row in rows:
+        logger.debug(f"Processing {len(rows)} data rows, margin column index: {margin_col_idx}")
+        
+        for row_idx, row in enumerate(rows):
             cells = row.find_all(['td', 'th'])
-            if len(cells) >= 4:  # Date, TTM Revenue, TTM Income, Margin
+            if len(cells) > margin_col_idx:  # Ensure we have enough columns
                 try:
                     date_str = cells[0].get_text(strip=True)
-                    margin_str = cells[3].get_text(strip=True)  # Margin is 4th column
+                    margin_str = cells[margin_col_idx].get_text(strip=True) if len(cells) > margin_col_idx else ''
+                    
+                    logger.debug(f"Row {row_idx}: date={date_str}, margin={margin_str}")
                     
                     # Parse date (format: YYYY-MM-DD)
+                    date_obj = None
                     try:
                         date_obj = pd.Timestamp(date_str)
                     except:
-                        # Try alternative date formats
+                        # Try alternative date formats (MM/DD/YYYY, DD-MM-YYYY, etc.)
                         try:
                             date_obj = pd.to_datetime(date_str)
                         except:
+                            logger.debug(f"Could not parse date: {date_str}")
                             continue
                     
                     # Parse margin (format: percentage like "-200.00%" or "25.50%")
                     margin_value = None
-                    if margin_str and margin_str != '0.00%' and margin_str.strip():
-                        margin_clean = margin_str.replace('%', '').replace(',', '').strip()
+                    if margin_str and margin_str.strip():
+                        # Remove % sign and any commas, handle negative values
+                        margin_clean = margin_str.replace('%', '').replace(',', '').replace('$', '').strip()
+                        # Handle cases like "-200.00%" or "N/A" or empty
+                        if margin_clean.lower() in ['n/a', 'na', '-', ''] or margin_clean == '0.00':
+                            continue
                         try:
                             margin_value = float(margin_clean)
-                        except:
+                        except ValueError:
+                            logger.debug(f"Could not parse margin value: {margin_str}")
                             continue
                     
-                    if margin_value is not None:
+                    if margin_value is not None and date_obj is not None:
                         margin_data.append({
                             'date': date_obj.strftime('%Y-%m-%d'),
                             'margin': margin_value,
                             'quarter': f"{date_obj.year}-Q{(date_obj.month - 1) // 3 + 1}"
                         })
+                        logger.debug(f"Added margin data: {date_obj.strftime('%Y-%m-%d')} = {margin_value}%")
                 except Exception as e:
-                    logger.debug(f"Error parsing row in Macrotrends table: {e}")
+                    logger.debug(f"Error parsing row {row_idx} in Macrotrends table: {e}")
                     continue
         
         # Sort by date descending (most recent first)
         margin_data.sort(key=lambda x: x['date'], reverse=True)
+        
+        logger.info(f"Successfully scraped {len(margin_data)} margin data points for {ticker} {margin_type}")
+        if len(margin_data) > 0:
+            logger.debug(f"Sample data: {margin_data[:3]}")
         
         return margin_data
         
