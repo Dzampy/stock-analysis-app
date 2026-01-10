@@ -17414,7 +17414,27 @@
                 
                 console.log('🎯🎯🎯 [DEBUG] loadFinancials: About to call displayFinancials with ticker:', ticker);
                 console.log('🎯🎯🎯 [DEBUG] loadFinancials: Data has keys:', Object.keys(data || {}).slice(0, 10));
+                
+                // Call displayFinancials
                 displayFinancials(data, ticker);
+                
+                // Ensure tabs container is visible after displayFinancials
+                setTimeout(() => {
+                    const tabsContainer = document.getElementById('financialsTabsContainer');
+                    if (tabsContainer) {
+                        tabsContainer.style.display = 'block';
+                        tabsContainer.style.visibility = 'visible';
+                    }
+                    
+                    // Double-check that overviewTab has content
+                    const overviewTab = document.getElementById('financialsOverviewTab');
+                    if (overviewTab && (!overviewTab.innerHTML || overviewTab.innerHTML.trim() === '' || overviewTab.innerHTML.includes('Loading overview data'))) {
+                        console.warn('⚠️⚠️⚠️ [DEBUG] loadFinancials: overviewTab is empty after displayFinancials, trying to re-render...');
+                        // Re-call displayFinancials if content is missing
+                        displayFinancials(data, ticker);
+                    }
+                }, 100);
+                
                 console.log('🎯🎯🎯 [DEBUG] loadFinancials: displayFinancials call completed');
             } catch (error) {
                 container.innerHTML = `
