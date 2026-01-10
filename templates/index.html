@@ -7536,45 +7536,13 @@
             html += `</div>`;
             
             console.log('🎯 [DEBUG] displayFinancials: HTML generation complete, length:', html.length);
-            console.log('🎯 [DEBUG] displayFinancials: About to show tabs container...');
             
-            // ALWAYS show tabs container - make it visible immediately
-            const tabsContainer = document.getElementById('financialsTabsContainer');
-            console.log('🔍 [DEBUG] displayFinancials: tabsContainer found:', !!tabsContainer);
-            console.log('🔍 [DEBUG] displayFinancials: tabsContainer element:', tabsContainer);
-            console.log('🔍 [DEBUG] displayFinancials: Container element:', container);
-            console.log('🔍 [DEBUG] displayFinancials: Container parent:', container?.parentElement);
-            
-            if (!tabsContainer) {
-                console.error('❌ [DEBUG] displayFinancials: tabsContainer NOT FOUND in DOM! Creating it...');
-                // Create tabs container if it doesn't exist
-                const financialsCard = container.closest('.card');
-                if (financialsCard) {
-                    const newTabsContainer = document.createElement('div');
-                    newTabsContainer.id = 'financialsTabsContainer';
-                    newTabsContainer.style.cssText = 'display: block !important; visibility: visible !important; margin-top: 20px;';
-                    newTabsContainer.innerHTML = `
-                        <div class="financials-tabs" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color);">
-                            <button class="financials-tab-btn active" data-tab="overview" onclick="if(typeof switchFinancialsTab === 'function') { switchFinancialsTab('overview'); } return false;" style="padding: 12px 24px; background: transparent; border: none; border-bottom: 3px solid var(--primary-500); color: var(--primary-500); cursor: pointer; font-weight: 600; font-size: 1em;">Overview</button>
-                            <button class="financials-tab-btn" data-tab="detailed" onclick="if(typeof switchFinancialsTab === 'function') { switchFinancialsTab('detailed'); } return false;" style="padding: 12px 24px; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; font-size: 1em;">Detailed Financials</button>
-                        </div>
-                        <div id="financialsOverviewTab" class="financials-tab-content active" style="display: block;"></div>
-                        <div id="financialsDetailedTab" class="financials-tab-content" style="display: none;">
-                            <div id="detailedFinancialsContent"></div>
-                        </div>
-                    `;
-                    financialsCard.appendChild(newTabsContainer);
-                    console.log('✅ [DEBUG] displayFinancials: Created tabs container dynamically');
-                }
-            }
-            
-            // Now get the tabs container (either existing or newly created)
+            // Get tabs container again (should exist from start of function)
             const finalTabsContainer = document.getElementById('financialsTabsContainer');
             if (finalTabsContainer) {
                 // Force display block with !important via inline style
                 finalTabsContainer.style.cssText = 'display: block !important; visibility: visible !important; margin-top: 20px;';
                 console.log('✅ [DEBUG] displayFinancials: tabsContainer displayed (forced)');
-                console.log('✅ [DEBUG] displayFinancials: tabsContainer computed display:', window.getComputedStyle(finalTabsContainer).display);
                 
                 // Set overview tab content
                 const overviewTab = document.getElementById('financialsOverviewTab');
@@ -7586,6 +7554,8 @@
                     console.log('✅ [DEBUG] displayFinancials: overviewTab content set, length:', html.length);
                 } else {
                     console.error('❌ [DEBUG] displayFinancials: financialsOverviewTab not found!');
+                    // Fallback: render to container
+                    container.innerHTML = html;
                 }
                 
                 // Set detailed tab as inactive initially
@@ -7652,7 +7622,7 @@
                 }
             } else {
                 // Fallback if tabs still don't exist - render directly to container
-                console.warn('⚠️ [DEBUG] displayFinancials: tabsContainer still not found after creation attempt, using fallback');
+                console.warn('⚠️ [DEBUG] displayFinancials: tabsContainer not found after creation, using fallback');
                 container.innerHTML = html;
             }
         }
@@ -17501,7 +17471,42 @@
                 console.log('✅ [DEBUG] displayFinancials: Placeholder hidden');
             }
             
-            // Hide skeleton/loading content
+            // FIRST: Ensure tabs container exists and is visible BEFORE generating HTML
+            let tabsContainer = document.getElementById('financialsTabsContainer');
+            if (!tabsContainer) {
+                console.log('🔧 [DEBUG] displayFinancials: Creating tabs container at start...');
+                const financialsCard = container.closest('.card') || container.parentElement;
+                if (financialsCard) {
+                    tabsContainer = document.createElement('div');
+                    tabsContainer.id = 'financialsTabsContainer';
+                    tabsContainer.style.cssText = 'display: block !important; visibility: visible !important; margin-top: 20px;';
+                    tabsContainer.innerHTML = `
+                        <div class="financials-tabs" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color);">
+                            <button class="financials-tab-btn active" data-tab="overview" onclick="if(typeof window.switchFinancialsTab === 'function') { window.switchFinancialsTab('overview'); } return false;" style="padding: 12px 24px; background: transparent; border: none; border-bottom: 3px solid var(--primary-500); color: var(--primary-500); cursor: pointer; font-weight: 600; font-size: 1em;">Overview</button>
+                            <button class="financials-tab-btn" data-tab="detailed" onclick="if(typeof window.switchFinancialsTab === 'function') { window.switchFinancialsTab('detailed'); } return false;" style="padding: 12px 24px; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--text-secondary); cursor: pointer; font-weight: 600; font-size: 1em;">Detailed Financials</button>
+                        </div>
+                        <div id="financialsOverviewTab" class="financials-tab-content active" style="display: block;"></div>
+                        <div id="financialsDetailedTab" class="financials-tab-content" style="display: none;">
+                            <div id="detailedFinancialsContent"></div>
+                        </div>
+                    `;
+                    // Insert tabs container AFTER the container (financialsContent), not inside it
+                    if (container.nextSibling) {
+                        container.parentNode.insertBefore(tabsContainer, container.nextSibling);
+                    } else {
+                        container.parentNode.appendChild(tabsContainer);
+                    }
+                    console.log('✅ [DEBUG] displayFinancials: Tabs container created and inserted');
+                } else {
+                    console.error('❌ [DEBUG] displayFinancials: Cannot find parent card to insert tabs container');
+                }
+            } else {
+                // Make sure existing tabs container is visible
+                tabsContainer.style.cssText = 'display: block !important; visibility: visible !important; margin-top: 20px;';
+                console.log('✅ [DEBUG] displayFinancials: Tabs container found and made visible');
+            }
+            
+            // Hide skeleton/loading content (but preserve tabs container outside)
             container.innerHTML = '';
             
             let html = '';
