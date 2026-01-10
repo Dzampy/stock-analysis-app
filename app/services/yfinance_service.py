@@ -1221,8 +1221,14 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
             Returns:
                 List of dicts with metric name, values per period, and TTM (if quarterly)
             """
-            if df is None or df.empty:
+            if df is None:
+                logger.warning(f"convert_dataframe_to_detailed_format: DataFrame is None (is_quarterly={is_quarterly})")
                 return []
+            if df.empty:
+                logger.warning(f"convert_dataframe_to_detailed_format: DataFrame is empty (is_quarterly={is_quarterly})")
+                return []
+            
+            logger.debug(f"convert_dataframe_to_detailed_format: Processing DataFrame with {len(df)} rows, {len(df.columns)} columns (is_quarterly={is_quarterly})")
             
             result = []
             
@@ -1275,9 +1281,10 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
                         result.append(metric_data)
                         
                 except Exception as e:
-                    logger.debug(f"Error processing metric {metric_name}: {str(e)}")
+                    logger.warning(f"Error processing metric {metric_name}: {str(e)}", exc_info=True)
                     continue
             
+            logger.info(f"convert_dataframe_to_detailed_format: Converted {len(result)} metrics (is_quarterly={is_quarterly})")
             return result
         
         # Convert detailed financial statements

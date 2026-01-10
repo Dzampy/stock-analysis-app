@@ -7598,13 +7598,18 @@
 
         // Switch between financials tabs
         function switchFinancialsTab(tabName) {
+            console.log('🔄 [DEBUG] switchFinancialsTab: Called with tabName:', tabName);
+            
             // Update tab buttons
-            document.querySelectorAll('.financials-tab-btn').forEach(btn => {
+            const buttons = document.querySelectorAll('.financials-tab-btn');
+            console.log('🔄 [DEBUG] switchFinancialsTab: Found buttons:', buttons.length);
+            buttons.forEach(btn => {
                 btn.classList.remove('active');
                 if (btn.dataset.tab === tabName) {
                     btn.classList.add('active');
                     btn.style.color = 'var(--primary-500)';
                     btn.style.borderBottomColor = 'var(--primary-500)';
+                    console.log('✅ [DEBUG] switchFinancialsTab: Activated button for', tabName);
                 } else {
                     btn.style.color = 'var(--text-secondary)';
                     btn.style.borderBottomColor = 'transparent';
@@ -7622,12 +7627,30 @@
                 if (overviewTab) {
                     overviewTab.classList.add('active');
                     overviewTab.style.display = 'block';
+                    console.log('✅ [DEBUG] switchFinancialsTab: Overview tab shown');
+                } else {
+                    console.error('❌ [DEBUG] switchFinancialsTab: Overview tab not found!');
                 }
             } else if (tabName === 'detailed') {
                 const detailedTab = document.getElementById('financialsDetailedTab');
                 if (detailedTab) {
                     detailedTab.classList.add('active');
                     detailedTab.style.display = 'block';
+                    console.log('✅ [DEBUG] switchFinancialsTab: Detailed tab shown');
+                    
+                    // Check if content exists
+                    const detailedContent = document.getElementById('detailedFinancialsContent');
+                    if (detailedContent) {
+                        console.log('✅ [DEBUG] switchFinancialsTab: detailedFinancialsContent found, innerHTML length:', detailedContent.innerHTML.length);
+                        if (!detailedContent.innerHTML || detailedContent.innerHTML.trim() === '') {
+                            console.warn('⚠️ [DEBUG] switchFinancialsTab: detailedFinancialsContent is empty!');
+                            detailedContent.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);"><p>⚠️ No detailed financial data available.</p><p style="font-size: 0.9em; margin-top: 10px;">Please check the console for details.</p></div>';
+                        }
+                    } else {
+                        console.error('❌ [DEBUG] switchFinancialsTab: detailedFinancialsContent container not found!');
+                    }
+                } else {
+                    console.error('❌ [DEBUG] switchFinancialsTab: Detailed tab not found!');
                 }
             }
         }
