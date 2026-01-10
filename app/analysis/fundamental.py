@@ -1300,52 +1300,6 @@ def get_profitability_analysis(ticker, financials_data):
             return None
         
         logger.info(f"Calculated {len(margin_trends)} margin trends for {ticker}")
-            revenue_row = find_row(income_stmt, ['total revenue', 'revenue', 'net sales'])
-            gross_profit_row = find_row(income_stmt, ['gross profit'])
-            operating_income_row = find_row(income_stmt, ['operating income', 'income from operations'])
-            net_income_row = find_row(income_stmt, ['net income', 'net earnings'])
-            
-            for i, col in enumerate(income_stmt.columns[:8]):
-                try:
-                    quarter_date = pd.Timestamp(col)
-                    quarter_str = f"{quarter_date.year}-Q{(quarter_date.month - 1) // 3 + 1}"
-                    date_str = quarter_date.strftime('%Y-%m-%d')
-                    
-                    revenue = float(revenue_row.iloc[i]) if revenue_row is not None and i < len(revenue_row) else None
-                    gross_profit = float(gross_profit_row.iloc[i]) if gross_profit_row is not None and i < len(gross_profit_row) else None
-                    operating_income = float(operating_income_row.iloc[i]) if operating_income_row is not None and i < len(operating_income_row) else None
-                    net_income = float(net_income_row.iloc[i]) if net_income_row is not None and i < len(net_income_row) else None
-                    
-                    # Calculate margins as percentages (0-100 scale, not 0-1)
-                    # Macrotrends uses percentage format, so we match that
-                    gross_margin = (gross_profit / revenue * 100) if revenue and revenue > 0 and gross_profit else None
-                    operating_margin = (operating_income / revenue * 100) if revenue and revenue > 0 and operating_income else None
-                    net_margin = (net_income / revenue * 100) if revenue and revenue > 0 and net_income else None
-                    
-                    # Sanity check: margins should be reasonable
-                    if gross_margin is not None and abs(gross_margin) > 1000:
-                        logger.warning(f"Unrealistic gross margin {gross_margin}% for {date_str}, setting to None")
-                        gross_margin = None
-                    if operating_margin is not None and abs(operating_margin) > 1000:
-                        logger.warning(f"Unrealistic operating margin {operating_margin}% for {date_str}, setting to None")
-                        operating_margin = None
-                    if net_margin is not None and abs(net_margin) > 1000:
-                        logger.warning(f"Unrealistic net margin {net_margin}% for {date_str}, setting to None")
-                        net_margin = None
-                    
-                    margin_trends.append({
-                        'quarter': quarter_str,
-                        'date': date_str,
-                        'gross_margin': round(gross_margin, 2) if gross_margin is not None else None,
-                        'operating_margin': round(operating_margin, 2) if operating_margin is not None else None,
-                        'net_margin': round(net_margin, 2) if net_margin is not None else None,
-                        'revenue': revenue,
-                        'operating_income': operating_income,
-                        'net_income': net_income
-                    })
-                except (IndexError, ValueError, TypeError) as e:
-                    logger.debug(f"Error in yfinance fallback margin calculation: {e}")
-                    continue
         
         # Calculate margin expansion/contraction
         margin_expansion = {}
