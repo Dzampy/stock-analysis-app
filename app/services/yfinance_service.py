@@ -1282,30 +1282,34 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
         
         # Convert detailed financial statements
         try:
+            logger.info(f"Converting detailed income statement for {ticker}: quarterly_income is {'None' if quarterly_income is None else ('empty' if quarterly_income.empty else 'has data')}, annual_income is {'None' if annual_income is None else ('empty' if annual_income.empty else 'has data')}")
             financials['detailed_income_statement'] = {
-                'quarterly': convert_dataframe_to_detailed_format(quarterly_income, is_quarterly=True),
-                'annual': convert_dataframe_to_detailed_format(annual_income, is_quarterly=False)
+                'quarterly': convert_dataframe_to_detailed_format(quarterly_income, is_quarterly=True) if quarterly_income is not None and not quarterly_income.empty else [],
+                'annual': convert_dataframe_to_detailed_format(annual_income, is_quarterly=False) if annual_income is not None and not annual_income.empty else []
             }
+            logger.info(f"Converted income statement: quarterly={len(financials['detailed_income_statement']['quarterly'])}, annual={len(financials['detailed_income_statement']['annual'])}")
         except Exception as e:
-            logger.warning(f"Failed to convert detailed income statement for {ticker}: {str(e)}")
+            logger.warning(f"Failed to convert detailed income statement for {ticker}: {str(e)}", exc_info=True)
             financials['detailed_income_statement'] = {'quarterly': [], 'annual': []}
         
         try:
+            logger.info(f"Converting detailed balance sheet for {ticker}: quarterly_bs is {'None' if quarterly_bs is None else ('empty' if quarterly_bs.empty else 'has data')}, annual_bs is {'None' if annual_bs is None else ('empty' if annual_bs.empty else 'has data')}")
             financials['detailed_balance_sheet'] = {
-                'quarterly': convert_dataframe_to_detailed_format(quarterly_bs, is_quarterly=True),
-                'annual': convert_dataframe_to_detailed_format(annual_bs, is_quarterly=False)
+                'quarterly': convert_dataframe_to_detailed_format(quarterly_bs, is_quarterly=True) if quarterly_bs is not None and not quarterly_bs.empty else [],
+                'annual': convert_dataframe_to_detailed_format(annual_bs, is_quarterly=False) if annual_bs is not None and not annual_bs.empty else []
             }
         except Exception as e:
-            logger.warning(f"Failed to convert detailed balance sheet for {ticker}: {str(e)}")
+            logger.warning(f"Failed to convert detailed balance sheet for {ticker}: {str(e)}", exc_info=True)
             financials['detailed_balance_sheet'] = {'quarterly': [], 'annual': []}
         
         try:
+            logger.info(f"Converting detailed cash flow for {ticker}: quarterly_cf is {'None' if quarterly_cf is None else ('empty' if quarterly_cf.empty else 'has data')}, annual_cf is {'None' if annual_cf is None else ('empty' if annual_cf.empty else 'has data')}")
             financials['detailed_cash_flow'] = {
-                'quarterly': convert_dataframe_to_detailed_format(quarterly_cf, is_quarterly=True),
-                'annual': convert_dataframe_to_detailed_format(annual_cf, is_quarterly=False)
+                'quarterly': convert_dataframe_to_detailed_format(quarterly_cf, is_quarterly=True) if quarterly_cf is not None and not quarterly_cf.empty else [],
+                'annual': convert_dataframe_to_detailed_format(annual_cf, is_quarterly=False) if annual_cf is not None and not annual_cf.empty else []
             }
         except Exception as e:
-            logger.warning(f"Failed to convert detailed cash flow for {ticker}: {str(e)}")
+            logger.warning(f"Failed to convert detailed cash flow for {ticker}: {str(e)}", exc_info=True)
             financials['detailed_cash_flow'] = {'quarterly': [], 'annual': []}
         
         # Clean financials data to ensure all Timestamps are converted before return
