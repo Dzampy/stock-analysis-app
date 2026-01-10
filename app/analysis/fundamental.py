@@ -1225,17 +1225,24 @@ def get_profitability_analysis(ticker, financials_data):
                     return df.loc[idx]
             return None
         
-        # Get all necessary rows
-        revenue_row = find_row(income_stmt, ['total revenue', 'revenue', 'net sales', 'total net sales'])
+        # Get all necessary rows - try multiple variations
+        revenue_row = find_row(income_stmt, ['total revenue', 'revenue', 'net sales', 'total net sales', 'operating revenue'])
         gross_profit_row = find_row(income_stmt, ['gross profit'])
-        operating_income_row = find_row(income_stmt, ['operating income', 'income from operations', 'operating income or loss'])
-        net_income_row = find_row(income_stmt, ['net income', 'net earnings', 'net income common stockholders'])
+        operating_income_row = find_row(income_stmt, ['operating income', 'income from operations', 'operating income or loss', 'total operating income as reported'])
+        net_income_row = find_row(income_stmt, ['net income', 'net earnings', 'net income common stockholders', 'net income from continuing operation net minority interest'])
         
         if revenue_row is None:
             logger.warning(f"Could not find revenue row for {ticker}")
             return None
         
+        # Get TTM margins from info for verification
+        info = stock.info
+        info_gross_margin = info.get('grossMargins')  # Already as decimal (0.33571 = 33.571%)
+        info_operating_margin = info.get('operatingMargins')  # Already as decimal (-1.53526 = -153.526%)
+        info_profit_margin = info.get('profitMargins')  # Already as decimal (-1.72494 = -172.494%)
+        
         logger.info(f"Found rows for {ticker}: revenue={revenue_row is not None}, gross_profit={gross_profit_row is not None}, operating_income={operating_income_row is not None}, net_income={net_income_row is not None}")
+        logger.info(f"Info margins (TTM): gross={info_gross_margin}, operating={info_operating_margin}, profit={info_profit_margin}")
         
         # Calculate margins from yfinance quarterly income statement
         margin_trends = []
@@ -1247,13 +1254,29 @@ def get_profitability_analysis(ticker, financials_data):
                 date_str = quarter_date.strftime('%Y-%m-%d')
                 quarter_str = f"{quarter_date.year}-Q{(quarter_date.month - 1) // 3 + 1}"
                 
-                # Get values for this quarter
-                revenue = float(revenue_row.iloc[i]) if i < len(revenue_row) and pd.notna(revenue_row.iloc[i]) else None
-                gross_profit = float(gross_profit_row.iloc[i]) if gross_profit_row is not None and i < len(gross_profit_row) and pd.notna(gross_profit_row.iloc[i]) else None
-                operating_income = float(operating_income_row.iloc[i]) if operating_income_row is not None and i < len(operating_income_row) and pd.notna(operating_income_row.iloc[i]) else None
-                net_income = float(net_income_row.iloc[i]) if net_income_row is not None and i < len(net_income_row) and pd.notna(net_income_row.iloc[i]) else None
+                # Get values for this quarter - handle both Series and array access
+                try:
+                    revenue = float(revenue_row.iloc[i]) if i < len(revenue_row) and pd.notna(revenue_row.iloc[i]) else None
+                except (IndexError, AttributeError):
+                    revenue = None
                 
-                # Calculate margins as percentages (only if we have revenue)
+                try:
+                    gross_profit = float(gross_profit_row.iloc[i]) if gross_profit_row is not None and i < len(gross_profit_row) and pd.notna(gross_profit_row.iloc[i]) else None
+                except (IndexError, AttributeError):
+                    gross_profit = None
+                
+                try:
+                    operating_income = float(operating_income_row.iloc[i]) if operating_income_row is not None and i < len(operating_income_row) and pd.notna(operating_income_row.iloc[i]) else None
+                except (IndexError, AttributeError):
+                    operating_income = None
+                
+                try:
+                    net_income = float(net_income_row.iloc[i]) if net_income_row is not None and i < len(net_income_row) and pd.notna(net_income_row.iloc[i]) else None
+                except (IndexError, AttributeError):
+                    net_income = None
+                
+                # Calculate margins as percentages (only if we have revenue and the component)
+                # Note: yfinance values are in actual dollars, not millions
                 gross_margin = None
                 operating_margin = None
                 net_margin = None
@@ -1265,6 +1288,11 @@ def get_profitability_analysis(ticker, financials_data):
                         operating_margin = (operating_income / revenue) * 100
                     if net_income is not None:
                         net_margin = (net_income / revenue) * 100
+                
+                # Log for debugging first quarter
+                if i == 0:
+                    logger.debug(f"First quarter ({date_str}): revenue={revenue}, gross_profit={gross_profit}, operating_income={operating_income}, net_income={net_income}")
+                    logger.debug(f"Calculated margins: gross={gross_margin}%, operating={operating_margin}%, net={net_margin}%")
                 
                 # Sanity check: margins should be reasonable
                 if gross_margin is not None and abs(gross_margin) > 1000:
