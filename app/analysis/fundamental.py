@@ -1244,55 +1244,57 @@ def get_profitability_analysis(ticker, financials_data):
         logger.info(f"Found rows for {ticker}: revenue={revenue_row is not None}, gross_profit={gross_profit_row is not None}, operating_income={operating_income_row is not None}, net_income={net_income_row is not None}")
         logger.info(f"Info margins (TTM): gross={info_gross_margin}, operating={info_operating_margin}, profit={info_profit_margin}")
         
-        # Calculate margins from yfinance quarterly income statement
+        # Calculate TTM (Trailing Twelve Months) margins from quarterly data
+        # Macrotrends shows TTM margins, not quarterly margins
         margin_trends = []
         
-        # Process each quarter (yfinance returns newest first)
+        # Process each quarter and calculate TTM (sum of last 4 quarters)
         for i, col in enumerate(income_stmt.columns[:12]):  # Get up to 12 quarters
             try:
                 quarter_date = pd.Timestamp(col)
                 date_str = quarter_date.strftime('%Y-%m-%d')
                 quarter_str = f"{quarter_date.year}-Q{(quarter_date.month - 1) // 3 + 1}"
                 
-                # Get values for this quarter - handle both Series and array access
-                try:
-                    revenue = float(revenue_row.iloc[i]) if i < len(revenue_row) and pd.notna(revenue_row.iloc[i]) else None
-                except (IndexError, AttributeError):
-                    revenue = None
+                # Calculate TTM values (sum of last 4 quarters including current)
+                ttm_revenue = 0
+                ttm_gross_profit = 0
+                ttm_operating_income = 0
+                ttm_net_income = 0
+                ttm_count = 0
                 
-                try:
-                    gross_profit = float(gross_profit_row.iloc[i]) if gross_profit_row is not None and i < len(gross_profit_row) and pd.notna(gross_profit_row.iloc[i]) else None
-                except (IndexError, AttributeError):
-                    gross_profit = None
+                # Sum up last 4 quarters (i, i+1, i+2, i+3)
+                for j in range(i, min(i + 4, len(income_stmt.columns))):
+                    try:
+                        if revenue_row is not None and j < len(revenue_row) and pd.notna(revenue_row.iloc[j]):
+                            ttm_revenue += float(revenue_row.iloc[j])
+                        if gross_profit_row is not None and j < len(gross_profit_row) and pd.notna(gross_profit_row.iloc[j]):
+                            ttm_gross_profit += float(gross_profit_row.iloc[j])
+                        if operating_income_row is not None and j < len(operating_income_row) and pd.notna(operating_income_row.iloc[j]):
+                            ttm_operating_income += float(operating_income_row.iloc[j])
+                        if net_income_row is not None and j < len(net_income_row) and pd.notna(net_income_row.iloc[j]):
+                            ttm_net_income += float(net_income_row.iloc[j])
+                        ttm_count += 1
+                    except (IndexError, ValueError, TypeError):
+                        continue
                 
-                try:
-                    operating_income = float(operating_income_row.iloc[i]) if operating_income_row is not None and i < len(operating_income_row) and pd.notna(operating_income_row.iloc[i]) else None
-                except (IndexError, AttributeError):
-                    operating_income = None
-                
-                try:
-                    net_income = float(net_income_row.iloc[i]) if net_income_row is not None and i < len(net_income_row) and pd.notna(net_income_row.iloc[i]) else None
-                except (IndexError, AttributeError):
-                    net_income = None
-                
-                # Calculate margins as percentages (only if we have revenue and the component)
-                # Note: yfinance values are in actual dollars, not millions
+                # Calculate TTM margins as percentages
                 gross_margin = None
                 operating_margin = None
                 net_margin = None
                 
-                if revenue is not None and revenue != 0:
-                    if gross_profit is not None:
-                        gross_margin = (gross_profit / revenue) * 100
-                    if operating_income is not None:
-                        operating_margin = (operating_income / revenue) * 100
-                    if net_income is not None:
-                        net_margin = (net_income / revenue) * 100
+                if ttm_revenue != 0 and ttm_count > 0:
+                    if ttm_gross_profit != 0:
+                        gross_margin = (ttm_gross_profit / ttm_revenue) * 100
+                    if ttm_operating_income != 0:
+                        operating_margin = (ttm_operating_income / ttm_revenue) * 100
+                    if ttm_net_income != 0:
+                        net_margin = (ttm_net_income / ttm_revenue) * 100
                 
                 # Log for debugging first quarter
                 if i == 0:
-                    logger.debug(f"First quarter ({date_str}): revenue={revenue}, gross_profit={gross_profit}, operating_income={operating_income}, net_income={net_income}")
-                    logger.debug(f"Calculated margins: gross={gross_margin}%, operating={operating_margin}%, net={net_margin}%")
+                    logger.debug(f"First quarter TTM ({date_str}): ttm_revenue={ttm_revenue}, ttm_gross_profit={ttm_gross_profit}, ttm_operating_income={ttm_operating_income}, ttm_net_income={ttm_net_income}")
+                    logger.debug(f"Calculated TTM margins: gross={gross_margin}%, operating={operating_margin}%, net={net_margin}%")
+                    logger.debug(f"Info TTM margins for comparison: gross={info_gross_margin*100 if info_gross_margin else None}%, operating={info_operating_margin*100 if info_operating_margin else None}%, profit={info_profit_margin*100 if info_profit_margin else None}%")
                 
                 # Sanity check: margins should be reasonable
                 if gross_margin is not None and abs(gross_margin) > 1000:
@@ -1305,19 +1307,35 @@ def get_profitability_analysis(ticker, financials_data):
                     logger.warning(f"Unrealistic net margin {net_margin}% for {date_str}, setting to None")
                     net_margin = None
                 
-                # Only add if we have at least revenue and one calculated margin
-                if revenue is not None and (gross_margin is not None or operating_margin is not None or net_margin is not None):
+                # Get single quarter values for revenue/income (for operating leverage calculation)
+                try:
+                    revenue = float(revenue_row.iloc[i]) if i < len(revenue_row) and pd.notna(revenue_row.iloc[i]) else None
+                except (IndexError, AttributeError):
+                    revenue = None
+                
+                try:
+                    operating_income = float(operating_income_row.iloc[i]) if operating_income_row is not None and i < len(operating_income_row) and pd.notna(operating_income_row.iloc[i]) else None
+                except (IndexError, AttributeError):
+                    operating_income = None
+                
+                try:
+                    net_income = float(net_income_row.iloc[i]) if net_income_row is not None and i < len(net_income_row) and pd.notna(net_income_row.iloc[i]) else None
+                except (IndexError, AttributeError):
+                    net_income = None
+                
+                # Only add if we have at least one calculated TTM margin
+                if gross_margin is not None or operating_margin is not None or net_margin is not None:
                     margin_trends.append({
                         'quarter': quarter_str,
                         'date': date_str,
                         'gross_margin': round(gross_margin, 2) if gross_margin is not None else None,
                         'operating_margin': round(operating_margin, 2) if operating_margin is not None else None,
                         'net_margin': round(net_margin, 2) if net_margin is not None else None,
-                        'revenue': revenue,
-                        'operating_income': operating_income,
-                        'net_income': net_income
+                        'revenue': revenue,  # Single quarter for leverage calc
+                        'operating_income': operating_income,  # Single quarter for leverage calc
+                        'net_income': net_income  # Single quarter for leverage calc
                     })
-                    logger.debug(f"Added margin for {date_str} ({quarter_str}): gross={gross_margin}%, operating={operating_margin}%, net={net_margin}%, revenue={revenue}")
+                    logger.debug(f"Added TTM margin for {date_str} ({quarter_str}): gross={gross_margin}%, operating={operating_margin}%, net={net_margin}%")
                     
             except (IndexError, ValueError, TypeError) as e:
                 logger.debug(f"Error processing quarter {i} for {ticker}: {e}")
