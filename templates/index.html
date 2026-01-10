@@ -7767,7 +7767,7 @@
             
             // Get all unique quarter dates from all metrics
             const allDates = new Set();
-            dataToUse.forEach(metric => {
+            quarterlyData.forEach(metric => {
                 if (metric.values && typeof metric.values === 'object') {
                     Object.keys(metric.values).forEach(date => allDates.add(date));
                 }
@@ -7814,8 +7814,8 @@
             `;
             
             // Render each metric as a row
-            console.log('🔄 [DEBUG] renderDetailedFinancials: Rendering', dataToUse.length, 'rows');
-            dataToUse.forEach((metric, index) => {
+            console.log('🔄 [DEBUG] renderDetailedFinancials: Rendering', quarterlyData.length, 'rows');
+            quarterlyData.forEach((metric, index) => {
                 const metricName = metric.metric || 'Unknown';
                 const ttm = metric.ttm;
                 const values = metric.values || {};
