@@ -7535,10 +7535,12 @@
             
             html += `</div>`;
             
-            console.log('🎯 [DEBUG] displayFinancials: HTML generation complete, length:', html.length);
+            console.log('🎯🎯🎯 [DEBUG] displayFinancials: HTML generation complete, length:', html.length);
+            console.log('🎯🎯🎯 [DEBUG] displayFinancials: About to set HTML to overviewTab...');
             
             // Get tabs container again (should exist from start of function)
             const finalTabsContainer = document.getElementById('financialsTabsContainer');
+            console.log('🎯🎯🎯 [DEBUG] displayFinancials: finalTabsContainer found:', !!finalTabsContainer);
             if (finalTabsContainer) {
                 // Force display block with !important via inline style
                 finalTabsContainer.style.cssText = 'display: block !important; visibility: visible !important; margin-top: 20px;';
