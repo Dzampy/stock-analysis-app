@@ -19672,13 +19672,22 @@
             console.log('[Financials] Final HTML length before setting innerHTML:', html.length);
             console.log('[Financials] HTML contains Balance Sheet:', html.includes('Balance Sheet'));
             console.log('[Financials] HTML contains cash:', html.includes('Cash & Equivalents'));
-            container.innerHTML = html;
-            console.log('[Financials] innerHTML set, checking DOM...');
+            
+            // CRITICAL: Set HTML to overviewTab, not container!
+            const overviewTab = document.getElementById('financialsOverviewTab');
+            if (overviewTab) {
+                overviewTab.innerHTML = html;
+                overviewTab.style.display = 'block';
+                overviewTab.classList.add('active');
+                console.log('[Financials] innerHTML set to overviewTab, checking DOM...');
+            } else {
+                console.warn('[Financials] overviewTab not found, using container fallback');
+                container.innerHTML = html;
+            }
             
             // Check if Balance Sheet section exists in DOM
             setTimeout(() => {
-                const bsSection = document.querySelector('h4:contains("Balance Sheet")') || 
-                                 Array.from(document.querySelectorAll('h4')).find(h => h.textContent.includes('Balance Sheet'));
+                const bsSection = Array.from(document.querySelectorAll('h4')).find(h => h.textContent.includes('Balance Sheet'));
                 console.log('[Financials] Balance Sheet section in DOM:', bsSection);
                 if (bsSection) {
                     console.log('[Financials] Balance Sheet section parent:', bsSection.parentElement);
