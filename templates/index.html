@@ -7535,10 +7535,15 @@
             
             html += `</div>`;
             
+            console.log('🎯 [DEBUG] displayFinancials: HTML generation complete, length:', html.length);
+            console.log('🎯 [DEBUG] displayFinancials: About to show tabs container...');
+            
             // ALWAYS show tabs container - make it visible immediately
             const tabsContainer = document.getElementById('financialsTabsContainer');
             console.log('🔍 [DEBUG] displayFinancials: tabsContainer found:', !!tabsContainer);
             console.log('🔍 [DEBUG] displayFinancials: tabsContainer element:', tabsContainer);
+            console.log('🔍 [DEBUG] displayFinancials: Container element:', container);
+            console.log('🔍 [DEBUG] displayFinancials: Container parent:', container?.parentElement);
             
             if (!tabsContainer) {
                 console.error('❌ [DEBUG] displayFinancials: tabsContainer NOT FOUND in DOM! Creating it...');
