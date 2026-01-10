@@ -7620,11 +7620,11 @@
                         console.error('❌ [DEBUG] displayFinancials: detailedFinancialsContent container not found!');
                     }
                 }
-                } else {
-                    // Fallback if tabs still don't exist - render directly to container
-                    console.warn('⚠️ [DEBUG] displayFinancials: tabsContainer not found after creation, using fallback');
-                    container.innerHTML = html;
-                }
+            } else {
+                // Fallback if tabs still don't exist - render directly to container
+                console.warn('⚠️ [DEBUG] displayFinancials: tabsContainer not found after creation, using fallback');
+                container.innerHTML = html;
+            }
             } catch (error) {
                 console.error('❌❌❌ [DEBUG] displayFinancials: ERROR CAUGHT:', error);
                 console.error('❌❌❌ [DEBUG] displayFinancials: Error message:', error.message);
