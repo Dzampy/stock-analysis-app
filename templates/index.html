@@ -7774,15 +7774,56 @@
             console.log('✅ [DEBUG] renderDetailedFinancials: Processing', quarterlyData.length, 'metrics');
             
             // Define only the metrics we want to show (in order)
+            // Use precise matching to avoid wrong metrics (e.g., "Cost of Revenue" matching "revenue")
             const allowedMetrics = [
-                { search: ['total revenue', 'revenue'], label: 'Total Revenue (Tržby)' },
-                { search: ['cost of revenue', 'cost of goods sold', 'cogs'], label: 'Cost of Revenue' },
-                { search: ['gross profit'], label: 'Gross Profit (Hrubý zisk)' },
-                { search: ['operating expense', 'operating expenses', 'total operating expenses'], label: 'Operating Expenses (Provozní náklady)' },
-                { search: ['operating income', 'operating income loss', 'operating income / loss'], label: 'Operating Income / Loss (Provozní zisk / ztráta)' },
-                { search: ['ebitda'], label: 'EBITDA' },
-                { search: ['net income', 'net income common', 'net income from continuing'], label: 'Net Income (Čistý zisk / ztráta)' },
-                { search: ['diluted eps', 'basic eps', 'eps'], label: 'EPS – Earnings Per Share (Zisk na akcii)' }
+                { 
+                    search: ['total revenue'], 
+                    exact: ['total revenue'],
+                    exclude: ['cost of revenue', 'cost of goods'],
+                    label: 'Total Revenue (Tržby)' 
+                },
+                { 
+                    search: ['cost of revenue', 'cost of goods sold', 'cogs'], 
+                    exact: ['cost of revenue', 'cost of goods sold'],
+                    exclude: [],
+                    label: 'Cost of Revenue' 
+                },
+                { 
+                    search: ['gross profit'], 
+                    exact: ['gross profit'],
+                    exclude: [],
+                    label: 'Gross Profit (Hrubý zisk)' 
+                },
+                { 
+                    search: ['operating expense', 'operating expenses', 'total operating expenses'], 
+                    exact: ['operating expense', 'operating expenses'],
+                    exclude: [],
+                    label: 'Operating Expenses (Provozní náklady)' 
+                },
+                { 
+                    search: ['operating income', 'operating income loss'], 
+                    exact: ['operating income'],
+                    exclude: [],
+                    label: 'Operating Income / Loss (Provozní zisk / ztráta)' 
+                },
+                { 
+                    search: ['ebitda'], 
+                    exact: ['ebitda'],
+                    exclude: [],
+                    label: 'EBITDA' 
+                },
+                { 
+                    search: ['net income common', 'net income from continuing'], 
+                    exact: ['net income common', 'net income from continuing'],
+                    exclude: ['pretax income', 'normalized income'],
+                    label: 'Net Income (Čistý zisk / ztráta)' 
+                },
+                { 
+                    search: ['diluted eps'], 
+                    exact: ['diluted eps'],
+                    exclude: ['basic eps'],
+                    label: 'EPS – Earnings Per Share (Zisk na akcii)' 
+                }
             ];
             
             // Filter and map metrics to display
@@ -7790,7 +7831,36 @@
             for (const allowedMetric of allowedMetrics) {
                 const found = quarterlyData.find(metric => {
                     const metricName = (metric.metric || '').toString().toLowerCase();
-                    return allowedMetric.search.some(term => metricName.includes(term));
+                    
+                    // First try exact match
+                    const exactMatch = allowedMetric.exact.some(term => 
+                        metricName === term || metricName === term + 's'
+                    );
+                    if (exactMatch) {
+                        // Check if it should be excluded
+                        const shouldExclude = allowedMetric.exclude.some(excludeTerm => 
+                            metricName.includes(excludeTerm)
+                        );
+                        if (!shouldExclude) {
+                            return true;
+                        }
+                    }
+                    
+                    // Then try search terms (but exclude if needed)
+                    const shouldExclude = allowedMetric.exclude.some(excludeTerm => 
+                        metricName.includes(excludeTerm)
+                    );
+                    if (shouldExclude) {
+                        return false;
+                    }
+                    
+                    return allowedMetric.search.some(term => {
+                        // Prefer exact match or starts with
+                        return metricName === term || 
+                               metricName.startsWith(term + ' ') ||
+                               metricName.includes(' ' + term + ' ') ||
+                               metricName.endsWith(' ' + term);
+                    });
                 });
                 if (found) {
                     // Use the display label instead of original metric name
@@ -7798,6 +7868,8 @@
                         ...found,
                         metric: allowedMetric.label
                     });
+                } else {
+                    console.warn('⚠️ [DEBUG] renderDetailedFinancials: Metric not found:', allowedMetric.label, 'Available metrics:', quarterlyData.map(m => m.metric).slice(0, 10));
                 }
             }
             
