@@ -7773,9 +7773,63 @@
             
             console.log('✅ [DEBUG] renderDetailedFinancials: Processing', quarterlyData.length, 'metrics');
             
+            // Define order priority for metrics (same as Yahoo Finance)
+            const metricOrder = [
+                'Total Revenue',
+                'Cost Of Revenue',
+                'Gross Profit',
+                'Operating Expense',
+                'Operating Income',
+                'Net Non Operating Interest Income Expense',
+                'Other Income Expense',
+                'Pretax Income',
+                'Tax Provision',
+                'Net Income Common Stockholders',
+                'Diluted NI Available To Com Stockholders',
+                'Basic EPS',
+                'Diluted EPS',
+                'Basic Average Shares',
+                'Diluted Average Shares',
+                'Total Operating Income As Reported',
+                'Total Expenses',
+                'Net Income From Continuing And Discontinued Operation',
+                'Normalized Income',
+                'Interest Income',
+                'Interest Expense',
+                'Net Interest Income',
+                'EBIT',
+                'EBITDA',
+                'Reconciled Cost Of Revenue',
+                'Reconciled Depreciation',
+                'Net Income From Continuing Operation Net Minority Interest',
+                'Total Unusual Items Excluding Goodwill',
+                'Total Unusual Items',
+                'Normalized EBITDA',
+                'Tax Rate For Calcs',
+                'Tax Effect Of Unusual Items'
+            ];
+            
+            // Sort metrics by priority (Yahoo Finance order)
+            const sortedMetrics = quarterlyData.sort((a, b) => {
+                const aName = (a.metric || '').toString();
+                const bName = (b.metric || '').toString();
+                const aIndex = metricOrder.findIndex(m => aName.toLowerCase().includes(m.toLowerCase()));
+                const bIndex = metricOrder.findIndex(m => bName.toLowerCase().includes(m.toLowerCase()));
+                
+                // If both found, sort by index
+                if (aIndex !== -1 && bIndex !== -1) {
+                    return aIndex - bIndex;
+                }
+                // If only one found, prioritize it
+                if (aIndex !== -1) return -1;
+                if (bIndex !== -1) return 1;
+                // Otherwise alphabetical
+                return aName.localeCompare(bName);
+            });
+            
             // Get all unique quarter dates from all metrics
             const allDates = new Set();
-            quarterlyData.forEach(metric => {
+            sortedMetrics.forEach(metric => {
                 if (metric.values && typeof metric.values === 'object') {
                     Object.keys(metric.values).forEach(date => allDates.add(date));
                 }
@@ -7783,18 +7837,18 @@
             
             console.log('📅 [DEBUG] renderDetailedFinancials: Found', allDates.size, 'unique dates');
             
-            // Sort dates (most recent first)
+            // Sort dates (most recent first) - same as Yahoo Finance
             const sortedDates = Array.from(allDates).sort((a, b) => {
                 try {
                     const dateA = new Date(a);
                     const dateB = new Date(b);
-                    return dateB - dateA; // Descending order
+                    return dateB - dateA; // Descending order (newest first)
                 } catch (e) {
                     return 0;
                 }
             });
             
-            // Take first 4 quarters/years for display
+            // Take first 4 quarters/years for display (most recent 4)
             const displayDates = sortedDates.slice(0, 4);
             console.log('📅 [DEBUG] renderDetailedFinancials: Display dates:', displayDates);
             
@@ -7808,7 +7862,7 @@
                                 ${displayDates.map(date => {
                                     try {
                                         const d = new Date(date);
-                                        const month = d.toLocaleString('en-US', { month: 'short' });
+                                        const month = d.toLocaleString('en-US', { month: 'short' }).toUpperCase();
                                         const day = d.getDate();
                                         const year = d.getFullYear();
                                         return `<th>${month} ${day}, ${year}</th>`;
@@ -7821,9 +7875,9 @@
                         <tbody>
             `;
             
-            // Render each metric as a row
-            console.log('🔄 [DEBUG] renderDetailedFinancials: Rendering', quarterlyData.length, 'rows');
-            quarterlyData.forEach((metric, index) => {
+            // Render each metric as a row (in sorted order)
+            console.log('🔄 [DEBUG] renderDetailedFinancials: Rendering', sortedMetrics.length, 'rows');
+            sortedMetrics.forEach((metric, index) => {
                 const metricName = metric.metric || 'Unknown';
                 const ttm = metric.ttm;
                 const values = metric.values || {};
