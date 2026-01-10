@@ -7731,29 +7731,30 @@
 
         // Render detailed financials table
         function renderDetailedFinancials(data, ticker) {
-            console.log('📋 [DEBUG] renderDetailedFinancials: Called for ticker:', ticker);
-            console.log('📋 [DEBUG] renderDetailedFinancials: Data check:', {
+            console.log('📋📋📋 [DEBUG] renderDetailedFinancials: FUNCTION CALLED for ticker:', ticker || 'NO TICKER');
+            console.log('📋📋📋 [DEBUG] renderDetailedFinancials: Data check:', {
                 hasData: !!data,
                 hasDetailedIncomeStatement: !!data?.detailed_income_statement,
                 hasQuarterly: !!(data?.detailed_income_statement?.quarterly),
                 quarterlyLength: data?.detailed_income_statement?.quarterly?.length || 0,
+                annualLength: data?.detailed_income_statement?.annual?.length || 0,
                 allKeys: data ? Object.keys(data).slice(0, 20) : []
             });
             
             const container = document.getElementById('detailedFinancialsContent');
             if (!container) {
-                console.error('❌ [DEBUG] renderDetailedFinancials: detailedFinancialsContent container not found!');
+                console.error('❌❌❌ [DEBUG] renderDetailedFinancials: detailedFinancialsContent container not found!');
                 return;
             }
-            console.log('✅ [DEBUG] renderDetailedFinancials: Container found');
+            console.log('✅✅✅ [DEBUG] renderDetailedFinancials: Container found');
             
             if (!data || !data.detailed_income_statement) {
-                console.warn('⚠️ [DEBUG] renderDetailedFinancials: No detailed_income_statement in data');
+                console.warn('⚠️⚠️⚠️ [DEBUG] renderDetailedFinancials: No detailed_income_statement in data');
                 container.innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">⚠️ Detailed financial data not available. Backend may not have returned detailed_income_statement. Check server logs.</p>';
                 return;
             }
             
-            console.log('✅ [DEBUG] renderDetailedFinancials: detailed_income_statement found, processing...');
+            console.log('✅✅✅ [DEBUG] renderDetailedFinancials: detailed_income_statement found, processing...');
             
             let quarterlyData = data.detailed_income_statement.quarterly || [];
             let annualData = data.detailed_income_statement.annual || [];
