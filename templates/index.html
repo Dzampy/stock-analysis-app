@@ -7718,11 +7718,22 @@
             
             console.log('✅ [DEBUG] renderDetailedFinancials: detailed_income_statement found, processing...');
             
-            const quarterlyData = data.detailed_income_statement.quarterly || [];
+            let quarterlyData = data.detailed_income_statement.quarterly || [];
+            let annualData = data.detailed_income_statement.annual || [];
+            
+            // If no quarterly data, try to use annual data as fallback
+            if (quarterlyData.length === 0 && annualData.length > 0) {
+                console.log('⚠️ [DEBUG] renderDetailedFinancials: No quarterly data, using annual data as fallback');
+                quarterlyData = annualData;
+            }
+            
             if (quarterlyData.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">No quarterly financial data available.</p>';
+                console.warn('⚠️ [DEBUG] renderDetailedFinancials: No financial data available (neither quarterly nor annual)');
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);"><p>⚠️ No quarterly or annual financial data available for this ticker.</p><p style="font-size: 0.9em; margin-top: 10px;">This may be because:</p><ul style="text-align: left; display: inline-block; margin-top: 10px;"><li>The ticker is too new or delisted</li><li>Yahoo Finance does not have financial data for this company</li><li>There was an error fetching the data</li></ul><p style="font-size: 0.9em; margin-top: 15px;">Check the browser console (F12) and server logs for more details.</p></div>';
                 return;
             }
+            
+            console.log('✅ [DEBUG] renderDetailedFinancials: Processing', quarterlyData.length, 'metrics');
             
             // Get all unique quarter dates from all metrics
             const allDates = new Set();
