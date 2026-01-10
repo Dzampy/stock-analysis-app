@@ -17473,8 +17473,10 @@
             
             // FIRST: Ensure tabs container exists and is visible BEFORE generating HTML
             let tabsContainer = document.getElementById('financialsTabsContainer');
+            console.log('🔍 [DEBUG] displayFinancials: Looking for tabs container...', !!tabsContainer);
+            
             if (!tabsContainer) {
-                console.log('🔧 [DEBUG] displayFinancials: Creating tabs container at start...');
+                console.log('🔧 [DEBUG] displayFinancials: Tabs container not found, creating it...');
                 const financialsCard = container.closest('.card') || container.parentElement;
                 if (financialsCard) {
                     tabsContainer = document.createElement('div');
@@ -17501,9 +17503,26 @@
                     console.error('❌ [DEBUG] displayFinancials: Cannot find parent card to insert tabs container');
                 }
             } else {
-                // Make sure existing tabs container is visible
-                tabsContainer.style.cssText = 'display: block !important; visibility: visible !important; margin-top: 20px;';
-                console.log('✅ [DEBUG] displayFinancials: Tabs container found and made visible');
+                // Make sure existing tabs container is visible - FORCE it with multiple methods
+                console.log('✅ [DEBUG] displayFinancials: Tabs container found, making it visible...');
+                tabsContainer.removeAttribute('style');
+                tabsContainer.style.display = 'block';
+                tabsContainer.style.visibility = 'visible';
+                tabsContainer.style.marginTop = '20px';
+                tabsContainer.setAttribute('style', 'display: block !important; visibility: visible !important; margin-top: 20px;');
+                
+                // Double check it's visible
+                const computedStyle = window.getComputedStyle(tabsContainer);
+                console.log('✅ [DEBUG] displayFinancials: Tabs container computed display:', computedStyle.display);
+                console.log('✅ [DEBUG] displayFinancials: Tabs container computed visibility:', computedStyle.visibility);
+                
+                if (computedStyle.display === 'none') {
+                    console.warn('⚠️ [DEBUG] displayFinancials: Tabs container still has display:none, forcing with class...');
+                    tabsContainer.classList.remove('hidden');
+                    tabsContainer.classList.add('visible');
+                    tabsContainer.style.setProperty('display', 'block', 'important');
+                    tabsContainer.style.setProperty('visibility', 'visible', 'important');
+                }
             }
             
             // Hide skeleton/loading content (but preserve tabs container outside)
