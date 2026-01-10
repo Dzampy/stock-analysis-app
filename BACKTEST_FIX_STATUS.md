@@ -57,3 +57,4 @@ Po úspěšném backtestu uvidíš v JSON response:
 3. Otestovat s reálnými daty
 
 
+

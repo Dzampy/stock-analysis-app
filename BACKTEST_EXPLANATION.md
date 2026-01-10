@@ -34,3 +34,4 @@ Server stále vrací starou chybu "No prediction history found", která:
 Po opravení bugu a restartu serveru by backtest měl fungovat **okamžitě**, ne za pár dní!
 
 
+

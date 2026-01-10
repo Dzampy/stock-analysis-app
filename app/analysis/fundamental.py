@@ -5,9 +5,6 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 import time
-import re
-import requests
-from bs4 import BeautifulSoup
 from typing import Dict, Optional, List
 from app.utils.constants import RATE_LIMIT_DELAY
 from app.utils.logger import logger
@@ -1006,216 +1003,14 @@ def get_cash_flow_analysis(ticker):
         return None
 
 
-def scrape_macrotrends_margins(ticker: str, margin_type: str) -> List[Dict]:
-    """
-    Scrape margin data from Macrotrends
-    
-    Args:
-        ticker: Stock ticker symbol
-        margin_type: 'gross-profit-margin', 'operating-profit-margin', or 'net-profit-margin'
-        
-    Returns:
-        List of dicts with date, margin value, and other data
-    """
-    try:
-        # Get company name from yfinance for URL construction
-        stock = yf.Ticker(ticker)
-        time.sleep(0.2)
-        info = stock.info
-        company_name = info.get('longName', ticker.lower()).lower()
-        # Clean company name for URL (replace spaces with hyphens, remove special chars)
-        company_name = re.sub(r'[^a-z0-9\s-]', '', company_name)
-        company_name = re.sub(r'\s+', '-', company_name).strip()
-        
-        # Construct URL - try different formats
-        # Format 1: /stocks/charts/TICKER/company-name/margin-type
-        # Format 2: /stocks/charts/TICKER/margin-type (fallback)
-        url = f"https://www.macrotrends.net/stocks/charts/{ticker.upper()}/{company_name}/{margin_type}"
-        
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        
-        logger.info(f"Scraping Macrotrends margin data from: {url}")
-        
-        # Try requests first, then cloudscraper if it fails (Macrotrends may block regular requests)
-        response = None
-        try:
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
-        except Exception as e:
-            logger.warning(f"Regular requests failed for Macrotrends, trying cloudscraper: {e}")
-            try:
-                import cloudscraper
-                scraper = cloudscraper.create_scraper()
-                response = scraper.get(url, headers=headers, timeout=15)
-                response.raise_for_status()
-            except Exception as e2:
-                logger.error(f"Both requests and cloudscraper failed: {e2}")
-                raise
-        
-        soup = BeautifulSoup(response.content, 'html.parser')
-        logger.debug(f"Macrotrends response status: {response.status_code}, content length: {len(response.content)}")
-        
-        # Find the data table - it has class "historical_data_table" or is in a table with specific structure
-        table = soup.find('table', {'class': lambda x: x and 'historical' in x.lower()})
-        if not table:
-            # Try to find any table with margin data
-            tables = soup.find_all('table')
-            logger.debug(f"Found {len(tables)} tables on page, searching for margin table...")
-            for t in tables:
-                # Look for table with "Date" header or "Net Margin" / "Gross Margin" / "Operating Margin" text
-                table_text = t.get_text().lower()
-                if 'date' in table_text and ('margin' in table_text or margin_type.split('-')[0] in table_text):
-                    table = t
-                    logger.debug(f"Found margin table with text: {table_text[:200]}")
-                    break
-        
-        if not table:
-            logger.warning(f"Could not find margin table on Macrotrends for {ticker} {margin_type}. URL: {url}")
-            # Try alternative URL without company name
-            try:
-                alt_url = f"https://www.macrotrends.net/stocks/charts/{ticker.upper()}/{margin_type}"
-                logger.info(f"Trying alternative URL: {alt_url}")
-                alt_response = requests.get(alt_url, headers=headers, timeout=10)
-                alt_response.raise_for_status()
-                alt_soup = BeautifulSoup(alt_response.content, 'html.parser')
-                alt_table = alt_soup.find('table', {'class': lambda x: x and 'historical' in x.lower()})
-                if alt_table:
-                    logger.info(f"Found table using alternative URL")
-                    table = alt_table
-                    soup = alt_soup
-                else:
-                    logger.warning(f"Alternative URL also failed")
-                    return []
-            except Exception as e:
-                logger.warning(f"Alternative URL failed: {e}")
-                return []
-        
-        # Parse table rows (skip header)
-        all_rows = table.find_all('tr')
-        logger.debug(f"Found {len(all_rows)} rows in table")
-        
-        # Find header row to determine column index for margin
-        header_row = all_rows[0] if all_rows else None
-        margin_col_idx = 3  # Default to 4th column (0-indexed: 3)
-        date_col_idx = 0  # Date is typically first column
-        
-        if header_row:
-            header_cells = header_row.find_all(['th', 'td'])
-            logger.debug(f"Header cells: {[cell.get_text(strip=True) for cell in header_cells]}")
-            
-            for idx, cell in enumerate(header_cells):
-                header_text = cell.get_text(strip=True).lower()
-                # Look for margin column more specifically
-                if 'margin' in header_text:
-                    margin_col_idx = idx
-                    logger.info(f"Found margin column at index {margin_col_idx}: '{cell.get_text(strip=True)}'")
-                    break
-                # Also check for date column
-                if 'date' in header_text:
-                    date_col_idx = idx
-            
-            logger.info(f"Using date column index: {date_col_idx}, margin column index: {margin_col_idx}")
-        
-        rows = all_rows[1:] if len(all_rows) > 1 else []  # Skip header row
-        margin_data = []
-        
-        logger.debug(f"Processing {len(rows)} data rows, margin column index: {margin_col_idx}")
-        
-        for row_idx, row in enumerate(rows[:20]):  # Process first 20 rows for debugging
-            cells = row.find_all(['td', 'th'])
-            if len(cells) <= max(date_col_idx, margin_col_idx):
-                logger.debug(f"Row {row_idx}: Not enough cells ({len(cells)}), skipping")
-                continue
-                
-            try:
-                # Get date from correct column
-                date_str = cells[date_col_idx].get_text(strip=True)
-                # Get margin from correct column
-                margin_str = cells[margin_col_idx].get_text(strip=True)
-                
-                # Log raw values for debugging
-                all_cell_values = [c.get_text(strip=True) for c in cells]
-                logger.debug(f"Row {row_idx} all cells: {all_cell_values}")
-                logger.debug(f"Row {row_idx}: date_str='{date_str}', margin_str='{margin_str}'")
-                
-                # Parse date (format: YYYY-MM-DD from Macrotrends)
-                date_obj = None
-                try:
-                    # Macrotrends uses YYYY-MM-DD format
-                    date_obj = pd.Timestamp(date_str)
-                except:
-                    # Try alternative date formats
-                    try:
-                        date_obj = pd.to_datetime(date_str)
-                    except:
-                        logger.debug(f"Could not parse date: '{date_str}'")
-                        continue
-                
-                # Parse margin - Macrotrends shows values like "33.33%" or "-200.00%"
-                margin_value = None
-                if margin_str and margin_str.strip():
-                    # Remove % sign and any commas/spaces
-                    margin_clean = margin_str.replace('%', '').replace(',', '').replace('$', '').strip()
-                    
-                    # Skip invalid values
-                    if margin_clean.lower() in ['n/a', 'na', '-', '', 'null', 'none']:
-                        logger.debug(f"Skipping invalid margin value: '{margin_str}'")
-                        continue
-                    
-                    try:
-                        margin_value = float(margin_clean)
-                        # Macrotrends values are already in percentage form (e.g., 33.33 means 33.33%)
-                        # Don't multiply by 100, just use as-is
-                        logger.debug(f"Parsed margin value: {margin_value} (from '{margin_str}')")
-                    except ValueError as e:
-                        logger.debug(f"Could not parse margin value '{margin_str}': {e}")
-                        continue
-                    
-                    # Sanity check: margins should be reasonable (between -1000% and 1000%)
-                    if abs(margin_value) > 1000:
-                        logger.warning(f"Suspicious margin value {margin_value}% for {date_str}, skipping")
-                        continue
-                
-                if margin_value is not None and date_obj is not None:
-                    margin_data.append({
-                        'date': date_obj.strftime('%Y-%m-%d'),
-                        'margin': margin_value,  # Already in percentage (e.g., 33.33 means 33.33%)
-                        'quarter': f"{date_obj.year}-Q{(date_obj.month - 1) // 3 + 1}"
-                    })
-                    logger.info(f"✓ Added margin data: {date_obj.strftime('%Y-%m-%d')} = {margin_value}%")
-                else:
-                    logger.debug(f"Row {row_idx}: Missing date or margin value")
-                    
-            except Exception as e:
-                logger.warning(f"Error parsing row {row_idx} in Macrotrends table: {e}", exc_info=True)
-                continue
-        
-        # Sort by date descending (most recent first)
-        margin_data.sort(key=lambda x: x['date'], reverse=True)
-        
-        logger.info(f"Successfully scraped {len(margin_data)} margin data points for {ticker} {margin_type}")
-        if len(margin_data) > 0:
-            logger.debug(f"Sample data: {margin_data[:3]}")
-        
-        return margin_data
-        
-    except Exception as e:
-        logger.warning(f"Error scraping Macrotrends margins for {ticker} {margin_type}: {str(e)}")
-        return []
-
-
 def get_profitability_analysis(ticker, financials_data):
-    """Get deep dive profitability analysis using yfinance data for margins"""
+    """Get deep dive profitability analysis"""
     try:
         stock = yf.Ticker(ticker)
         time.sleep(0.2)
         
-        # Use quarterly income statement from yfinance to calculate margins
-        income_stmt = stock.quarterly_income_stmt
+        income_stmt = stock.income_stmt
         if income_stmt is None or income_stmt.empty:
-            logger.warning(f"No quarterly income statement available for {ticker}")
             return None
         
         def find_row(df, keywords):
@@ -1225,127 +1020,40 @@ def get_profitability_analysis(ticker, financials_data):
                     return df.loc[idx]
             return None
         
-        # Get all necessary rows - try multiple variations
-        revenue_row = find_row(income_stmt, ['total revenue', 'revenue', 'net sales', 'total net sales', 'operating revenue'])
+        # Get revenue and margin rows
+        revenue_row = find_row(income_stmt, ['total revenue', 'revenue', 'net sales'])
         gross_profit_row = find_row(income_stmt, ['gross profit'])
-        operating_income_row = find_row(income_stmt, ['operating income', 'income from operations', 'operating income or loss', 'total operating income as reported'])
-        net_income_row = find_row(income_stmt, ['net income', 'net earnings', 'net income common stockholders', 'net income from continuing operation net minority interest'])
+        operating_income_row = find_row(income_stmt, ['operating income', 'income from operations'])
+        net_income_row = find_row(income_stmt, ['net income', 'net earnings'])
         
-        if revenue_row is None:
-            logger.warning(f"Could not find revenue row for {ticker}")
-            return None
-        
-        # Get TTM margins from info for verification
-        info = stock.info
-        info_gross_margin = info.get('grossMargins')  # Already as decimal (0.33571 = 33.571%)
-        info_operating_margin = info.get('operatingMargins')  # Already as decimal (-1.53526 = -153.526%)
-        info_profit_margin = info.get('profitMargins')  # Already as decimal (-1.72494 = -172.494%)
-        
-        logger.info(f"Found rows for {ticker}: revenue={revenue_row is not None}, gross_profit={gross_profit_row is not None}, operating_income={operating_income_row is not None}, net_income={net_income_row is not None}")
-        logger.info(f"Info margins (TTM): gross={info_gross_margin}, operating={info_operating_margin}, profit={info_profit_margin}")
-        
-        # Calculate TTM (Trailing Twelve Months) margins from quarterly data
-        # Macrotrends shows TTM margins, not quarterly margins
+        # Build margin trends
         margin_trends = []
-        
-        # Process each quarter and calculate TTM (sum of last 4 quarters)
-        for i, col in enumerate(income_stmt.columns[:12]):  # Get up to 12 quarters
+        for i, col in enumerate(income_stmt.columns[:8]):
             try:
                 quarter_date = pd.Timestamp(col)
-                date_str = quarter_date.strftime('%Y-%m-%d')
                 quarter_str = f"{quarter_date.year}-Q{(quarter_date.month - 1) // 3 + 1}"
                 
-                # Calculate TTM values (sum of last 4 quarters including current)
-                ttm_revenue = 0
-                ttm_gross_profit = 0
-                ttm_operating_income = 0
-                ttm_net_income = 0
-                ttm_count = 0
+                revenue = float(revenue_row.iloc[i]) if revenue_row is not None and i < len(revenue_row) else None
+                gross_profit = float(gross_profit_row.iloc[i]) if gross_profit_row is not None and i < len(gross_profit_row) else None
+                operating_income = float(operating_income_row.iloc[i]) if operating_income_row is not None and i < len(operating_income_row) else None
+                net_income = float(net_income_row.iloc[i]) if net_income_row is not None and i < len(net_income_row) else None
                 
-                # Sum up last 4 quarters (i, i+1, i+2, i+3)
-                for j in range(i, min(i + 4, len(income_stmt.columns))):
-                    try:
-                        if revenue_row is not None and j < len(revenue_row) and pd.notna(revenue_row.iloc[j]):
-                            ttm_revenue += float(revenue_row.iloc[j])
-                        if gross_profit_row is not None and j < len(gross_profit_row) and pd.notna(gross_profit_row.iloc[j]):
-                            ttm_gross_profit += float(gross_profit_row.iloc[j])
-                        if operating_income_row is not None and j < len(operating_income_row) and pd.notna(operating_income_row.iloc[j]):
-                            ttm_operating_income += float(operating_income_row.iloc[j])
-                        if net_income_row is not None and j < len(net_income_row) and pd.notna(net_income_row.iloc[j]):
-                            ttm_net_income += float(net_income_row.iloc[j])
-                        ttm_count += 1
-                    except (IndexError, ValueError, TypeError):
-                        continue
+                gross_margin = (gross_profit / revenue * 100) if revenue and revenue > 0 and gross_profit else None
+                operating_margin = (operating_income / revenue * 100) if revenue and revenue > 0 and operating_income else None
+                net_margin = (net_income / revenue * 100) if revenue and revenue > 0 and net_income else None
                 
-                # Calculate TTM margins as percentages
-                gross_margin = None
-                operating_margin = None
-                net_margin = None
-                
-                if ttm_revenue != 0 and ttm_count > 0:
-                    if ttm_gross_profit != 0:
-                        gross_margin = (ttm_gross_profit / ttm_revenue) * 100
-                    if ttm_operating_income != 0:
-                        operating_margin = (ttm_operating_income / ttm_revenue) * 100
-                    if ttm_net_income != 0:
-                        net_margin = (ttm_net_income / ttm_revenue) * 100
-                
-                # Log for debugging first quarter
-                if i == 0:
-                    logger.debug(f"First quarter TTM ({date_str}): ttm_revenue={ttm_revenue}, ttm_gross_profit={ttm_gross_profit}, ttm_operating_income={ttm_operating_income}, ttm_net_income={ttm_net_income}")
-                    logger.debug(f"Calculated TTM margins: gross={gross_margin}%, operating={operating_margin}%, net={net_margin}%")
-                    logger.debug(f"Info TTM margins for comparison: gross={info_gross_margin*100 if info_gross_margin else None}%, operating={info_operating_margin*100 if info_operating_margin else None}%, profit={info_profit_margin*100 if info_profit_margin else None}%")
-                
-                # Sanity check: margins should be reasonable
-                if gross_margin is not None and abs(gross_margin) > 1000:
-                    logger.warning(f"Unrealistic gross margin {gross_margin}% for {date_str}, setting to None")
-                    gross_margin = None
-                if operating_margin is not None and abs(operating_margin) > 1000:
-                    logger.warning(f"Unrealistic operating margin {operating_margin}% for {date_str}, setting to None")
-                    operating_margin = None
-                if net_margin is not None and abs(net_margin) > 1000:
-                    logger.warning(f"Unrealistic net margin {net_margin}% for {date_str}, setting to None")
-                    net_margin = None
-                
-                # Get single quarter values for revenue/income (for operating leverage calculation)
-                try:
-                    revenue = float(revenue_row.iloc[i]) if i < len(revenue_row) and pd.notna(revenue_row.iloc[i]) else None
-                except (IndexError, AttributeError):
-                    revenue = None
-                
-                try:
-                    operating_income = float(operating_income_row.iloc[i]) if operating_income_row is not None and i < len(operating_income_row) and pd.notna(operating_income_row.iloc[i]) else None
-                except (IndexError, AttributeError):
-                    operating_income = None
-                
-                try:
-                    net_income = float(net_income_row.iloc[i]) if net_income_row is not None and i < len(net_income_row) and pd.notna(net_income_row.iloc[i]) else None
-                except (IndexError, AttributeError):
-                    net_income = None
-                
-                # Only add if we have at least one calculated TTM margin
-                if gross_margin is not None or operating_margin is not None or net_margin is not None:
-                    margin_trends.append({
-                        'quarter': quarter_str,
-                        'date': date_str,
-                        'gross_margin': round(gross_margin, 2) if gross_margin is not None else None,
-                        'operating_margin': round(operating_margin, 2) if operating_margin is not None else None,
-                        'net_margin': round(net_margin, 2) if net_margin is not None else None,
-                        'revenue': revenue,  # Single quarter for leverage calc
-                        'operating_income': operating_income,  # Single quarter for leverage calc
-                        'net_income': net_income  # Single quarter for leverage calc
-                    })
-                    logger.debug(f"Added TTM margin for {date_str} ({quarter_str}): gross={gross_margin}%, operating={operating_margin}%, net={net_margin}%")
-                    
-            except (IndexError, ValueError, TypeError) as e:
-                logger.debug(f"Error processing quarter {i} for {ticker}: {e}")
+                margin_trends.append({
+                    'quarter': quarter_str,
+                    'date': quarter_date.strftime('%Y-%m-%d'),
+                    'gross_margin': round(gross_margin, 2) if gross_margin is not None else None,
+                    'operating_margin': round(operating_margin, 2) if operating_margin is not None else None,
+                    'net_margin': round(net_margin, 2) if net_margin is not None else None,
+                    'revenue': revenue,
+                    'operating_income': operating_income,
+                    'net_income': net_income
+                })
+            except (IndexError, ValueError, TypeError):
                 continue
-        
-        if len(margin_trends) == 0:
-            logger.error(f"No margin trends calculated for {ticker}")
-            return None
-        
-        logger.info(f"Calculated {len(margin_trends)} margin trends for {ticker}")
         
         # Calculate margin expansion/contraction
         margin_expansion = {}

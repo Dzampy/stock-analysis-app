@@ -124,3 +124,4 @@ print("Trading Metrics:", backtest.get('trading_metrics'))
 ML implementace je nyní **robustnější, transparentnější a poskytuje lepší metriky** pro hodnocení výkonu. Model je ready pro osobní použití a experimentování.
 
 
+
