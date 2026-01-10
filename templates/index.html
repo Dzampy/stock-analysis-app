@@ -7546,16 +7546,21 @@
                 
                 // Set overview tab content
                 const overviewTab = document.getElementById('financialsOverviewTab');
+                console.log('🔍🔍🔍 [DEBUG] displayFinancials: Looking for overviewTab:', !!overviewTab);
+                console.log('🔍🔍🔍 [DEBUG] displayFinancials: HTML length:', html.length);
                 if (overviewTab) {
+                    console.log('✅✅✅ [DEBUG] displayFinancials: overviewTab FOUND, setting innerHTML...');
                     overviewTab.innerHTML = html;
                     // Make sure overview tab is visible and active
                     overviewTab.style.display = 'block';
                     overviewTab.classList.add('active');
-                    console.log('✅ [DEBUG] displayFinancials: overviewTab content set, length:', html.length);
+                    console.log('✅✅✅ [DEBUG] displayFinancials: overviewTab content SET, length:', html.length);
+                    console.log('✅✅✅ [DEBUG] displayFinancials: overviewTab.innerHTML length after:', overviewTab.innerHTML.length);
                 } else {
-                    console.error('❌ [DEBUG] displayFinancials: financialsOverviewTab not found!');
+                    console.error('❌❌❌ [DEBUG] displayFinancials: financialsOverviewTab NOT FOUND! Using fallback...');
                     // Fallback: render to container
                     container.innerHTML = html;
+                    console.log('✅✅✅ [DEBUG] displayFinancials: Fallback - content set to container');
                 }
                 
                 // Set detailed tab as inactive initially
