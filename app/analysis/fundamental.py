@@ -5,6 +5,9 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 import time
+import re
+import requests
+from bs4 import BeautifulSoup
 from typing import Dict, Optional, List
 from app.utils.constants import RATE_LIMIT_DELAY
 from app.utils.logger import logger
@@ -1003,58 +1006,243 @@ def get_cash_flow_analysis(ticker):
         return None
 
 
+def scrape_macrotrends_margins(ticker: str, margin_type: str) -> List[Dict]:
+    """
+    Scrape margin data from Macrotrends
+    
+    Args:
+        ticker: Stock ticker symbol
+        margin_type: 'gross-profit-margin', 'operating-profit-margin', or 'net-profit-margin'
+        
+    Returns:
+        List of dicts with date, margin value, and other data
+    """
+    try:
+        # Get company name from yfinance for URL construction
+        stock = yf.Ticker(ticker)
+        time.sleep(0.2)
+        info = stock.info
+        company_name = info.get('longName', ticker.lower()).lower()
+        # Clean company name for URL (replace spaces with hyphens, remove special chars)
+        company_name = re.sub(r'[^a-z0-9\s-]', '', company_name)
+        company_name = re.sub(r'\s+', '-', company_name).strip()
+        
+        # Construct URL
+        url = f"https://www.macrotrends.net/stocks/charts/{ticker.upper()}/{company_name}/{margin_type}"
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Find the data table - it has class "historical_data_table" or is in a table with specific structure
+        table = soup.find('table', {'class': lambda x: x and 'historical' in x.lower()})
+        if not table:
+            # Try to find any table with margin data
+            tables = soup.find_all('table')
+            for t in tables:
+                if 'margin' in str(t).lower() or 'date' in str(t).lower():
+                    table = t
+                    break
+        
+        if not table:
+            logger.warning(f"Could not find margin table on Macrotrends for {ticker} {margin_type}")
+            return []
+        
+        # Parse table rows (skip header)
+        rows = table.find_all('tr')[1:]  # Skip header row
+        margin_data = []
+        
+        for row in rows:
+            cells = row.find_all(['td', 'th'])
+            if len(cells) >= 4:  # Date, TTM Revenue, TTM Income, Margin
+                try:
+                    date_str = cells[0].get_text(strip=True)
+                    margin_str = cells[3].get_text(strip=True)  # Margin is 4th column
+                    
+                    # Parse date (format: YYYY-MM-DD)
+                    try:
+                        date_obj = pd.Timestamp(date_str)
+                    except:
+                        # Try alternative date formats
+                        try:
+                            date_obj = pd.to_datetime(date_str)
+                        except:
+                            continue
+                    
+                    # Parse margin (format: percentage like "-200.00%" or "25.50%")
+                    margin_value = None
+                    if margin_str and margin_str != '0.00%' and margin_str.strip():
+                        margin_clean = margin_str.replace('%', '').replace(',', '').strip()
+                        try:
+                            margin_value = float(margin_clean)
+                        except:
+                            continue
+                    
+                    if margin_value is not None:
+                        margin_data.append({
+                            'date': date_obj.strftime('%Y-%m-%d'),
+                            'margin': margin_value,
+                            'quarter': f"{date_obj.year}-Q{(date_obj.month - 1) // 3 + 1}"
+                        })
+                except Exception as e:
+                    logger.debug(f"Error parsing row in Macrotrends table: {e}")
+                    continue
+        
+        # Sort by date descending (most recent first)
+        margin_data.sort(key=lambda x: x['date'], reverse=True)
+        
+        return margin_data
+        
+    except Exception as e:
+        logger.warning(f"Error scraping Macrotrends margins for {ticker} {margin_type}: {str(e)}")
+        return []
+
+
 def get_profitability_analysis(ticker, financials_data):
-    """Get deep dive profitability analysis"""
+    """Get deep dive profitability analysis using Macrotrends data for margins"""
     try:
         stock = yf.Ticker(ticker)
         time.sleep(0.2)
         
-        # Use quarterly data instead of annual
+        # Scrape margin data from Macrotrends
+        gross_margin_data = scrape_macrotrends_margins(ticker, 'gross-profit-margin')
+        operating_margin_data = scrape_macrotrends_margins(ticker, 'operating-profit-margin')
+        net_margin_data = scrape_macrotrends_margins(ticker, 'net-profit-margin')
+        
+        # Get revenue and income data from yfinance for operating leverage calculation
         income_stmt = stock.quarterly_income_stmt
-        if income_stmt is None or income_stmt.empty:
-            return None
+        revenue_data = {}
+        operating_income_data = {}
+        net_income_data = {}
         
-        def find_row(df, keywords):
-            for idx in df.index:
-                idx_lower = str(idx).lower()
-                if any(kw.lower() in idx_lower for kw in keywords):
-                    return df.loc[idx]
-            return None
+        if income_stmt is not None and not income_stmt.empty:
+            def find_row(df, keywords):
+                for idx in df.index:
+                    idx_lower = str(idx).lower()
+                    if any(kw.lower() in idx_lower for kw in keywords):
+                        return df.loc[idx]
+                return None
+            
+            revenue_row = find_row(income_stmt, ['total revenue', 'revenue', 'net sales'])
+            operating_income_row = find_row(income_stmt, ['operating income', 'income from operations'])
+            net_income_row = find_row(income_stmt, ['net income', 'net earnings'])
+            
+            if revenue_row is not None:
+                for i, col in enumerate(income_stmt.columns[:8]):
+                    try:
+                        quarter_date = pd.Timestamp(col)
+                        date_str = quarter_date.strftime('%Y-%m-%d')
+                        revenue = float(revenue_row.iloc[i]) if i < len(revenue_row) else None
+                        if revenue is not None:
+                            revenue_data[date_str] = revenue
+                    except:
+                        continue
+            
+            if operating_income_row is not None:
+                for i, col in enumerate(income_stmt.columns[:8]):
+                    try:
+                        quarter_date = pd.Timestamp(col)
+                        date_str = quarter_date.strftime('%Y-%m-%d')
+                        operating_income = float(operating_income_row.iloc[i]) if i < len(operating_income_row) else None
+                        if operating_income is not None:
+                            operating_income_data[date_str] = operating_income
+                    except:
+                        continue
+            
+            if net_income_row is not None:
+                for i, col in enumerate(income_stmt.columns[:8]):
+                    try:
+                        quarter_date = pd.Timestamp(col)
+                        date_str = quarter_date.strftime('%Y-%m-%d')
+                        net_income = float(net_income_row.iloc[i]) if i < len(net_income_row) else None
+                        if net_income is not None:
+                            net_income_data[date_str] = net_income
+                    except:
+                        continue
         
-        # Get revenue and margin rows
-        revenue_row = find_row(income_stmt, ['total revenue', 'revenue', 'net sales'])
-        gross_profit_row = find_row(income_stmt, ['gross profit'])
-        operating_income_row = find_row(income_stmt, ['operating income', 'income from operations'])
-        net_income_row = find_row(income_stmt, ['net income', 'net earnings'])
+        # Combine margin data by date
+        # If Macrotrends has data, use it; otherwise fall back to yfinance calculations
+        all_dates = set()
+        for data in [gross_margin_data, operating_margin_data, net_margin_data]:
+            all_dates.update([d['date'] for d in data])
         
-        # Build margin trends
+        # Also add yfinance dates for revenue/income matching
+        all_dates.update(revenue_data.keys())
+        
         margin_trends = []
-        for i, col in enumerate(income_stmt.columns[:8]):
-            try:
-                quarter_date = pd.Timestamp(col)
-                quarter_str = f"{quarter_date.year}-Q{(quarter_date.month - 1) // 3 + 1}"
-                
-                revenue = float(revenue_row.iloc[i]) if revenue_row is not None and i < len(revenue_row) else None
-                gross_profit = float(gross_profit_row.iloc[i]) if gross_profit_row is not None and i < len(gross_profit_row) else None
-                operating_income = float(operating_income_row.iloc[i]) if operating_income_row is not None and i < len(operating_income_row) else None
-                net_income = float(net_income_row.iloc[i]) if net_income_row is not None and i < len(net_income_row) else None
-                
-                gross_margin = (gross_profit / revenue * 100) if revenue and revenue > 0 and gross_profit else None
-                operating_margin = (operating_income / revenue * 100) if revenue and revenue > 0 and operating_income else None
-                net_margin = (net_income / revenue * 100) if revenue and revenue > 0 and net_income else None
-                
-                margin_trends.append({
-                    'quarter': quarter_str,
-                    'date': quarter_date.strftime('%Y-%m-%d'),
-                    'gross_margin': round(gross_margin, 2) if gross_margin is not None else None,
-                    'operating_margin': round(operating_margin, 2) if operating_margin is not None else None,
-                    'net_margin': round(net_margin, 2) if net_margin is not None else None,
-                    'revenue': revenue,
-                    'operating_income': operating_income,
-                    'net_income': net_income
-                })
-            except (IndexError, ValueError, TypeError):
-                continue
+        
+        # If we have Macrotrends data, use it
+        if len(all_dates) > 0:
+            for date_str in sorted(all_dates, reverse=True)[:8]:  # Take 8 most recent quarters
+                try:
+                    date_obj = pd.Timestamp(date_str)
+                    quarter_str = f"{date_obj.year}-Q{(date_obj.month - 1) // 3 + 1}"
+                    
+                    # Find margins from Macrotrends for this date
+                    gross_margin = next((d['margin'] for d in gross_margin_data if d['date'] == date_str), None)
+                    operating_margin = next((d['margin'] for d in operating_margin_data if d['date'] == date_str), None)
+                    net_margin = next((d['margin'] for d in net_margin_data if d['date'] == date_str), None)
+                    
+                    # Get revenue and income from yfinance if available
+                    revenue = revenue_data.get(date_str)
+                    operating_income = operating_income_data.get(date_str)
+                    net_income = net_income_data.get(date_str)
+                    
+                    margin_trends.append({
+                        'quarter': quarter_str,
+                        'date': date_str,
+                        'gross_margin': round(gross_margin, 2) if gross_margin is not None else None,
+                        'operating_margin': round(operating_margin, 2) if operating_margin is not None else None,
+                        'net_margin': round(net_margin, 2) if net_margin is not None else None,
+                        'revenue': revenue,
+                        'operating_income': operating_income,
+                        'net_income': net_income
+                    })
+                except Exception as e:
+                    logger.debug(f"Error processing margin data for date {date_str}: {e}")
+                    continue
+        
+        # Fallback: if no Macrotrends data, calculate from yfinance (original logic)
+        if len(margin_trends) == 0 and income_stmt is not None and not income_stmt.empty:
+            logger.info(f"Macrotrends scraping failed for {ticker}, falling back to yfinance margin calculation")
+            revenue_row = find_row(income_stmt, ['total revenue', 'revenue', 'net sales'])
+            gross_profit_row = find_row(income_stmt, ['gross profit'])
+            operating_income_row = find_row(income_stmt, ['operating income', 'income from operations'])
+            net_income_row = find_row(income_stmt, ['net income', 'net earnings'])
+            
+            for i, col in enumerate(income_stmt.columns[:8]):
+                try:
+                    quarter_date = pd.Timestamp(col)
+                    quarter_str = f"{quarter_date.year}-Q{(quarter_date.month - 1) // 3 + 1}"
+                    date_str = quarter_date.strftime('%Y-%m-%d')
+                    
+                    revenue = float(revenue_row.iloc[i]) if revenue_row is not None and i < len(revenue_row) else None
+                    gross_profit = float(gross_profit_row.iloc[i]) if gross_profit_row is not None and i < len(gross_profit_row) else None
+                    operating_income = float(operating_income_row.iloc[i]) if operating_income_row is not None and i < len(operating_income_row) else None
+                    net_income = float(net_income_row.iloc[i]) if net_income_row is not None and i < len(net_income_row) else None
+                    
+                    gross_margin = (gross_profit / revenue * 100) if revenue and revenue > 0 and gross_profit else None
+                    operating_margin = (operating_income / revenue * 100) if revenue and revenue > 0 and operating_income else None
+                    net_margin = (net_income / revenue * 100) if revenue and revenue > 0 and net_income else None
+                    
+                    margin_trends.append({
+                        'quarter': quarter_str,
+                        'date': date_str,
+                        'gross_margin': round(gross_margin, 2) if gross_margin is not None else None,
+                        'operating_margin': round(operating_margin, 2) if operating_margin is not None else None,
+                        'net_margin': round(net_margin, 2) if net_margin is not None else None,
+                        'revenue': revenue,
+                        'operating_income': operating_income,
+                        'net_income': net_income
+                    })
+                except (IndexError, ValueError, TypeError) as e:
+                    logger.debug(f"Error in yfinance fallback margin calculation: {e}")
+                    continue
         
         # Calculate margin expansion/contraction
         margin_expansion = {}
