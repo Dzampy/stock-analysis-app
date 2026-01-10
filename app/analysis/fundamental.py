@@ -1009,7 +1009,8 @@ def get_profitability_analysis(ticker, financials_data):
         stock = yf.Ticker(ticker)
         time.sleep(0.2)
         
-        income_stmt = stock.income_stmt
+        # Use quarterly data instead of annual
+        income_stmt = stock.quarterly_income_stmt
         if income_stmt is None or income_stmt.empty:
             return None
         
