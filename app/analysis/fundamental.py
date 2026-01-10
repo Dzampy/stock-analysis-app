@@ -1037,8 +1037,22 @@ def scrape_macrotrends_margins(ticker: str, margin_type: str) -> List[Dict]:
         }
         
         logger.info(f"Scraping Macrotrends margin data from: {url}")
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
+        
+        # Try requests first, then cloudscraper if it fails (Macrotrends may block regular requests)
+        response = None
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+        except Exception as e:
+            logger.warning(f"Regular requests failed for Macrotrends, trying cloudscraper: {e}")
+            try:
+                import cloudscraper
+                scraper = cloudscraper.create_scraper()
+                response = scraper.get(url, headers=headers, timeout=15)
+                response.raise_for_status()
+            except Exception as e2:
+                logger.error(f"Both requests and cloudscraper failed: {e2}")
+                raise
         
         soup = BeautifulSoup(response.content, 'html.parser')
         logger.debug(f"Macrotrends response status: {response.status_code}, content length: {len(response.content)}")
