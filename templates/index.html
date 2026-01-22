@@ -20494,6 +20494,9 @@
                     console.log('Creating charts with incomeData:', incomeData);
                     console.log('IncomeData length:', incomeData.length);
                     console.log('First item:', incomeData[0]);
+                    console.log('Forward estimates for charts:', data.forward_estimates);
+                    console.log('Forward estimates revenue:', data.forward_estimates?.revenue);
+                    console.log('Forward estimates EPS:', data.forward_estimates?.eps);
                     try {
                         createRevenueChart(incomeData, ticker, data.forward_estimates);
                     } catch (e) {
@@ -20718,6 +20721,8 @@
             console.log('=== createRevenueChart called ===');
             console.log('Data received:', data);
             console.log('Data length:', data.length);
+            console.log('Forward estimates:', forwardEstimates);
+            console.log('Forward estimates revenue:', forwardEstimates?.revenue);
             if (data.length > 0) {
                 console.log('First item:', data[0]);
                 console.log('First item revenue_estimate:', data[0].revenue_estimate);
@@ -20826,6 +20831,9 @@
                     const currentQuarter = Math.ceil(currentMonth / 3);
                     
                     const futureRevenueEstimates = forwardEstimates.revenue;
+                    console.log('Future revenue estimates available:', Object.keys(futureRevenueEstimates));
+                    console.log('Future revenue estimates values:', futureRevenueEstimates);
+                    
                     const futureQuarters = Object.keys(futureRevenueEstimates)
                         .filter(quarter => {
                             if (!quarter.includes('-Q')) return false;
@@ -20838,11 +20846,13 @@
                         .slice(0, 4); // Next 4 future quarters
                     
                     console.log('Future quarters to add:', futureQuarters);
+                    console.log('Current year:', currentYear, 'Current quarter:', currentQuarter);
                     
                     // Add future quarters to chart
                     futureQuarters.forEach(quarter => {
                         const revenueEst = futureRevenueEstimates[quarter];
-                        if (revenueEst && revenueEst > 0) {
+                        console.log(`Processing future quarter ${quarter}: revenueEst=${revenueEst}`);
+                        if (revenueEst !== null && revenueEst !== undefined && !isNaN(revenueEst) && revenueEst > 0) {
                             // Format quarter label
                             const [year, q] = quarter.split('-Q');
                             const quarterLabel = `Q${q} '${year.slice(-2)}`;
@@ -21959,7 +21969,7 @@
             });
         }
         
-        function createEPSChart(data, ticker) {
+        function createEPSChart(data, ticker, forwardEstimates = null) {
             const ctx = document.getElementById('epsChart');
             if (!ctx) return;
             
@@ -21967,6 +21977,9 @@
             if (window.epsChartInstance) {
                 window.epsChartInstance.destroy();
             }
+            
+            console.log('=== createEPSChart called ===');
+            console.log('Forward estimates:', forwardEstimates);
 
             const labels = data.map(d => {
                 const quarter = d.quarter || d.date;
@@ -22081,6 +22094,51 @@
                         beatMissed.push(null); // No estimate available
                     }
                 }
+                
+                // Add future quarters from forward_estimates if available
+                if (forwardEstimates && forwardEstimates.eps) {
+                    const now = new Date();
+                    const currentYear = now.getFullYear();
+                    const currentMonth = now.getMonth() + 1;
+                    const currentQuarter = Math.ceil(currentMonth / 3);
+                    
+                    const futureEPSEstimates = forwardEstimates.eps;
+                    console.log('Future EPS estimates available:', Object.keys(futureEPSEstimates));
+                    console.log('Future EPS estimates values:', futureEPSEstimates);
+                    
+                    const futureQuarters = Object.keys(futureEPSEstimates)
+                        .filter(quarter => {
+                            if (!quarter.includes('-Q')) return false;
+                            const [year, q] = quarter.split('-Q');
+                            const quarterYear = parseInt(year);
+                            const quarterNum = parseInt(q);
+                            return quarterYear > currentYear || (quarterYear === currentYear && quarterNum > currentQuarter);
+                        })
+                        .sort()
+                        .slice(0, 4); // Next 4 future quarters
+                    
+                    console.log('Future EPS quarters to add:', futureQuarters);
+                    console.log('Current year:', currentYear, 'Current quarter:', currentQuarter);
+                    
+                    // Add future quarters to chart
+                    futureQuarters.forEach(quarter => {
+                        const epsEst = futureEPSEstimates[quarter];
+                        console.log(`Processing future EPS quarter ${quarter}: epsEst=${epsEst}`);
+                        if (epsEst !== null && epsEst !== undefined && !isNaN(epsEst)) {
+                            // Format quarter label
+                            const [year, q] = quarter.split('-Q');
+                            const quarterLabel = `Q${q} '${year.slice(-2)}`;
+                            
+                            // Add to chart data (use estimate value for bar, but mark as future)
+                            chartData.push(epsEst); // Use estimate value for bar height
+                            chartLabels.push(quarterLabel);
+                            expectations.push(epsEst);
+                            beatMissed.push('Future'); // Mark as future quarter
+                        }
+                    });
+                    
+                    console.log('After adding future EPS quarters - Chart data count:', chartData.length, 'Labels count:', chartLabels.length);
+                }
             }
             
             // Create solid colors first (gradients will be added via plugin)
@@ -22091,7 +22149,11 @@
                         : 'rgba(239, 68, 68, 0.9)';
                 })
                 : chartData.map((v, i) => {
-                    if (expectations && beatMissed && beatMissed[i] !== null) {
+                    // Future quarters (no actual data) - use different color
+                    if (beatMissed && beatMissed[i] === 'Future') {
+                        return 'rgba(156, 163, 175, 0.3)'; // Light gray for future quarters
+                    }
+                    if (expectations && beatMissed && beatMissed[i] !== null && beatMissed[i] !== 'Future') {
                         return beatMissed[i] === 'Beat' 
                             ? 'rgba(16, 185, 129, 0.9)'
                             : 'rgba(239, 68, 68, 0.9)';
@@ -22113,7 +22175,11 @@
                             borderColor: showGrowth 
                                 ? chartData.map(v => v >= 0 ? 'rgba(16, 185, 129, 1)' : 'rgba(239, 68, 68, 1)')
                                 : chartData.map((v, i) => {
-                                    if (expectations && beatMissed && beatMissed[i] !== null) {
+                                    // Future quarters (no actual data) - use different color
+                                    if (beatMissed && beatMissed[i] === 'Future') {
+                                        return 'rgba(156, 163, 175, 0.6)'; // Gray for future quarters
+                                    }
+                                    if (expectations && beatMissed && beatMissed[i] !== null && beatMissed[i] !== 'Future') {
                                         return beatMissed[i] === 'Beat' ? 'rgba(16, 185, 129, 1)' : 'rgba(239, 68, 68, 1)';
                                     }
                                     return v >= 0 ? 'rgba(16, 185, 129, 1)' : 'rgba(239, 68, 68, 1)';
