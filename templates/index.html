@@ -18184,14 +18184,10 @@
                         if (finvizEst.estimates.revenue) {
                             // Merge Finviz revenue estimates
                             Object.assign(mergedData.forward_estimates.revenue, finvizEst.estimates.revenue);
-                            console.log('📊 Merged Finviz revenue estimates:', finvizEst.estimates.revenue);
-                            console.log('📊 Final forward_estimates.revenue:', mergedData.forward_estimates.revenue);
                         }
                         if (finvizEst.estimates.eps) {
                             // Merge Finviz EPS estimates
                             Object.assign(mergedData.forward_estimates.eps, finvizEst.estimates.eps);
-                            console.log('📊 Merged Finviz EPS estimates:', finvizEst.estimates.eps);
-                            console.log('📊 Final forward_estimates.eps:', mergedData.forward_estimates.eps);
                         }
                     }
                     // Merge Finviz actuals (for better accuracy in charts)
@@ -18209,10 +18205,6 @@
                 }
                 
                 currentFinancialsData = mergedData;
-                
-                console.log('📊 [DEBUG] loadAdvancedFinancialsAnalyses: Merged forward_estimates:', mergedData.forward_estimates);
-                console.log('📊 [DEBUG] loadAdvancedFinancialsAnalyses: Merged forward_estimates.revenue:', mergedData.forward_estimates?.revenue);
-                console.log('📊 [DEBUG] loadAdvancedFinancialsAnalyses: Merged forward_estimates.eps:', mergedData.forward_estimates?.eps);
                 
                 // Re-render financials with advanced data
                 displayFinancials(mergedData, ticker);
@@ -20502,19 +20494,12 @@
             // IMPORTANT: Always destroy existing charts before creating new ones to prevent duplicates
             setTimeout(() => {
                 if (incomeData && incomeData.length > 0) {
-                    console.log('🔄 Creating/updating charts with incomeData:', incomeData);
-                    console.log('📊 Forward estimates for charts:', data.forward_estimates);
-                    console.log('📊 Forward estimates revenue:', data.forward_estimates?.revenue);
-                    console.log('📊 Forward estimates EPS:', data.forward_estimates?.eps);
-                    
                     // Destroy existing charts first
                     if (window.revenueChartInstance) {
-                        console.log('🗑️ Destroying existing revenue chart');
                         window.revenueChartInstance.destroy();
                         window.revenueChartInstance = null;
                     }
                     if (window.epsChartInstance) {
-                        console.log('🗑️ Destroying existing EPS chart');
                         window.epsChartInstance.destroy();
                         window.epsChartInstance = null;
                     }
@@ -20739,17 +20724,6 @@
                 style: ctx.style.cssText
             });
             
-            // Debug: Log incoming data
-            console.log('=== createRevenueChart called ===');
-            console.log('Data received:', data);
-            console.log('Data length:', data.length);
-            console.log('Forward estimates:', forwardEstimates);
-            console.log('Forward estimates revenue:', forwardEstimates?.revenue);
-            if (data.length > 0) {
-                console.log('First item:', data[0]);
-                console.log('First item revenue_estimate:', data[0].revenue_estimate);
-                console.log('All revenue_estimates:', data.map(d => ({ quarter: d.quarter, revenue: d.revenue, revenue_estimate: d.revenue_estimate })));
-            }
             
             // Destroy existing chart if it exists
             if (window.revenueChartInstance) {
@@ -20841,10 +20815,6 @@
                     }
                 }
                 
-                // Debug: Log final expectations array
-                console.log('Final Expectations Array:', expectations);
-                console.log('Expectations count:', expectations.length, 'Chart data count:', chartData.length);
-                
                 // Add future quarters from forward_estimates if available
                 if (forwardEstimates && forwardEstimates.revenue) {
                     const now = new Date();
@@ -20853,9 +20823,6 @@
                     const currentQuarter = Math.ceil(currentMonth / 3);
                     
                     const futureRevenueEstimates = forwardEstimates.revenue;
-                    console.log('Future revenue estimates available:', Object.keys(futureRevenueEstimates));
-                    console.log('Future revenue estimates values:', futureRevenueEstimates);
-                    
                     const futureQuarters = Object.keys(futureRevenueEstimates)
                         .filter(quarter => {
                             if (!quarter.includes('-Q')) return false;
@@ -20867,13 +20834,9 @@
                         .sort()
                         .slice(0, 4); // Next 4 future quarters
                     
-                    console.log('Future quarters to add:', futureQuarters);
-                    console.log('Current year:', currentYear, 'Current quarter:', currentQuarter);
-                    
                     // Add future quarters to chart
                     futureQuarters.forEach(quarter => {
                         const revenueEst = futureRevenueEstimates[quarter];
-                        console.log(`Processing future quarter ${quarter}: revenueEst=${revenueEst}`);
                         if (revenueEst !== null && revenueEst !== undefined && !isNaN(revenueEst) && revenueEst > 0) {
                             // Format quarter label
                             const [year, q] = quarter.split('-Q');
@@ -20881,16 +20844,13 @@
                             
                             // Add to chart data (use estimate value for bar, but mark as future)
                             // This way the bar shows the estimate, but is styled differently
-                            console.log(`✅ Adding future revenue quarter ${quarterLabel}: value=${revenueEst}, chartData.length=${chartData.length}`);
                             chartData.push(revenueEst); // Use estimate value for bar height
                             chartLabels.push(quarterLabel);
                             expectations.push(revenueEst);
                             beatMissed.push('Future'); // Mark as future quarter
-                            console.log(`✅ After push - chartData[${chartData.length-1}]=${chartData[chartData.length-1]}, chartLabels[${chartLabels.length-1}]=${chartLabels[chartLabels.length-1]}`);
                         }
                     });
                     
-                    console.log('After adding future quarters - Chart data count:', chartData.length, 'Labels count:', chartLabels.length);
                 }
             }
             
@@ -20920,20 +20880,8 @@
                 expectations.some(e => e !== null && e !== undefined && !isNaN(e) && e > 0);
             const shouldAddEstimateLine = !showGrowth && hasValidEstimates;
             
-            console.log('Should add estimate line?', shouldAddEstimateLine, {
-                showGrowth,
-                hasExpectations: !!expectations,
-                expectationsLength: expectations ? expectations.length : 0,
-                hasValidValues: hasValidEstimates,
-                expectationsArray: expectations
-            });
 
             // Build datasets array - use spread operator like EPS chart
-            console.log('📊 Final chartData before creating dataset:', chartData);
-            console.log('📊 Final chartLabels before creating dataset:', chartLabels);
-            console.log('📊 Final expectations before creating dataset:', expectations);
-            console.log('📊 Final beatMissed before creating dataset:', beatMissed);
-            
             const barDataset = {
                 label: showGrowth ? 'Revenue Growth %' : 'Actual Revenue',
                 data: chartData,
@@ -20982,22 +20930,6 @@
                 ...(shouldAddEstimateLine && estimateDataset ? [estimateDataset] : [])
             ];
 
-            console.log('Final datasets array:', datasets);
-            console.log('Datasets count:', datasets ? datasets.length : 0);
-            console.log('Chart labels:', chartLabels);
-            console.log('Chart labels count:', chartLabels ? chartLabels.length : 0);
-
-            // Chart.js 4.x supports mixed charts natively - just specify type per dataset
-            // The first dataset determines the base chart type (bar), others can override with type: 'line'
-            console.log('Creating Chart.js instance with:', {
-                labelsCount: chartLabels ? chartLabels.length : 0,
-                datasetsCount: datasets.length,
-                firstDatasetType: datasets[0]?.type || 'bar',
-                secondDatasetType: datasets[1]?.type || 'none',
-                chartDataSample: chartData ? chartData.slice(0, 3) : null,
-                expectationsSample: expectations ? expectations.slice(0, 3) : null
-            });
-            
             // Verify Chart.js is loaded
             if (typeof Chart === 'undefined') {
                 console.error('Chart.js is not loaded!');
@@ -21005,18 +20937,6 @@
             }
             
             try {
-                console.log('Creating Chart.js instance...');
-                console.log('📊 Chart.js data being passed:', {
-                    labels: chartLabels,
-                    datasets: datasets.map((ds, i) => ({
-                        index: i,
-                        label: ds.label,
-                        data: ds.data,
-                        dataLength: ds.data ? ds.data.length : 0,
-                        type: ds.type || 'bar',
-                        backgroundColor: ds.backgroundColor ? (Array.isArray(ds.backgroundColor) ? `Array(${ds.backgroundColor.length})` : ds.backgroundColor) : 'N/A'
-                    }))
-                });
                 window.revenueChartInstance = new Chart(ctx, {
                     type: 'bar',
                     data: {
@@ -22030,8 +21950,6 @@
                 window.epsChartInstance.destroy();
             }
             
-            console.log('=== createEPSChart called ===');
-            console.log('Forward estimates:', forwardEstimates);
 
             const labels = data.map(d => {
                 const quarter = d.quarter || d.date;
@@ -22130,7 +22048,6 @@
                     // Use backend estimate if available (lookup by quarter string)
                     if (quarterStr && epsEstimateMap[quarterStr]) {
                         estimate = epsEstimateMap[quarterStr];
-                        console.log(`Using backend EPS estimate for quarter ${i} (${quarterStr}): ${estimate}`);
                     }
                     // No fallback - if estimate not available, leave as null
                     
@@ -22155,9 +22072,6 @@
                     const currentQuarter = Math.ceil(currentMonth / 3);
                     
                     const futureEPSEstimates = forwardEstimates.eps;
-                    console.log('Future EPS estimates available:', Object.keys(futureEPSEstimates));
-                    console.log('Future EPS estimates values:', futureEPSEstimates);
-                    
                     const futureQuarters = Object.keys(futureEPSEstimates)
                         .filter(quarter => {
                             if (!quarter.includes('-Q')) return false;
@@ -22169,29 +22083,22 @@
                         .sort()
                         .slice(0, 4); // Next 4 future quarters
                     
-                    console.log('Future EPS quarters to add:', futureQuarters);
-                    console.log('Current year:', currentYear, 'Current quarter:', currentQuarter);
-                    
                     // Add future quarters to chart
                     futureQuarters.forEach(quarter => {
                         const epsEst = futureEPSEstimates[quarter];
-                        console.log(`Processing future EPS quarter ${quarter}: epsEst=${epsEst}`);
                         if (epsEst !== null && epsEst !== undefined && !isNaN(epsEst)) {
                             // Format quarter label
                             const [year, q] = quarter.split('-Q');
                             const quarterLabel = `Q${q} '${year.slice(-2)}`;
                             
                             // Add to chart data (use estimate value for bar, but mark as future)
-                            console.log(`✅ Adding future EPS quarter ${quarterLabel}: value=${epsEst}, chartData.length=${chartData.length}`);
                             chartData.push(epsEst); // Use estimate value for bar height
                             chartLabels.push(quarterLabel);
                             expectations.push(epsEst);
                             beatMissed.push('Future'); // Mark as future quarter
-                            console.log(`✅ After push - chartData[${chartData.length-1}]=${chartData[chartData.length-1]}, chartLabels[${chartLabels.length-1}]=${chartLabels[chartLabels.length-1]}`);
                         }
                     });
                     
-                    console.log('After adding future EPS quarters - Chart data count:', chartData.length, 'Labels count:', chartLabels.length);
                 }
             }
             
