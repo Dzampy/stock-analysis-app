@@ -18182,10 +18182,16 @@
                     // Merge Finviz estimates into forward_estimates
                     if (finvizEst.estimates) {
                         if (finvizEst.estimates.revenue) {
+                            // Merge Finviz revenue estimates
                             Object.assign(mergedData.forward_estimates.revenue, finvizEst.estimates.revenue);
+                            console.log('📊 Merged Finviz revenue estimates:', finvizEst.estimates.revenue);
+                            console.log('📊 Final forward_estimates.revenue:', mergedData.forward_estimates.revenue);
                         }
                         if (finvizEst.estimates.eps) {
+                            // Merge Finviz EPS estimates
                             Object.assign(mergedData.forward_estimates.eps, finvizEst.estimates.eps);
+                            console.log('📊 Merged Finviz EPS estimates:', finvizEst.estimates.eps);
+                            console.log('📊 Final forward_estimates.eps:', mergedData.forward_estimates.eps);
                         }
                     }
                     // Merge Finviz actuals (for better accuracy in charts)
@@ -18203,6 +18209,10 @@
                 }
                 
                 currentFinancialsData = mergedData;
+                
+                console.log('📊 [DEBUG] loadAdvancedFinancialsAnalyses: Merged forward_estimates:', mergedData.forward_estimates);
+                console.log('📊 [DEBUG] loadAdvancedFinancialsAnalyses: Merged forward_estimates.revenue:', mergedData.forward_estimates?.revenue);
+                console.log('📊 [DEBUG] loadAdvancedFinancialsAnalyses: Merged forward_estimates.eps:', mergedData.forward_estimates?.eps);
                 
                 // Re-render financials with advanced data
                 displayFinancials(mergedData, ticker);
