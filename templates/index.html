@@ -20499,23 +20499,35 @@
             }, 100);
 
             // Create charts (use setTimeout to ensure DOM is updated)
+            // IMPORTANT: Always destroy existing charts before creating new ones to prevent duplicates
             setTimeout(() => {
                 if (incomeData && incomeData.length > 0) {
-                    console.log('Creating charts with incomeData:', incomeData);
-                    console.log('IncomeData length:', incomeData.length);
-                    console.log('First item:', incomeData[0]);
-                    console.log('Forward estimates for charts:', data.forward_estimates);
-                    console.log('Forward estimates revenue:', data.forward_estimates?.revenue);
-                    console.log('Forward estimates EPS:', data.forward_estimates?.eps);
+                    console.log('🔄 Creating/updating charts with incomeData:', incomeData);
+                    console.log('📊 Forward estimates for charts:', data.forward_estimates);
+                    console.log('📊 Forward estimates revenue:', data.forward_estimates?.revenue);
+                    console.log('📊 Forward estimates EPS:', data.forward_estimates?.eps);
+                    
+                    // Destroy existing charts first
+                    if (window.revenueChartInstance) {
+                        console.log('🗑️ Destroying existing revenue chart');
+                        window.revenueChartInstance.destroy();
+                        window.revenueChartInstance = null;
+                    }
+                    if (window.epsChartInstance) {
+                        console.log('🗑️ Destroying existing EPS chart');
+                        window.epsChartInstance.destroy();
+                        window.epsChartInstance = null;
+                    }
+                    
                     try {
                         createRevenueChart(incomeData, ticker, data.forward_estimates);
                     } catch (e) {
-                        console.error('Error creating revenue chart:', e);
+                        console.error('❌ Error creating revenue chart:', e);
                     }
                     try {
                         createEPSChart(incomeData, ticker, data.forward_estimates);
                     } catch (e) {
-                        console.error('Error creating EPS chart:', e);
+                        console.error('❌ Error creating EPS chart:', e);
                     }
                     generateIncomeInsights(incomeData);
                 } else {
@@ -21120,17 +21132,20 @@
                                         const actual = context.parsed.y;
                                         
                                         // Only show vs estimate if estimate exists and is valid
-                                        if (estimate !== null && estimate !== undefined && !isNaN(estimate) && estimate !== 0) {
-                                            const diff = actual - estimate;
-                                            // Use absolute value of estimate to handle negative values correctly
-                                            // For negative EPS: actual -0.03 vs estimate -0.10 means actual is better (less negative)
-                                            // diff = +0.07, so we want +70% (not -70%)
+                                        // CRITICAL: Check all conditions to prevent Infinity%
+                                        if (estimate !== null && 
+                                            estimate !== undefined && 
+                                            !isNaN(estimate) && 
+                                            estimate !== 0 && 
+                                            isFinite(estimate) &&
+                                            isFinite(actual)) {
                                             const absEstimate = Math.abs(estimate);
                                             if (absEstimate > 0 && isFinite(absEstimate)) {
-                                                const diffPct = ((diff / absEstimate) * 100).toFixed(1);
-                                                const diffPctNum = parseFloat(diffPct);
-                                                if (isFinite(diffPctNum)) {
-                                                    label += ` (${diffPctNum >= 0 ? '+' : ''}${diffPct}% vs estimate)`;
+                                                const diff = actual - estimate;
+                                                const diffPct = ((diff / absEstimate) * 100);
+                                                if (isFinite(diffPct)) {
+                                                    const diffPctFormatted = diffPct.toFixed(1);
+                                                    label += ` (${diffPct >= 0 ? '+' : ''}${diffPctFormatted}% vs estimate)`;
                                                 }
                                             }
                                         }
@@ -22380,20 +22395,23 @@
                                     }
                                     if (!showGrowth && expectations && context.datasetIndex === 0) {
                                         const estimate = expectations[context.dataIndex];
+                                        const actual = context.parsed.y;
                                         
                                         // Only show vs estimate if estimate exists and is valid
-                                        if (estimate !== null && estimate !== undefined && !isNaN(estimate) && estimate !== 0) {
-                                            const actual = context.parsed.y;
-                                            const diff = actual - estimate;
-                                            // Use absolute value of estimate to handle negative values correctly
-                                            // For negative EPS: actual -0.03 vs estimate -0.10 means actual is better (less negative)
-                                            // diff = +0.07, so we want +70% (not -70%)
+                                        // CRITICAL: Check all conditions to prevent Infinity%
+                                        if (estimate !== null && 
+                                            estimate !== undefined && 
+                                            !isNaN(estimate) && 
+                                            estimate !== 0 && 
+                                            isFinite(estimate) &&
+                                            isFinite(actual)) {
                                             const absEstimate = Math.abs(estimate);
                                             if (absEstimate > 0 && isFinite(absEstimate)) {
-                                                const diffPct = ((diff / absEstimate) * 100).toFixed(1);
-                                                const diffPctNum = parseFloat(diffPct);
-                                                if (isFinite(diffPctNum)) {
-                                                    label += ` (${diffPctNum >= 0 ? '+' : ''}${diffPct}% vs estimate)`;
+                                                const diff = actual - estimate;
+                                                const diffPct = ((diff / absEstimate) * 100);
+                                                if (isFinite(diffPct)) {
+                                                    const diffPctFormatted = diffPct.toFixed(1);
+                                                    label += ` (${diffPct >= 0 ? '+' : ''}${diffPctFormatted}% vs estimate)`;
                                                 }
                                             }
                                         }
