@@ -22173,14 +22173,18 @@
                                     if (showGrowth) {
                                         return value.toFixed(1) + '%';
                                     }
-                                    // Format EPS values - handle small values better
-                                    if (Math.abs(value) < 0.01) {
-                                        return '$' + value.toFixed(4);
-                                    } else if (Math.abs(value) < 1) {
-                                        return '$' + value.toFixed(3);
+                                    // Format EPS values - handle small values better and negative values correctly
+                                    const isNegative = value < 0;
+                                    const absValue = Math.abs(value);
+                                    let formatted;
+                                    if (absValue < 0.01) {
+                                        formatted = '$' + absValue.toFixed(4);
+                                    } else if (absValue < 1) {
+                                        formatted = '$' + absValue.toFixed(3);
                                     } else {
-                                    return '$' + value.toFixed(2);
+                                        formatted = '$' + absValue.toFixed(2);
                                     }
+                                    return isNegative ? '-' + formatted : formatted;
                                 },
                                 color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || 'var(--text-secondary)',
                                 font: {
@@ -22255,15 +22259,19 @@
                                     if (showGrowth) {
                                         label += context.parsed.y.toFixed(1) + '%';
                                     } else {
-                                        // Format EPS values better in tooltip
+                                        // Format EPS values better in tooltip - handle negative values correctly
                                         const epsValue = context.parsed.y;
-                                        if (Math.abs(epsValue) < 0.01) {
-                                            label += '$' + epsValue.toFixed(4);
-                                        } else if (Math.abs(epsValue) < 1) {
-                                            label += '$' + epsValue.toFixed(3);
+                                        const isNegative = epsValue < 0;
+                                        const absValue = Math.abs(epsValue);
+                                        let formatted;
+                                        if (absValue < 0.01) {
+                                            formatted = '$' + absValue.toFixed(4);
+                                        } else if (absValue < 1) {
+                                            formatted = '$' + absValue.toFixed(3);
                                         } else {
-                                            label += '$' + epsValue.toFixed(2);
+                                            formatted = '$' + absValue.toFixed(2);
                                         }
+                                        label += isNegative ? '-' + formatted : formatted;
                                     }
                                     if (!showGrowth && expectations && context.datasetIndex === 0) {
                                         const estimate = expectations[context.dataIndex];
