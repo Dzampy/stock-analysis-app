@@ -7900,7 +7900,56 @@
             const displayDates = sortedDates.slice(0, 4);
             console.log('📅 [DEBUG] renderDetailedFinancials: Display dates:', displayDates);
             
+            // Prepare data for charts (use all available dates, not just 4)
+            const allSortedDates = sortedDates; // All available quarters for charts
+            
+            // Find metrics for charts
+            const revenueMetric = sortedMetrics.find(m => m.metric.includes('Total Revenue'));
+            const grossProfitMetric = sortedMetrics.find(m => m.metric.includes('Gross Profit'));
+            const operatingIncomeMetric = sortedMetrics.find(m => m.metric.includes('Operating Income'));
+            const netIncomeMetric = sortedMetrics.find(m => m.metric.includes('Net Income'));
+            const costOfRevenueMetric = sortedMetrics.find(m => m.metric.includes('Cost of Revenue'));
+            const operatingExpensesMetric = sortedMetrics.find(m => m.metric.includes('Operating Expenses'));
+            
+            // Build HTML with charts section first, then table
             let html = `
+                <!-- Charts Section -->
+                <div style="margin-bottom: 30px;">
+                    <!-- Revenue Trend Chart -->
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-size: 1.1em;">
+                            📈 Revenue Trend
+                            <span style="font-size: 0.7em; font-weight: normal; color: var(--text-secondary);">(All Available Quarters)</span>
+                        </h3>
+                        <div style="position: relative; height: 300px;">
+                            <canvas id="detailedRevenueChart-${ticker}"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Multi-Metric Chart -->
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-size: 1.1em;">
+                            📊 Key Metrics Overview
+                            <span style="font-size: 0.7em; font-weight: normal; color: var(--text-secondary);">(Revenue, Gross Profit, Operating Income, Net Income)</span>
+                        </h3>
+                        <div style="position: relative; height: 350px;">
+                            <canvas id="detailedMultiMetricChart-${ticker}"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Margins Chart -->
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h3 style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; font-size: 1.1em;">
+                            💰 Margin Trends
+                            <span style="font-size: 0.7em; font-weight: normal; color: var(--text-secondary);">(Gross, Operating, Net Margin %)</span>
+                        </h3>
+                        <div style="position: relative; height: 300px;">
+                            <canvas id="detailedMarginsChart-${ticker}"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Table Section -->
                 <div class="detailed-financials-scroll">
                     <table class="detailed-financials-table">
                         <thead>
@@ -7955,8 +8004,538 @@
             `;
             
             container.innerHTML = html;
+            
+            // Create charts after HTML is rendered
+            setTimeout(() => {
+                // Destroy previous chart instances if they exist
+                if (window.detailedRevenueChartInstances) {
+                    Object.values(window.detailedRevenueChartInstances).forEach(chart => {
+                        if (chart) chart.destroy();
+                    });
+                }
+                if (window.detailedMultiMetricChartInstances) {
+                    Object.values(window.detailedMultiMetricChartInstances).forEach(chart => {
+                        if (chart) chart.destroy();
+                    });
+                }
+                if (window.detailedMarginsChartInstances) {
+                    Object.values(window.detailedMarginsChartInstances).forEach(chart => {
+                        if (chart) chart.destroy();
+                    });
+                }
+                
+                // Initialize chart instances objects if they don't exist
+                if (!window.detailedRevenueChartInstances) window.detailedRevenueChartInstances = {};
+                if (!window.detailedMultiMetricChartInstances) window.detailedMultiMetricChartInstances = {};
+                if (!window.detailedMarginsChartInstances) window.detailedMarginsChartInstances = {};
+                
+                // Create Revenue Chart
+                if (revenueMetric) {
+                    createDetailedRevenueChart(revenueMetric, allSortedDates, ticker);
+                }
+                
+                // Create Multi-Metric Chart
+                if (revenueMetric || grossProfitMetric || operatingIncomeMetric || netIncomeMetric) {
+                    createDetailedMultiMetricChart({
+                        revenue: revenueMetric,
+                        grossProfit: grossProfitMetric,
+                        operatingIncome: operatingIncomeMetric,
+                        netIncome: netIncomeMetric
+                    }, allSortedDates, ticker);
+                }
+                
+                // Create Margins Chart
+                if (revenueMetric && (grossProfitMetric || operatingIncomeMetric || netIncomeMetric)) {
+                    createDetailedMarginsChart({
+                        revenue: revenueMetric,
+                        grossProfit: grossProfitMetric,
+                        operatingIncome: operatingIncomeMetric,
+                        netIncome: netIncomeMetric
+                    }, allSortedDates, ticker);
+                }
+            }, 100);
         }
         window.renderDetailedFinancials = renderDetailedFinancials;
+        
+        // Chart creation functions for Detailed Financials
+        
+        function createDetailedRevenueChart(revenueMetric, sortedDates, ticker) {
+            const canvasId = `detailedRevenueChart-${ticker}`;
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) {
+                console.warn(`Canvas ${canvasId} not found`);
+                return;
+            }
+            
+            // Destroy previous instance
+            if (window.detailedRevenueChartInstances && window.detailedRevenueChartInstances[canvasId]) {
+                window.detailedRevenueChartInstances[canvasId].destroy();
+            }
+            
+            const values = revenueMetric.values || {};
+            
+            // Prepare data - reverse dates for chronological order (oldest to newest)
+            const dates = [...sortedDates].reverse();
+            const revenueData = dates.map(date => {
+                const value = values[date];
+                return value !== null && value !== undefined && !isNaN(value) ? value : null;
+            });
+            
+            // Format labels (Q1 '24 format)
+            const labels = dates.map(date => {
+                try {
+                    const d = new Date(date);
+                    const quarter = Math.floor((d.getMonth()) / 3) + 1;
+                    const year = d.getFullYear().toString().slice(-2);
+                    return `Q${quarter} '${year}`;
+                } catch (e) {
+                    return date;
+                }
+            });
+            
+            // Calculate YoY growth for toggle (if we have enough data)
+            const yoyGrowth = [];
+            for (let i = 0; i < revenueData.length; i++) {
+                if (i >= 4 && revenueData[i] !== null && revenueData[i - 4] !== null && revenueData[i - 4] !== 0) {
+                    const growth = ((revenueData[i] - revenueData[i - 4]) / Math.abs(revenueData[i - 4])) * 100;
+                    yoyGrowth.push(growth);
+                } else {
+                    yoyGrowth.push(null);
+                }
+            }
+            
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: revenueData,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.y;
+                                    if (value === null) return 'N/A';
+                                    return `Revenue: ${formatDetailedNumber(value)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatDetailedNumber(value);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Store instance
+            if (!window.detailedRevenueChartInstances) window.detailedRevenueChartInstances = {};
+            window.detailedRevenueChartInstances[canvasId] = chart;
+        }
+        
+        function createDetailedMultiMetricChart(metrics, sortedDates, ticker) {
+            const canvasId = `detailedMultiMetricChart-${ticker}`;
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) {
+                console.warn(`Canvas ${canvasId} not found`);
+                return;
+            }
+            
+            // Destroy previous instance
+            if (window.detailedMultiMetricChartInstances && window.detailedMultiMetricChartInstances[canvasId]) {
+                window.detailedMultiMetricChartInstances[canvasId].destroy();
+            }
+            
+            // Prepare data - reverse dates for chronological order
+            const dates = [...sortedDates].reverse();
+            const labels = dates.map(date => {
+                try {
+                    const d = new Date(date);
+                    const quarter = Math.floor((d.getMonth()) / 3) + 1;
+                    const year = d.getFullYear().toString().slice(-2);
+                    return `Q${quarter} '${year}`;
+                } catch (e) {
+                    return date;
+                }
+            });
+            
+            const datasets = [];
+            
+            // Revenue (bar chart, primary axis)
+            if (metrics.revenue && metrics.revenue.values) {
+                const revenueData = dates.map(date => {
+                    const value = metrics.revenue.values[date];
+                    return value !== null && value !== undefined && !isNaN(value) ? value : null;
+                });
+                datasets.push({
+                    label: 'Revenue',
+                    data: revenueData,
+                    type: 'bar',
+                    backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                    borderColor: '#667eea',
+                    borderWidth: 2,
+                    yAxisID: 'y',
+                    order: 4
+                });
+            }
+            
+            // Gross Profit (line, secondary axis)
+            if (metrics.grossProfit && metrics.grossProfit.values) {
+                const grossProfitData = dates.map(date => {
+                    const value = metrics.grossProfit.values[date];
+                    return value !== null && value !== undefined && !isNaN(value) ? value : null;
+                });
+                datasets.push({
+                    label: 'Gross Profit',
+                    data: grossProfitData,
+                    type: 'line',
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.3,
+                    yAxisID: 'y1',
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    order: 1
+                });
+            }
+            
+            // Operating Income (line, secondary axis)
+            if (metrics.operatingIncome && metrics.operatingIncome.values) {
+                const operatingIncomeData = dates.map(date => {
+                    const value = metrics.operatingIncome.values[date];
+                    return value !== null && value !== undefined && !isNaN(value) ? value : null;
+                });
+                datasets.push({
+                    label: 'Operating Income',
+                    data: operatingIncomeData,
+                    type: 'line',
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.3,
+                    yAxisID: 'y1',
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    order: 2
+                });
+            }
+            
+            // Net Income (line, secondary axis) - color based on sign
+            if (metrics.netIncome && metrics.netIncome.values) {
+                const netIncomeData = dates.map(date => {
+                    const value = metrics.netIncome.values[date];
+                    return value !== null && value !== undefined && !isNaN(value) ? value : null;
+                });
+                // Determine color based on values (green if mostly positive, red if mostly negative)
+                const hasPositive = netIncomeData.some(v => v !== null && v > 0);
+                const hasNegative = netIncomeData.some(v => v !== null && v < 0);
+                const netIncomeColor = hasPositive && !hasNegative ? '#10b981' : hasNegative && !hasPositive ? '#ef4444' : '#8b5cf6';
+                
+                datasets.push({
+                    label: 'Net Income',
+                    data: netIncomeData,
+                    type: 'line',
+                    borderColor: netIncomeColor,
+                    backgroundColor: hasPositive && !hasNegative ? 'rgba(16, 185, 129, 0.1)' : hasNegative && !hasPositive ? 'rgba(239, 68, 68, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.3,
+                    yAxisID: 'y1',
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    order: 3
+                });
+            }
+            
+            if (datasets.length === 0) {
+                console.warn('No data available for multi-metric chart');
+                return;
+            }
+            
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.y;
+                                    if (value === null) return context.dataset.label + ': N/A';
+                                    return context.dataset.label + ': ' + formatDetailedNumber(value);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatDetailedNumber(value);
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Revenue'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatDetailedNumber(value);
+                                }
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Income Metrics'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Store instance
+            if (!window.detailedMultiMetricChartInstances) window.detailedMultiMetricChartInstances = {};
+            window.detailedMultiMetricChartInstances[canvasId] = chart;
+        }
+        
+        function createDetailedMarginsChart(metrics, sortedDates, ticker) {
+            const canvasId = `detailedMarginsChart-${ticker}`;
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) {
+                console.warn(`Canvas ${canvasId} not found`);
+                return;
+            }
+            
+            // Destroy previous instance
+            if (window.detailedMarginsChartInstances && window.detailedMarginsChartInstances[canvasId]) {
+                window.detailedMarginsChartInstances[canvasId].destroy();
+            }
+            
+            // Prepare data - reverse dates for chronological order
+            const dates = [...sortedDates].reverse();
+            const labels = dates.map(date => {
+                try {
+                    const d = new Date(date);
+                    const quarter = Math.floor((d.getMonth()) / 3) + 1;
+                    const year = d.getFullYear().toString().slice(-2);
+                    return `Q${quarter} '${year}`;
+                } catch (e) {
+                    return date;
+                }
+            });
+            
+            const datasets = [];
+            
+            // Calculate Gross Margin
+            if (metrics.revenue && metrics.revenue.values && metrics.grossProfit && metrics.grossProfit.values) {
+                const grossMarginData = dates.map(date => {
+                    const revenue = metrics.revenue.values[date];
+                    const grossProfit = metrics.grossProfit.values[date];
+                    if (revenue !== null && revenue !== undefined && !isNaN(revenue) && 
+                        grossProfit !== null && grossProfit !== undefined && !isNaN(grossProfit) && revenue !== 0) {
+                        return (grossProfit / revenue) * 100;
+                    }
+                    return null;
+                });
+                datasets.push({
+                    label: 'Gross Margin (%)',
+                    data: grossMarginData,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                });
+            }
+            
+            // Calculate Operating Margin
+            if (metrics.revenue && metrics.revenue.values && metrics.operatingIncome && metrics.operatingIncome.values) {
+                const operatingMarginData = dates.map(date => {
+                    const revenue = metrics.revenue.values[date];
+                    const operatingIncome = metrics.operatingIncome.values[date];
+                    if (revenue !== null && revenue !== undefined && !isNaN(revenue) && 
+                        operatingIncome !== null && operatingIncome !== undefined && !isNaN(operatingIncome) && revenue !== 0) {
+                        return (operatingIncome / revenue) * 100;
+                    }
+                    return null;
+                });
+                datasets.push({
+                    label: 'Operating Margin (%)',
+                    data: operatingMarginData,
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                });
+            }
+            
+            // Calculate Net Margin
+            if (metrics.revenue && metrics.revenue.values && metrics.netIncome && metrics.netIncome.values) {
+                const netMarginData = dates.map(date => {
+                    const revenue = metrics.revenue.values[date];
+                    const netIncome = metrics.netIncome.values[date];
+                    if (revenue !== null && revenue !== undefined && !isNaN(revenue) && 
+                        netIncome !== null && netIncome !== undefined && !isNaN(netIncome) && revenue !== 0) {
+                        return (netIncome / revenue) * 100;
+                    }
+                    return null;
+                });
+                datasets.push({
+                    label: 'Net Margin (%)',
+                    data: netMarginData,
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                });
+            }
+            
+            if (datasets.length === 0) {
+                console.warn('No data available for margins chart');
+                return;
+            }
+            
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.y;
+                                    if (value === null) return context.dataset.label + ': N/A';
+                                    return context.dataset.label + ': ' + value.toFixed(2) + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(1) + '%';
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Margin (%)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Store instance
+            if (!window.detailedMarginsChartInstances) window.detailedMarginsChartInstances = {};
+            window.detailedMarginsChartInstances[canvasId] = chart;
+        }
+        
+        window.createDetailedRevenueChart = createDetailedRevenueChart;
+        window.createDetailedMultiMetricChart = createDetailedMultiMetricChart;
+        window.createDetailedMarginsChart = createDetailedMarginsChart;
 
         // Store current news data globally for impact analysis (used in stock analysis section)
         let currentStockNewsData = [];

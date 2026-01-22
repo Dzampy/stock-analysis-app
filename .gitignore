@@ -52,9 +52,7 @@ ml_models/
 # Backup files
 *.bak
 *.bak*
-app.py.bak*
-
-# Refactoring documentation (temporary)
+app.py.bak*# Refactoring documentation (temporary)
 REFACTORING_*.md
 GITHUB_PUSH_INSTRUCTIONS.md
 
