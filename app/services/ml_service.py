@@ -560,15 +560,15 @@ def _train_random_forest_model(ticker: str,
             return None, None
 
         # Convert to numpy arrays
-                X_train = np.array(X_hist)
-                y_train = np.array(y_hist)
-                
+        X_train = np.array(X_hist)
+        y_train = np.array(y_hist)
+        
         logger.info(
             f"Training Random Forest model with {len(X_train)} samples and {len(feature_names)} features")
-                
-                # Scale features
-                scaler = StandardScaler()
-                X_train_scaled = scaler.fit_transform(X_train)
+        
+        # Scale features
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
                 
         # Cross-validation for model validation (TimeSeriesSplit for time
         # series data)
@@ -683,7 +683,7 @@ def _train_random_forest_model(ticker: str,
             )
 
         # Train final model on all training data
-                model.fit(X_train_scaled, y_train)
+        model.fit(X_train_scaled, y_train)
 
         # Calculate training score for logging
         train_score = model.score(X_train_scaled, y_train)
@@ -737,8 +737,8 @@ def _train_random_forest_model(ticker: str,
 
         # Store flag indicating if model is better than baseline
         model.is_better_than_baseline = model.cv_r2_score > 0.0
-                
-                return model, scaler
+        
+        return model, scaler
         
     except Exception as e:
         logger.exception(f"Error training model for {ticker}: {e}")
@@ -2180,20 +2180,19 @@ def generate_ai_recommendations(ticker: str) -> Optional[Dict]:
                 f"ML model predicts negative returns across all timeframes (1M: {expected_return_1m:.1f}%, 3M: {expected_return_3m:.1f}%, 6M: {expected_return_6m:.1f}%, 12M: {expected_return_12m:.1f}%)")
         else:
             # Individual ML prediction impact (increased penalties/bonuses)
-        if expected_return_6m > 20:
+            if expected_return_6m > 20:
                 technical_score += 20  # Increased from 15
                 reasons.append(
                     f"ML model predicts strong 6-month return (+{expected_return_6m:.1f}%)")
-        elif expected_return_6m > 10:
+            elif expected_return_6m > 10:
                 technical_score += 15  # Increased from 10
                 reasons.append(
                     f"ML model predicts positive 6-month return (+{expected_return_6m:.1f}%)")
-        elif expected_return_6m < -10:
+            elif expected_return_6m < -10:
                 technical_score -= 25  # Increased from 15
-
                 warnings.append(
                     f"ML model predicts negative 6-month return ({expected_return_6m:.1f}%)")
-        elif expected_return_6m < -5:
+            elif expected_return_6m < -5:
                 technical_score -= 20  # Increased from 10
                 warnings.append(
                     f"ML model predicts weak 6-month return ({expected_return_6m:.1f}%)")
