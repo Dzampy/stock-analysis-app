@@ -18254,11 +18254,21 @@
 
         function formatCurrency(value) {
             if (value === null || value === undefined || isNaN(value) || typeof value !== 'number') return 'N/A';
-            if (Math.abs(value) >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
-            if (Math.abs(value) >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-            if (Math.abs(value) >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
-            if (Math.abs(value) >= 1e3) return `$${(value / 1e3).toFixed(2)}K`;
-            return `$${value.toFixed(2)}`;
+            const isNegative = value < 0;
+            const absValue = Math.abs(value);
+            let formatted;
+            if (absValue >= 1e12) {
+                formatted = `$${(absValue / 1e12).toFixed(2)}T`;
+            } else if (absValue >= 1e9) {
+                formatted = `$${(absValue / 1e9).toFixed(2)}B`;
+            } else if (absValue >= 1e6) {
+                formatted = `$${(absValue / 1e6).toFixed(2)}M`;
+            } else if (absValue >= 1e3) {
+                formatted = `$${(absValue / 1e3).toFixed(2)}K`;
+            } else {
+                formatted = `$${absValue.toFixed(2)}`;
+            }
+            return isNegative ? `-${formatted}` : formatted;
         }
 
         function displayFinancials(data, ticker) {
@@ -18585,7 +18595,7 @@
                             </span>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                            <div style="font-size: 1.8em; font-weight: 700; color: var(--text-primary);">${formatCurrency(incomeValue)}</div>
+                            <div style="font-size: 1.8em; font-weight: 700; color: ${incomeValue < 0 ? '#ef4444' : 'var(--text-primary)'};">${formatCurrency(incomeValue)}</div>
                             ${earningsTrendData.length > 0 ? `<canvas id="${earningsSparklineId}" data-sparkline="${earningsDataStr}" style="width: 80px; height: 30px; margin-left: 10px;"></canvas>` : ''}
                         </div>
                         <div style="font-size: 0.9em; color: ${statusColor}; font-weight: 600; margin-bottom: 5px;">
