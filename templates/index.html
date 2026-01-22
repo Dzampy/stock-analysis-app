@@ -18098,7 +18098,7 @@
                 console.log('🎯🎯🎯 [DEBUG] loadFinancials: About to call displayFinancials with ticker:', ticker);
                 console.log('🎯🎯🎯 [DEBUG] loadFinancials: Data has keys:', Object.keys(data || {}).slice(0, 10));
                 
-                // Call displayFinancials
+                // Call displayFinancials with basic data (fast)
                 displayFinancials(data, ticker);
                 
                 // Ensure tabs container is visible after displayFinancials
@@ -18118,6 +18118,9 @@
                     }
                 }, 100);
                 
+                // Load advanced analyses asynchronously in background (doesn't block UI)
+                loadAdvancedFinancialsAnalyses(ticker, data);
+                
                 console.log('🎯🎯🎯 [DEBUG] loadFinancials: displayFinancials call completed');
             } catch (error) {
                 container.innerHTML = `
@@ -18134,6 +18137,67 @@
                 }
             }
         }
+
+        // Load advanced financial analyses asynchronously (doesn't block initial render)
+        async function loadAdvancedFinancialsAnalyses(ticker, basicData) {
+            console.log('📊 [DEBUG] loadAdvancedFinancialsAnalyses: Loading advanced analyses for', ticker);
+            
+            try {
+                // Show loading indicators for advanced sections
+                const overviewTab = document.getElementById('financialsOverviewTab');
+                if (overviewTab) {
+                    // Add loading placeholders for advanced sections
+                    const advancedSectionsPlaceholder = `
+                        <div id="advancedAnalysesPlaceholder" style="margin-top: 30px; padding: 20px; background: var(--metric-bg); border-radius: 12px; border: 1px dashed var(--border-color);">
+                            <div style="text-align: center; color: var(--text-secondary);">
+                                <div class="spinner" style="margin: 0 auto 15px;"></div>
+                                <p style="margin: 0; font-size: 0.9em;">Loading advanced analyses...</p>
+                            </div>
+                        </div>
+                    `;
+                    // Insert before the end of overviewTab
+                    if (!overviewTab.querySelector('#advancedAnalysesPlaceholder')) {
+                        overviewTab.insertAdjacentHTML('beforeend', advancedSectionsPlaceholder);
+                    }
+                }
+                
+                // Fetch advanced analyses
+                const response = await fetch(`/api/financials/${ticker}/advanced`);
+                if (!response.ok) {
+                    throw new Error(`Failed to load advanced analyses: ${response.statusText}`);
+                }
+                
+                const advancedData = await response.json();
+                console.log('📊 [DEBUG] loadAdvancedFinancialsAnalyses: Advanced data received', Object.keys(advancedData));
+                
+                // Merge advanced data with basic data
+                const mergedData = { ...basicData, ...advancedData };
+                currentFinancialsData = mergedData;
+                
+                // Re-render financials with advanced data
+                displayFinancials(mergedData, ticker);
+                
+                // Remove loading placeholder
+                const placeholder = document.getElementById('advancedAnalysesPlaceholder');
+                if (placeholder) {
+                    placeholder.remove();
+                }
+                
+            } catch (error) {
+                console.warn('⚠️ [DEBUG] loadAdvancedFinancialsAnalyses: Failed to load advanced analyses', error);
+                // Remove loading placeholder on error
+                const placeholder = document.getElementById('advancedAnalysesPlaceholder');
+                if (placeholder) {
+                    placeholder.innerHTML = `
+                        <div style="text-align: center; color: var(--text-secondary); padding: 10px;">
+                            <p style="margin: 0; font-size: 0.85em;">Advanced analyses unavailable</p>
+                        </div>
+                    `;
+                }
+                // Don't fail the whole page if advanced analyses fail
+            }
+        }
+        window.loadAdvancedFinancialsAnalyses = loadAdvancedFinancialsAnalyses;
 
         function changeFinancialsPeriod(period) {
             financialsPeriod = period;

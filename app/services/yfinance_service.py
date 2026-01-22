@@ -1168,46 +1168,8 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
         financials_score = calculate_financials_score(financials, info, company_stage)
         financials['financials_score'] = financials_score
         
-        # Add advanced analyses
-        # 1. Cash Flow Statement Analysis
-        try:
-            cash_flow_analysis = get_cash_flow_analysis(ticker)
-            if cash_flow_analysis:
-                financials['cash_flow_analysis'] = cash_flow_analysis
-        except Exception as e:
-            logger.warning(f"Failed to get cash flow analysis for {ticker}: {str(e)}")
-        
-        # 2. Profitability Deep Dive
-        try:
-            profitability_analysis = get_profitability_analysis(ticker, financials)
-            if profitability_analysis:
-                financials['profitability_analysis'] = profitability_analysis
-        except Exception as e:
-            logger.warning(f"Failed to get profitability analysis for {ticker}: {str(e)}")
-        
-        # 3. Balance Sheet Health Score
-        try:
-            balance_sheet_health = get_balance_sheet_health(ticker)
-            if balance_sheet_health:
-                financials['balance_sheet_health'] = balance_sheet_health
-        except Exception as e:
-            logger.warning(f"Failed to get balance sheet health for {ticker}: {str(e)}")
-        
-        # 4. Management Guidance Tracking
-        try:
-            guidance_tracking = get_management_guidance_tracking(ticker)
-            if guidance_tracking:
-                financials['management_guidance'] = guidance_tracking
-        except Exception as e:
-            logger.warning(f"Failed to get management guidance for {ticker}: {str(e)}")
-        
-        # 5. Segment/Geography Breakdown
-        try:
-            segment_breakdown = get_segment_breakdown(ticker)
-            if segment_breakdown:
-                financials['segment_breakdown'] = segment_breakdown
-        except Exception as e:
-            logger.warning(f"Failed to get segment breakdown for {ticker}: {str(e)}")
+        # NOTE: Advanced analyses moved to separate endpoint for faster initial load
+        # They are now loaded asynchronously via /api/financials/<ticker>/advanced
         
         # Add detailed financial statements for Detailed Financials tab
         def convert_dataframe_to_detailed_format(df, is_quarterly=True):

@@ -110,3 +110,79 @@ def get_financials(ticker):
             details={'ticker': ticker.upper() if ticker else 'unknown'}
         )
 
+
+@bp.route('/api/financials/<ticker>/advanced')
+@cache_if_available(CACHE_TIMEOUTS['financials'])
+def get_financials_advanced(ticker):
+    """Get advanced financial analyses (loaded asynchronously for better performance)"""
+    import time as time_module
+    start_time = time_module.time()
+    logger.info(f"Financials advanced endpoint called for {ticker}")
+    
+    try:
+        ticker_upper = ticker.upper()
+        
+        # Import advanced analysis functions
+        from app.analysis.fundamental import (
+            get_cash_flow_analysis,
+            get_profitability_analysis,
+            get_balance_sheet_health,
+            get_management_guidance_tracking,
+            get_segment_breakdown
+        )
+        
+        advanced_data = {}
+        
+        # 1. Cash Flow Statement Analysis
+        try:
+            cash_flow_analysis = get_cash_flow_analysis(ticker_upper)
+            if cash_flow_analysis:
+                advanced_data['cash_flow_analysis'] = cash_flow_analysis
+        except Exception as e:
+            logger.warning(f"Failed to get cash flow analysis for {ticker_upper}: {str(e)}")
+        
+        # 2. Profitability Deep Dive
+        try:
+            # Need basic financials for profitability analysis
+            from app.services.yfinance_service import get_financials_data
+            basic_financials = get_financials_data(ticker_upper)
+            if basic_financials:
+                profitability_analysis = get_profitability_analysis(ticker_upper, basic_financials)
+                if profitability_analysis:
+                    advanced_data['profitability_analysis'] = profitability_analysis
+        except Exception as e:
+            logger.warning(f"Failed to get profitability analysis for {ticker_upper}: {str(e)}")
+        
+        # 3. Balance Sheet Health Score
+        try:
+            balance_sheet_health = get_balance_sheet_health(ticker_upper)
+            if balance_sheet_health:
+                advanced_data['balance_sheet_health'] = balance_sheet_health
+        except Exception as e:
+            logger.warning(f"Failed to get balance sheet health for {ticker_upper}: {str(e)}")
+        
+        # 4. Management Guidance Tracking
+        try:
+            guidance_tracking = get_management_guidance_tracking(ticker_upper)
+            if guidance_tracking:
+                advanced_data['management_guidance'] = guidance_tracking
+        except Exception as e:
+            logger.warning(f"Failed to get management guidance for {ticker_upper}: {str(e)}")
+        
+        # 5. Segment/Geography Breakdown
+        try:
+            segment_breakdown = get_segment_breakdown(ticker_upper)
+            if segment_breakdown:
+                advanced_data['segment_breakdown'] = segment_breakdown
+        except Exception as e:
+            logger.warning(f"Failed to get segment breakdown for {ticker_upper}: {str(e)}")
+        
+        elapsed = time_module.time() - start_time
+        logger.info(f"Advanced financials data prepared for {ticker_upper} in {elapsed:.2f}s")
+        
+        return jsonify(clean_for_json(advanced_data))
+        
+    except Exception as e:
+        logger.exception(f"Error in financials advanced endpoint for {ticker}")
+        return jsonify({'error': 'Failed to get advanced financials'}), 500
+
