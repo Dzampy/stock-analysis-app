@@ -65,37 +65,7 @@ def get_financials(ticker):
                 {'ticker': ticker_upper, 'elapsed_seconds': round(elapsed, 2)}
             )
         
-        # Add peer comparison data (optional, don't fail if it doesn't work)
-        try:
-            industry_category = financials.get('industry_category', '')
-            sector = financials.get('sector', '')
-            if industry_category or sector:
-                peer_comparison = get_peer_comparison_data(
-                    ticker_upper, 
-                    industry_category, 
-                    sector, 
-                    limit=4
-                )
-                if peer_comparison:
-                    financials['peer_comparison'] = peer_comparison
-                    logger.info(f"Added {len(peer_comparison)} peers for {ticker_upper}")
-        except Exception as peer_error:
-            logger.warning(f"Failed to get peer comparison for {ticker_upper}: {str(peer_error)}")
-            # Don't fail the whole request if peer comparison fails
-        
-        # Add sector averages (optional, don't fail if it doesn't work)
-        try:
-            sector = financials.get('sector', '')
-            industry = financials.get('industry', '')
-            if sector and sector != 'N/A':
-                from app.services.sector_service import get_sector_averages
-                sector_averages = get_sector_averages(sector, industry)
-                if sector_averages:
-                    financials['sector_averages'] = sector_averages
-                    logger.info(f"Added sector averages for {ticker_upper} (sector: {sector})")
-        except Exception as sector_error:
-            logger.warning(f"Failed to get sector averages for {ticker_upper}: {str(sector_error)}")
-            # Don't fail the whole request if sector averages fails
+        # Peer comparison and sector averages moved to async endpoint for faster initial load
         
         logger.info(f"Successfully prepared financials data for {ticker_upper}")
         return jsonify(clean_for_json(financials))
@@ -176,6 +146,59 @@ def get_financials_advanced(ticker):
                 advanced_data['segment_breakdown'] = segment_breakdown
         except Exception as e:
             logger.warning(f"Failed to get segment breakdown for {ticker_upper}: {str(e)}")
+        
+        # 6. Peer Comparison (moved from main endpoint)
+        try:
+            from app.analysis.fundamental import get_peer_comparison_data
+            from app.services.yfinance_service import get_financials_data
+            basic_financials = get_financials_data(ticker_upper)
+            if basic_financials:
+                industry_category = basic_financials.get('industry_category', '')
+                sector = basic_financials.get('sector', '')
+                if industry_category or sector:
+                    peer_comparison = get_peer_comparison_data(
+                        ticker_upper, 
+                        industry_category, 
+                        sector, 
+                        limit=4
+                    )
+                    if peer_comparison:
+                        advanced_data['peer_comparison'] = peer_comparison
+                        logger.info(f"Added {len(peer_comparison)} peers for {ticker_upper}")
+        except Exception as peer_error:
+            logger.warning(f"Failed to get peer comparison for {ticker_upper}: {str(peer_error)}")
+        
+        # 7. Sector Averages (moved from main endpoint)
+        try:
+            from app.services.sector_service import get_sector_averages
+            from app.services.yfinance_service import get_financials_data
+            basic_financials = get_financials_data(ticker_upper)
+            if basic_financials:
+                sector = basic_financials.get('sector', '')
+                industry = basic_financials.get('industry', '')
+                if sector and sector != 'N/A':
+                    sector_averages = get_sector_averages(sector, industry)
+                    if sector_averages:
+                        advanced_data['sector_averages'] = sector_averages
+                        logger.info(f"Added sector averages for {ticker_upper} (sector: {sector})")
+        except Exception as sector_error:
+            logger.warning(f"Failed to get sector averages for {ticker_upper}: {str(sector_error)}")
+        
+        # 8. Finviz Estimates (moved from main endpoint for faster load)
+        try:
+            from app.services.finviz_service import get_quarterly_estimates_from_finviz
+            finviz_data = get_quarterly_estimates_from_finviz(ticker_upper)
+            if finviz_data and isinstance(finviz_data, dict):
+                quarterly_estimates = finviz_data.get('estimates', {})
+                quarterly_actuals = finviz_data.get('actuals', {})
+                if quarterly_estimates or quarterly_actuals:
+                    advanced_data['finviz_estimates'] = {
+                        'estimates': quarterly_estimates,
+                        'actuals': quarterly_actuals
+                    }
+                    logger.info(f"Added Finviz estimates for {ticker_upper}")
+        except Exception as finviz_error:
+            logger.warning(f"Failed to get Finviz estimates for {ticker_upper}: {str(finviz_error)}")
         
         elapsed = time_module.time() - start_time
         logger.info(f"Advanced financials data prepared for {ticker_upper} in {elapsed:.2f}s")

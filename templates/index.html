@@ -18172,6 +18172,36 @@
                 
                 // Merge advanced data with basic data
                 const mergedData = { ...basicData, ...advancedData };
+                
+                // Merge Finviz estimates into forward_estimates if available
+                if (advancedData.finviz_estimates) {
+                    const finvizEst = advancedData.finviz_estimates;
+                    if (!mergedData.forward_estimates) {
+                        mergedData.forward_estimates = { revenue: {}, eps: {} };
+                    }
+                    // Merge Finviz estimates into forward_estimates
+                    if (finvizEst.estimates) {
+                        if (finvizEst.estimates.revenue) {
+                            Object.assign(mergedData.forward_estimates.revenue, finvizEst.estimates.revenue);
+                        }
+                        if (finvizEst.estimates.eps) {
+                            Object.assign(mergedData.forward_estimates.eps, finvizEst.estimates.eps);
+                        }
+                    }
+                    // Merge Finviz actuals (for better accuracy in charts)
+                    if (finvizEst.actuals) {
+                        if (!mergedData.quarterly_actuals) {
+                            mergedData.quarterly_actuals = { revenue: {}, eps: {} };
+                        }
+                        if (finvizEst.actuals.revenue) {
+                            Object.assign(mergedData.quarterly_actuals.revenue, finvizEst.actuals.revenue);
+                        }
+                        if (finvizEst.actuals.eps) {
+                            Object.assign(mergedData.quarterly_actuals.eps, finvizEst.actuals.eps);
+                        }
+                    }
+                }
+                
                 currentFinancialsData = mergedData;
                 
                 // Re-render financials with advanced data

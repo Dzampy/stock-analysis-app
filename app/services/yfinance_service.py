@@ -258,30 +258,12 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
         from datetime import datetime
         
         stock = yf.Ticker(ticker)
-        time.sleep(0.3)  # Rate limiting
+        # Removed time.sleep(0.3) - not needed, yfinance handles rate limiting
         
-        # Get quarterly estimates and actuals from Finviz
-        finviz_data = None
-        try:
-            finviz_data = get_quarterly_estimates_from_finviz(ticker)
-        except Exception as finviz_error:
-            logger.warning(f"Finviz scraping failed for {ticker}: {str(finviz_error)}")
-            finviz_data = {'estimates': {}, 'actuals': {}}
-        
-        quarterly_estimates = finviz_data.get('estimates', {}) if isinstance(finviz_data, dict) else {}
-        quarterly_actuals = finviz_data.get('actuals', {}) if isinstance(finviz_data, dict) else {}
-        
-        if quarterly_estimates:
-            rev_count = len(quarterly_estimates.get('revenue', {}))
-            eps_count = len(quarterly_estimates.get('eps', {}))
-            if rev_count > 0 or eps_count > 0:
-                logger.info(f"Finviz: Found {rev_count} revenue and {eps_count} EPS estimates for {ticker}")
-        
-        if quarterly_actuals:
-            rev_actual_count = len(quarterly_actuals.get('revenue', {}))
-            eps_actual_count = len(quarterly_actuals.get('eps', {}))
-            if rev_actual_count > 0 or eps_actual_count > 0:
-                logger.info(f"Finviz: Found {rev_actual_count} revenue and {eps_actual_count} EPS actual values for {ticker}")
+        # Finviz scraping moved to async endpoint for faster initial load
+        # Use empty estimates/actuals initially, will be loaded async
+        quarterly_estimates = {}
+        quarterly_actuals = {}
         
         # Get company info
         try:
