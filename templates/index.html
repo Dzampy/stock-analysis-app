@@ -20869,10 +20869,12 @@
                             
                             // Add to chart data (use estimate value for bar, but mark as future)
                             // This way the bar shows the estimate, but is styled differently
+                            console.log(`✅ Adding future revenue quarter ${quarterLabel}: value=${revenueEst}, chartData.length=${chartData.length}`);
                             chartData.push(revenueEst); // Use estimate value for bar height
                             chartLabels.push(quarterLabel);
                             expectations.push(revenueEst);
                             beatMissed.push('Future'); // Mark as future quarter
+                            console.log(`✅ After push - chartData[${chartData.length-1}]=${chartData[chartData.length-1]}, chartLabels[${chartLabels.length-1}]=${chartLabels[chartLabels.length-1]}`);
                         }
                     });
                     
@@ -22149,10 +22151,12 @@
                             const quarterLabel = `Q${q} '${year.slice(-2)}`;
                             
                             // Add to chart data (use estimate value for bar, but mark as future)
+                            console.log(`✅ Adding future EPS quarter ${quarterLabel}: value=${epsEst}, chartData.length=${chartData.length}`);
                             chartData.push(epsEst); // Use estimate value for bar height
                             chartLabels.push(quarterLabel);
                             expectations.push(epsEst);
                             beatMissed.push('Future'); // Mark as future quarter
+                            console.log(`✅ After push - chartData[${chartData.length-1}]=${chartData[chartData.length-1]}, chartLabels[${chartLabels.length-1}]=${chartLabels[chartLabels.length-1]}`);
                         }
                     });
                     
