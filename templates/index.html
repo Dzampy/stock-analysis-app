@@ -20917,6 +20917,11 @@
             });
 
             // Build datasets array - use spread operator like EPS chart
+            console.log('📊 Final chartData before creating dataset:', chartData);
+            console.log('📊 Final chartLabels before creating dataset:', chartLabels);
+            console.log('📊 Final expectations before creating dataset:', expectations);
+            console.log('📊 Final beatMissed before creating dataset:', beatMissed);
+            
             const barDataset = {
                 label: showGrowth ? 'Revenue Growth %' : 'Actual Revenue',
                 data: chartData,
@@ -20989,6 +20994,17 @@
             
             try {
                 console.log('Creating Chart.js instance...');
+                console.log('📊 Chart.js data being passed:', {
+                    labels: chartLabels,
+                    datasets: datasets.map((ds, i) => ({
+                        index: i,
+                        label: ds.label,
+                        data: ds.data,
+                        dataLength: ds.data ? ds.data.length : 0,
+                        type: ds.type || 'bar',
+                        backgroundColor: ds.backgroundColor ? (Array.isArray(ds.backgroundColor) ? `Array(${ds.backgroundColor.length})` : ds.backgroundColor) : 'N/A'
+                    }))
+                });
                 window.revenueChartInstance = new Chart(ctx, {
                     type: 'bar',
                     data: {
