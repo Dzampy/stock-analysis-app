@@ -21100,13 +21100,22 @@
                                     if (!showGrowth && expectations && context.datasetIndex === 0) {
                                         const estimate = expectations[context.dataIndex];
                                         const actual = context.parsed.y;
-                                        const diff = actual - estimate;
-                                        // Use absolute value of estimate to handle negative values correctly
-                                        // For negative EPS: actual -0.03 vs estimate -0.10 means actual is better (less negative)
-                                        // diff = +0.07, so we want +70% (not -70%)
-                                        const diffPct = estimate !== 0 ? ((diff / Math.abs(estimate)) * 100).toFixed(1) : '0.0';
-                                        const diffPctNum = parseFloat(diffPct);
-                                        label += ` (${diffPctNum >= 0 ? '+' : ''}${diffPct}% vs estimate)`;
+                                        
+                                        // Only show vs estimate if estimate exists and is valid
+                                        if (estimate !== null && estimate !== undefined && !isNaN(estimate) && estimate !== 0) {
+                                            const diff = actual - estimate;
+                                            // Use absolute value of estimate to handle negative values correctly
+                                            // For negative EPS: actual -0.03 vs estimate -0.10 means actual is better (less negative)
+                                            // diff = +0.07, so we want +70% (not -70%)
+                                            const absEstimate = Math.abs(estimate);
+                                            if (absEstimate > 0 && isFinite(absEstimate)) {
+                                                const diffPct = ((diff / absEstimate) * 100).toFixed(1);
+                                                const diffPctNum = parseFloat(diffPct);
+                                                if (isFinite(diffPctNum)) {
+                                                    label += ` (${diffPctNum >= 0 ? '+' : ''}${diffPct}% vs estimate)`;
+                                                }
+                                            }
+                                        }
                                     }
                                     return label;
                                 }
@@ -22351,15 +22360,22 @@
                                     }
                                     if (!showGrowth && expectations && context.datasetIndex === 0) {
                                         const estimate = expectations[context.dataIndex];
-                                        if (estimate !== null && estimate !== undefined && !isNaN(estimate)) {
-                                        const actual = context.parsed.y;
-                                        const diff = actual - estimate;
-                                        // Use absolute value of estimate to handle negative values correctly
-                                        // For negative EPS: actual -0.03 vs estimate -0.10 means actual is better (less negative)
-                                        // diff = +0.07, so we want +70% (not -70%)
-                                        const diffPct = estimate !== 0 ? ((diff / Math.abs(estimate)) * 100).toFixed(1) : '0.0';
-                                        const diffPctNum = parseFloat(diffPct);
-                                        label += ` (${diffPctNum >= 0 ? '+' : ''}${diffPct}% vs estimate)`;
+                                        
+                                        // Only show vs estimate if estimate exists and is valid
+                                        if (estimate !== null && estimate !== undefined && !isNaN(estimate) && estimate !== 0) {
+                                            const actual = context.parsed.y;
+                                            const diff = actual - estimate;
+                                            // Use absolute value of estimate to handle negative values correctly
+                                            // For negative EPS: actual -0.03 vs estimate -0.10 means actual is better (less negative)
+                                            // diff = +0.07, so we want +70% (not -70%)
+                                            const absEstimate = Math.abs(estimate);
+                                            if (absEstimate > 0 && isFinite(absEstimate)) {
+                                                const diffPct = ((diff / absEstimate) * 100).toFixed(1);
+                                                const diffPctNum = parseFloat(diffPct);
+                                                if (isFinite(diffPctNum)) {
+                                                    label += ` (${diffPctNum >= 0 ? '+' : ''}${diffPct}% vs estimate)`;
+                                                }
+                                            }
                                         }
                                     }
                                     return label;
