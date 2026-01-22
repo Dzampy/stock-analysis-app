@@ -20890,7 +20890,7 @@
                 : chartData.map((v, i) => {
                     // Future quarters (no actual data) - use different color
                     if (beatMissed && beatMissed[i] === 'Future') {
-                        return 'rgba(156, 163, 175, 0.3)'; // Light gray for future quarters
+                        return 'rgba(245, 158, 11, 0.6)'; // Orange for future quarters (more visible)
                     }
                     if (expectations && beatMissed && beatMissed[i] !== null && beatMissed[i] !== 'Future') {
                         return beatMissed[i] === 'Beat' 
@@ -20924,9 +20924,9 @@
                     : chartData.map((v, i) => {
                         // Future quarters (no actual data) - use different color
                         if (beatMissed && beatMissed[i] === 'Future') {
-                            return 'rgba(156, 163, 175, 0.6)'; // Gray for future quarters
+                            return 'rgba(245, 158, 11, 0.9)'; // Orange border for future quarters (more visible)
                         }
-                        if (expectations && beatMissed) {
+                        if (expectations && beatMissed && beatMissed[i] !== null && beatMissed[i] !== 'Future') {
                             return beatMissed[i] === 'Beat' ? 'rgba(16, 185, 129, 1)' : 'rgba(239, 68, 68, 1)';
                         }
                         return 'rgba(102, 126, 234, 1)';
@@ -22161,7 +22161,7 @@
                 : chartData.map((v, i) => {
                     // Future quarters (no actual data) - use different color
                     if (beatMissed && beatMissed[i] === 'Future') {
-                        return 'rgba(156, 163, 175, 0.3)'; // Light gray for future quarters
+                        return 'rgba(245, 158, 11, 0.6)'; // Orange for future quarters (more visible)
                     }
                     if (expectations && beatMissed && beatMissed[i] !== null && beatMissed[i] !== 'Future') {
                         return beatMissed[i] === 'Beat' 
@@ -22187,7 +22187,7 @@
                                 : chartData.map((v, i) => {
                                     // Future quarters (no actual data) - use different color
                                     if (beatMissed && beatMissed[i] === 'Future') {
-                                        return 'rgba(156, 163, 175, 0.6)'; // Gray for future quarters
+                                        return 'rgba(245, 158, 11, 0.9)'; // Orange border for future quarters (more visible)
                                     }
                                     if (expectations && beatMissed && beatMissed[i] !== null && beatMissed[i] !== 'Future') {
                                         return beatMissed[i] === 'Beat' ? 'rgba(16, 185, 129, 1)' : 'rgba(239, 68, 68, 1)';
