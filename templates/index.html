@@ -20834,9 +20834,9 @@
                         const revenueEst = forwardEstimates.revenue[quarter];
                         if (revenueEst !== null && revenueEst !== undefined && !isNaN(revenueEst) && revenueEst > 0) {
                             // Backend data takes precedence, but if not available, use forwardEstimates
-                            if (!estimateMap[quarter]) {
-                                estimateMap[quarter] = revenueEst;
-                            }
+                            // CRITICAL: Always add forwardEstimates estimates, even if backend has data
+                            // This ensures estimates from Finviz are used for past quarters
+                            estimateMap[quarter] = revenueEst;
                         }
                     });
                 }
@@ -20855,6 +20855,7 @@
                     const quarterStr = data[data.length - 1 - i]?.quarter || data[data.length - 1 - i]?.date;
                     
                     // Use estimate from map (includes both backend and forwardEstimates)
+                    // CRITICAL: forwardEstimates should have estimates for all quarters (past and future)
                     if (quarterStr && estimateMap[quarterStr]) {
                         estimate = estimateMap[quarterStr];
                     }
@@ -22116,13 +22117,14 @@
                 // Then, add estimates from forwardEstimates.eps (from Finviz) for ALL quarters (past and future)
                 // This is the same source used for future quarters, so we use it for past quarters too
                 if (forwardEstimates && forwardEstimates.eps) {
-                    Object.keys(forwardEstimates.eps).forEach(quarter => {
+                    const forwardEstKeys = Object.keys(forwardEstimates.eps);
+                    forwardEstKeys.forEach(quarter => {
                         const epsEst = forwardEstimates.eps[quarter];
                         if (epsEst !== null && epsEst !== undefined && !isNaN(epsEst) && epsEst !== 0) {
                             // Backend data takes precedence, but if not available, use forwardEstimates
-                            if (!epsEstimateMap[quarter]) {
-                                epsEstimateMap[quarter] = epsEst;
-                            }
+                            // CRITICAL: Always add forwardEstimates estimates, even if backend has data
+                            // This ensures estimates from Finviz are used for past quarters
+                            epsEstimateMap[quarter] = epsEst;
                         }
                     });
                 }
@@ -22137,6 +22139,7 @@
                     const quarterStr = filteredData[i]?.quarter || filteredData[i]?.date;
                     
                     // Use estimate from map (includes both backend and forwardEstimates)
+                    // CRITICAL: forwardEstimates should have estimates for all quarters (past and future)
                     if (quarterStr && epsEstimateMap[quarterStr]) {
                         estimate = epsEstimateMap[quarterStr];
                     }
