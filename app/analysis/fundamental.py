@@ -656,8 +656,117 @@ def get_peer_comparison_data(ticker: str, industry_category: str, sector: str, l
                 peer_revenue_growth = peer_info.get('revenueGrowth')
                 peer_earnings_growth = peer_info.get('earningsGrowth')
                 peer_roe = peer_info.get('returnOnEquity')
+                peer_roa = peer_info.get('returnOnAssets')
                 peer_debt_to_equity = peer_info.get('debtToEquity')
                 peer_current_price = peer_info.get('currentPrice')
+                
+                # Get additional valuation metrics
+                peer_enterprise_value = peer_info.get('enterpriseValue')
+                peer_ebitda = peer_info.get('ebitda')
+                peer_ev_ebitda = (peer_enterprise_value / peer_ebitda) if peer_enterprise_value and peer_ebitda and peer_ebitda > 0 else None
+                
+                peer_revenue = peer_info.get('totalRevenue')
+                peer_price_to_sales = (peer_market_cap / peer_revenue) if peer_market_cap and peer_revenue and peer_revenue > 0 else None
+                
+                # Get financial statement data for additional metrics
+                peer_income_stmt = peer_stock.income_stmt
+                peer_balance_sheet = peer_stock.balance_sheet
+                
+                # Helper function to find row in financial statements
+                def find_row(df, keywords):
+                    if df is None or df.empty:
+                        return None
+                    for idx in df.index:
+                        idx_lower = str(idx).lower()
+                        if any(kw.lower() in idx_lower for kw in keywords):
+                            return df.loc[idx]
+                    return None
+                
+                # Get margin metrics from income statement
+                peer_gross_margin = None
+                peer_operating_margin = None
+                if peer_income_stmt is not None and not peer_income_stmt.empty:
+                    revenue_row = find_row(peer_income_stmt, ['total revenue', 'revenue', 'net sales'])
+                    gross_profit_row = find_row(peer_income_stmt, ['gross profit'])
+                    operating_income_row = find_row(peer_income_stmt, ['operating income', 'income from operations'])
+                    
+                    if revenue_row is not None and len(revenue_row) > 0:
+                        revenue = float(revenue_row.iloc[0]) if pd.notna(revenue_row.iloc[0]) else None
+                        
+                        if gross_profit_row is not None and len(gross_profit_row) > 0:
+                            gross_profit = float(gross_profit_row.iloc[0]) if pd.notna(gross_profit_row.iloc[0]) else None
+                            if revenue and revenue > 0 and gross_profit:
+                                peer_gross_margin = (gross_profit / revenue) * 100
+                        
+                        if operating_income_row is not None and len(operating_income_row) > 0:
+                            operating_income = float(operating_income_row.iloc[0]) if pd.notna(operating_income_row.iloc[0]) else None
+                            if revenue and revenue > 0 and operating_income:
+                                peer_operating_margin = (operating_income / revenue) * 100
+                
+                # Get efficiency and financial health metrics from balance sheet
+                peer_current_ratio = None
+                peer_quick_ratio = None
+                peer_asset_turnover = None
+                peer_inventory_turnover = None
+                
+                if peer_balance_sheet is not None and not peer_balance_sheet.empty:
+                    current_assets_row = find_row(peer_balance_sheet, ['total current assets', 'current assets'])
+                    current_liabilities_row = find_row(peer_balance_sheet, ['total current liabilities', 'current liabilities'])
+                    inventory_row = find_row(peer_balance_sheet, ['inventory', 'inventories'])
+                    total_assets_row = find_row(peer_balance_sheet, ['total assets'])
+                    
+                    if current_assets_row is not None and current_liabilities_row is not None and len(current_assets_row) > 0 and len(current_liabilities_row) > 0:
+                        current_assets = float(current_assets_row.iloc[0]) if pd.notna(current_assets_row.iloc[0]) else None
+                        current_liabilities = float(current_liabilities_row.iloc[0]) if pd.notna(current_liabilities_row.iloc[0]) else None
+                        
+                        if current_assets and current_liabilities and current_liabilities > 0:
+                            peer_current_ratio = current_assets / current_liabilities
+                            
+                            # Quick ratio (current assets - inventory) / current liabilities
+                            if inventory_row is not None and len(inventory_row) > 0:
+                                inventory = float(inventory_row.iloc[0]) if pd.notna(inventory_row.iloc[0]) else None
+                                if inventory is not None:
+                                    peer_quick_ratio = (current_assets - inventory) / current_liabilities
+                            else:
+                                peer_quick_ratio = peer_current_ratio
+                    
+                    # Asset turnover (revenue / total assets)
+                    if total_assets_row is not None and len(total_assets_row) > 0:
+                        total_assets = float(total_assets_row.iloc[0]) if pd.notna(total_assets_row.iloc[0]) else None
+                        if total_assets and total_assets > 0 and peer_revenue:
+                            peer_asset_turnover = peer_revenue / total_assets
+                    
+                    # Inventory turnover (COGS / inventory)
+                    if peer_income_stmt is not None and not peer_income_stmt.empty:
+                        cogs_row = find_row(peer_income_stmt, ['cost of revenue', 'cost of goods sold', 'cogs', 'cost of sales'])
+                        if cogs_row is not None and len(cogs_row) > 0 and inventory_row is not None and len(inventory_row) > 0:
+                            cogs = float(cogs_row.iloc[0]) if pd.notna(cogs_row.iloc[0]) else None
+                            inventory = float(inventory_row.iloc[0]) if pd.notna(inventory_row.iloc[0]) else None
+                            if cogs and inventory and inventory > 0:
+                                peer_inventory_turnover = cogs / inventory
+                
+                # Get FCF growth from cash flow statement
+                peer_fcf_growth = None
+                try:
+                    peer_cf = peer_stock.quarterly_cashflow
+                    if peer_cf is not None and not peer_cf.empty:
+                        ocf_row = find_row(peer_cf, ['operating cash flow', 'operating activities', 'cash from operations'])
+                        capex_row = find_row(peer_cf, ['capital expenditure', 'capex', 'purchase of property'])
+                        
+                        if ocf_row is not None and capex_row is not None and len(ocf_row) >= 2 and len(capex_row) >= 2:
+                            # Calculate FCF for last 2 quarters
+                            fcf_values = []
+                            for i in range(min(2, len(ocf_row))):
+                                ocf = float(ocf_row.iloc[i]) if pd.notna(ocf_row.iloc[i]) else None
+                                capex = float(capex_row.iloc[i]) if pd.notna(capex_row.iloc[i]) else None
+                                if ocf is not None and capex is not None:
+                                    fcf = ocf - abs(capex) if capex < 0 else ocf + capex
+                                    fcf_values.append(fcf)
+                            
+                            if len(fcf_values) >= 2 and fcf_values[1] != 0:
+                                peer_fcf_growth = ((fcf_values[0] - fcf_values[1]) / abs(fcf_values[1])) * 100
+                except:
+                    pass  # FCF growth is optional
                 
                 # Calculate similarity score based on market cap proximity
                 similarity_score = 0
@@ -682,14 +791,31 @@ def get_peer_comparison_data(ticker: str, industry_category: str, sector: str, l
                     'industry': peer_industry,
                     'market_cap': peer_market_cap,
                     'current_price': peer_current_price,
+                    # Valuation metrics
                     'pe_ratio': peer_pe,
                     'forward_pe': peer_forward_pe,
                     'price_to_book': peer_price_to_book,
+                    'price_to_sales': peer_price_to_sales,
+                    'ev_ebitda': peer_ev_ebitda,
+                    # Profitability metrics
+                    'gross_margin': peer_gross_margin,
+                    'operating_margin': peer_operating_margin,
                     'profit_margin': peer_profit_margin,
+                    'roe': peer_roe,
+                    'roa': peer_roa,
+                    # Growth metrics
                     'revenue_growth': peer_revenue_growth,
                     'earnings_growth': peer_earnings_growth,
-                    'roe': peer_roe,
+                    'fcf_growth': peer_fcf_growth,
+                    # Efficiency metrics
+                    'asset_turnover': peer_asset_turnover,
+                    'inventory_turnover': peer_inventory_turnover,
+                    # Financial health metrics
+                    'current_ratio': peer_current_ratio,
+                    'quick_ratio': peer_quick_ratio,
                     'debt_to_equity': peer_debt_to_equity,
+                    # Additional
+                    'revenue': peer_revenue,
                     'similarity_score': similarity_score
                 })
                 

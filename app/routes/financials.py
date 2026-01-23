@@ -163,14 +163,18 @@ def get_financials_advanced(ticker):
                         limit=4
                     )
                     if peer_comparison:
-                        advanced_data['peer_comparison'] = peer_comparison
+                        # Wrap in expected structure for frontend
+                        advanced_data['peer_comparison'] = {
+                            'peers': peer_comparison,
+                            'category': industry_category.title() if industry_category else sector
+                        }
                         logger.info(f"Added {len(peer_comparison)} peers for {ticker_upper}")
         except Exception as peer_error:
             logger.warning(f"Failed to get peer comparison for {ticker_upper}: {str(peer_error)}")
         
         # 7. Sector Averages (moved from main endpoint)
         try:
-            from app.services.sector_service import get_sector_averages
+            from app.services.sector_service import get_sector_averages, get_sector_historical_data
             from app.services.yfinance_service import get_financials_data
             basic_financials = get_financials_data(ticker_upper)
             if basic_financials:
@@ -180,7 +184,23 @@ def get_financials_advanced(ticker):
                     sector_averages = get_sector_averages(sector, industry)
                     if sector_averages:
                         advanced_data['sector_averages'] = sector_averages
-                        logger.info(f"Added sector averages for {ticker_upper} (sector: {sector})")
+                        
+                        # Add historical sector data for key metrics
+                        historical_metrics = ['revenue_growth', 'profit_margin', 'operating_margin', 'net_margin']
+                        sector_historical = {}
+                        for metric in historical_metrics:
+                            try:
+                                hist_data = get_sector_historical_data(sector, metric, quarters=8)
+                                if hist_data:
+                                    sector_historical[metric] = hist_data
+                            except Exception as e:
+                                logger.debug(f"Failed to get historical {metric} for sector {sector}: {str(e)}")
+                                continue
+                        
+                        if sector_historical:
+                            advanced_data['sector_historical'] = sector_historical
+                        
+                        logger.info(f"Added sector averages and historical data for {ticker_upper} (sector: {sector})")
         except Exception as sector_error:
             logger.warning(f"Failed to get sector averages for {ticker_upper}: {str(sector_error)}")
         
