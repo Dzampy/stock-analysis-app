@@ -118,10 +118,23 @@ def get_quarterly_estimates_from_finviz(ticker: str) -> Dict:
                                 else:
                                     quarter_str = f"{year}-Q{quarter}"
                                 
+                                # Determine if this is a future quarter
+                                now = datetime.now()
+                                current_year = now.year
+                                current_month = now.month
+                                current_quarter = (current_month - 1) // 3 + 1
+                                
+                                # Parse quarter string to check if it's future
+                                quarter_year = int(quarter_str.split('-Q')[0])
+                                quarter_num = int(quarter_str.split('-Q')[1])
+                                is_future_quarter = (quarter_year > current_year) or (quarter_year == current_year and quarter_num > current_quarter)
+                                
                                 # Get EPS estimate
                                 eps_est = event.get('epsEstimate')
                                 if eps_est is not None and eps_est != 0:
                                     estimates['eps'][quarter_str] = float(eps_est)
+                                    if is_future_quarter:
+                                        logger.debug(f"Finviz: Found future EPS estimate for {quarter_str}: {eps_est}")
                                 
                                 # Get revenue estimate - Finviz returns in millions, convert to dollars
                                 revenue_est = event.get('salesEstimate')
@@ -140,6 +153,8 @@ def get_quarterly_estimates_from_finviz(ticker: str) -> Dict:
                                 if revenue_est is not None and revenue_est != 0:
                                     revenue_est_dollars = float(revenue_est) * 1_000_000
                                     estimates['revenue'][quarter_str] = revenue_est_dollars
+                                    if is_future_quarter:
+                                        logger.debug(f"Finviz: Found future revenue estimate for {quarter_str}: {revenue_est}M = ${revenue_est_dollars:,.0f}")
                                 
                                 # Get actual EPS
                                 eps_actual = None
@@ -262,7 +277,27 @@ def get_quarterly_estimates_from_finviz(ticker: str) -> Dict:
         if estimates['revenue'] or estimates['eps']:
             rev_count = len(estimates['revenue'])
             eps_count = len(estimates['eps'])
-            logger.info(f"Finviz: Found {rev_count} revenue and {eps_count} EPS estimates for {ticker}")
+            
+            # Count future quarters
+            now = datetime.now()
+            current_year = now.year
+            current_month = now.month
+            current_quarter = (current_month - 1) // 3 + 1
+            
+            future_rev_count = 0
+            future_eps_count = 0
+            for quarter_str in estimates['revenue'].keys():
+                quarter_year = int(quarter_str.split('-Q')[0])
+                quarter_num = int(quarter_str.split('-Q')[1])
+                if (quarter_year > current_year) or (quarter_year == current_year and quarter_num > current_quarter):
+                    future_rev_count += 1
+            for quarter_str in estimates['eps'].keys():
+                quarter_year = int(quarter_str.split('-Q')[0])
+                quarter_num = int(quarter_str.split('-Q')[1])
+                if (quarter_year > current_year) or (quarter_year == current_year and quarter_num > current_quarter):
+                    future_eps_count += 1
+            
+            logger.info(f"Finviz: Found {rev_count} revenue ({future_rev_count} future) and {eps_count} EPS ({future_eps_count} future) estimates for {ticker}")
         
         if actuals['revenue'] or actuals['eps']:
             rev_actual_count = len(actuals['revenue'])

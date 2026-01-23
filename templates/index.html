@@ -18180,13 +18180,15 @@
                         mergedData.forward_estimates = { revenue: {}, eps: {} };
                     }
                     // Merge Finviz estimates into forward_estimates
+                    // CRITICAL: Ensure all Finviz estimates (especially future quarters) are merged
                     if (finvizEst.estimates) {
                         if (finvizEst.estimates.revenue) {
-                            // Merge Finviz revenue estimates
+                            // Merge Finviz revenue estimates - Finviz data takes precedence for overlapping quarters
+                            // This ensures future quarters from Finviz are always included
                             Object.assign(mergedData.forward_estimates.revenue, finvizEst.estimates.revenue);
                         }
                         if (finvizEst.estimates.eps) {
-                            // Merge Finviz EPS estimates
+                            // Merge Finviz EPS estimates - Finviz data takes precedence for overlapping quarters
                             Object.assign(mergedData.forward_estimates.eps, finvizEst.estimates.eps);
                         }
                     }
@@ -18206,7 +18208,36 @@
                 
                 currentFinancialsData = mergedData;
                 
-                // Re-render financials with advanced data
+                // CRITICAL: Verify forward_estimates are properly merged before re-rendering
+                if (mergedData.forward_estimates && mergedData.forward_estimates.revenue) {
+                    const revenueKeys = Object.keys(mergedData.forward_estimates.revenue);
+                    const futureRevenueCount = revenueKeys.filter(q => {
+                        if (!q.includes('-Q')) return false;
+                        const [year, qNum] = q.split('-Q');
+                        const now = new Date();
+                        const currentYear = now.getFullYear();
+                        const currentMonth = now.getMonth() + 1;
+                        const currentQuarter = Math.ceil(currentMonth / 3);
+                        const quarterYear = parseInt(year);
+                        const quarterNum = parseInt(qNum);
+                        return quarterYear > currentYear || (quarterYear === currentYear && quarterNum > currentQuarter);
+                    }).length;
+                    
+                    if (futureRevenueCount > 0) {
+                        // Force chart recreation with updated forward_estimates
+                        // Destroy charts immediately before calling displayFinancials
+                        if (window.revenueChartInstance) {
+                            window.revenueChartInstance.destroy();
+                            window.revenueChartInstance = null;
+                        }
+                        if (window.epsChartInstance) {
+                            window.epsChartInstance.destroy();
+                            window.epsChartInstance = null;
+                        }
+                    }
+                }
+                
+                // Re-render financials with advanced data (this will recreate charts with updated forward_estimates)
                 displayFinancials(mergedData, ticker);
                 
                 // Remove loading placeholder
@@ -20504,13 +20535,22 @@
                         window.epsChartInstance = null;
                     }
                     
+                    // CRITICAL: Validate forward_estimates before passing to charts
+                    const forwardEstimates = data.forward_estimates || {};
+                    if (!forwardEstimates.revenue) {
+                        forwardEstimates.revenue = {};
+                    }
+                    if (!forwardEstimates.eps) {
+                        forwardEstimates.eps = {};
+                    }
+                    
                     try {
-                        createRevenueChart(incomeData, ticker, data.forward_estimates);
+                        createRevenueChart(incomeData, ticker, forwardEstimates);
                     } catch (e) {
                         console.error('❌ Error creating revenue chart:', e);
                     }
                     try {
-                        createEPSChart(incomeData, ticker, data.forward_estimates);
+                        createEPSChart(incomeData, ticker, forwardEstimates);
                     } catch (e) {
                         console.error('❌ Error creating EPS chart:', e);
                     }
@@ -20816,7 +20856,8 @@
                 }
                 
                 // Add future quarters from forward_estimates if available
-                if (forwardEstimates && forwardEstimates.revenue) {
+                // CRITICAL: Ensure forwardEstimates.revenue exists and has data
+                if (forwardEstimates && forwardEstimates.revenue && Object.keys(forwardEstimates.revenue).length > 0) {
                     const now = new Date();
                     const currentYear = now.getFullYear();
                     const currentMonth = now.getMonth() + 1;
@@ -20825,11 +20866,16 @@
                     const futureRevenueEstimates = forwardEstimates.revenue;
                     const futureQuarters = Object.keys(futureRevenueEstimates)
                         .filter(quarter => {
-                            if (!quarter.includes('-Q')) return false;
-                            const [year, q] = quarter.split('-Q');
-                            const quarterYear = parseInt(year);
-                            const quarterNum = parseInt(q);
-                            return quarterYear > currentYear || (quarterYear === currentYear && quarterNum > currentQuarter);
+                            if (!quarter || !quarter.includes('-Q')) return false;
+                            try {
+                                const [year, q] = quarter.split('-Q');
+                                const quarterYear = parseInt(year);
+                                const quarterNum = parseInt(q);
+                                if (isNaN(quarterYear) || isNaN(quarterNum)) return false;
+                                return quarterYear > currentYear || (quarterYear === currentYear && quarterNum > currentQuarter);
+                            } catch (e) {
+                                return false;
+                            }
                         })
                         .sort()
                         .slice(0, 4); // Next 4 future quarters
@@ -20837,7 +20883,8 @@
                     // Add future quarters to chart
                     futureQuarters.forEach(quarter => {
                         const revenueEst = futureRevenueEstimates[quarter];
-                        if (revenueEst !== null && revenueEst !== undefined && !isNaN(revenueEst) && revenueEst > 0) {
+                        // Validate revenue estimate value
+                        if (revenueEst !== null && revenueEst !== undefined && !isNaN(revenueEst) && isFinite(revenueEst) && revenueEst > 0) {
                             // Format quarter label
                             const [year, q] = quarter.split('-Q');
                             const quarterLabel = `Q${q} '${year.slice(-2)}`;
@@ -21945,6 +21992,17 @@
             const ctx = document.getElementById('epsChart');
             if (!ctx) return;
             
+            // Validate and normalize forwardEstimates
+            if (!forwardEstimates) {
+                forwardEstimates = { revenue: {}, eps: {} };
+            }
+            if (!forwardEstimates.revenue) {
+                forwardEstimates.revenue = {};
+            }
+            if (!forwardEstimates.eps) {
+                forwardEstimates.eps = {};
+            }
+            
             // Destroy existing chart if it exists
             if (window.epsChartInstance) {
                 window.epsChartInstance.destroy();
@@ -22065,7 +22123,8 @@
                 }
                 
                 // Add future quarters from forward_estimates if available
-                if (forwardEstimates && forwardEstimates.eps) {
+                // CRITICAL: Ensure forwardEstimates.eps exists and has data
+                if (forwardEstimates && forwardEstimates.eps && Object.keys(forwardEstimates.eps).length > 0) {
                     const now = new Date();
                     const currentYear = now.getFullYear();
                     const currentMonth = now.getMonth() + 1;
@@ -22074,11 +22133,16 @@
                     const futureEPSEstimates = forwardEstimates.eps;
                     const futureQuarters = Object.keys(futureEPSEstimates)
                         .filter(quarter => {
-                            if (!quarter.includes('-Q')) return false;
-                            const [year, q] = quarter.split('-Q');
-                            const quarterYear = parseInt(year);
-                            const quarterNum = parseInt(q);
-                            return quarterYear > currentYear || (quarterYear === currentYear && quarterNum > currentQuarter);
+                            if (!quarter || !quarter.includes('-Q')) return false;
+                            try {
+                                const [year, q] = quarter.split('-Q');
+                                const quarterYear = parseInt(year);
+                                const quarterNum = parseInt(q);
+                                if (isNaN(quarterYear) || isNaN(quarterNum)) return false;
+                                return quarterYear > currentYear || (quarterYear === currentYear && quarterNum > currentQuarter);
+                            } catch (e) {
+                                return false;
+                            }
                         })
                         .sort()
                         .slice(0, 4); // Next 4 future quarters
@@ -22086,7 +22150,8 @@
                     // Add future quarters to chart
                     futureQuarters.forEach(quarter => {
                         const epsEst = futureEPSEstimates[quarter];
-                        if (epsEst !== null && epsEst !== undefined && !isNaN(epsEst)) {
+                        // Validate EPS estimate value (can be negative)
+                        if (epsEst !== null && epsEst !== undefined && !isNaN(epsEst) && isFinite(epsEst)) {
                             // Format quarter label
                             const [year, q] = quarter.split('-Q');
                             const quarterLabel = `Q${q} '${year.slice(-2)}`;
