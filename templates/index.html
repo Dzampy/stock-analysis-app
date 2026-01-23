@@ -20814,7 +20814,11 @@
                 // Data from backend is newest first, so we need to match estimates by quarter string
                 
                 // Create a map of quarter -> estimate for easier lookup
+                // CRITICAL: Check both backend data (d.revenue_estimate) AND forwardEstimates.revenue
+                // This ensures estimates are available for both past and future quarters
                 const estimateMap = {};
+                
+                // First, add estimates from backend data (if available)
                 data.forEach((d, idx) => {
                     const quarter = d.quarter || d.date;
                     if (quarter && d.revenue_estimate !== null && d.revenue_estimate !== undefined && !isNaN(d.revenue_estimate) && d.revenue_estimate > 0) {
@@ -20822,7 +20826,21 @@
                     }
                 });
                 
-                // Estimate expectations: use backend estimates if available, otherwise calculate
+                // Then, add estimates from forwardEstimates.revenue (from Finviz) for ALL quarters (past and future)
+                // This is the same source used for future quarters, so we use it for past quarters too
+                if (forwardEstimates && forwardEstimates.revenue) {
+                    Object.keys(forwardEstimates.revenue).forEach(quarter => {
+                        const revenueEst = forwardEstimates.revenue[quarter];
+                        if (revenueEst !== null && revenueEst !== undefined && !isNaN(revenueEst) && revenueEst > 0) {
+                            // Backend data takes precedence, but if not available, use forwardEstimates
+                            if (!estimateMap[quarter]) {
+                                estimateMap[quarter] = revenueEst;
+                            }
+                        }
+                    });
+                }
+                
+                // Estimate expectations: use backend estimates if available, otherwise use forwardEstimates
                 // chartData is now: [oldest, ..., newest] (after reverse)
                 // We need to match estimates by quarter string, not by index
                 expectations = [];
@@ -20835,11 +20853,10 @@
                     // data is newest first, so data[data.length - 1 - i] is the i-th oldest
                     const quarterStr = data[data.length - 1 - i]?.quarter || data[data.length - 1 - i]?.date;
                     
-                    // Use backend estimate if available (lookup by quarter string)
+                    // Use estimate from map (includes both backend and forwardEstimates)
                     if (quarterStr && estimateMap[quarterStr]) {
                         estimate = estimateMap[quarterStr];
                     }
-                    // No fallback - if estimate not available, leave as null
                     
                     expectations.push(estimate);
                     
