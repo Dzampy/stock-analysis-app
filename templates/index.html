@@ -20829,7 +20829,8 @@
                 // Then, add estimates from forwardEstimates.revenue (from Finviz) for ALL quarters (past and future)
                 // This is the same source used for future quarters, so we use it for past quarters too
                 if (forwardEstimates && forwardEstimates.revenue) {
-                    Object.keys(forwardEstimates.revenue).forEach(quarter => {
+                    const forwardEstKeys = Object.keys(forwardEstimates.revenue);
+                    forwardEstKeys.forEach(quarter => {
                         const revenueEst = forwardEstimates.revenue[quarter];
                         if (revenueEst !== null && revenueEst !== undefined && !isNaN(revenueEst) && revenueEst > 0) {
                             // Backend data takes precedence, but if not available, use forwardEstimates
@@ -22100,7 +22101,11 @@
                 // chartData is now: [oldest, ..., newest] (after reverse)
                 // Get EPS estimates from backend data (if available)
                 // Create a map of quarter -> estimate for easier lookup
+                // CRITICAL: Check both backend data (d.eps_estimate) AND forwardEstimates.eps
+                // This ensures estimates are available for both past and future quarters
                 const epsEstimateMap = {};
+                
+                // First, add estimates from backend data (if available)
                 filteredData.forEach(d => {
                     const quarter = d.quarter || d.date;
                     if (quarter && d.eps_estimate !== null && d.eps_estimate !== undefined && !isNaN(d.eps_estimate) && d.eps_estimate !== 0) {
@@ -22108,7 +22113,19 @@
                     }
                 });
                 
-                console.log('EPS Estimate Map:', epsEstimateMap);
+                // Then, add estimates from forwardEstimates.eps (from Finviz) for ALL quarters (past and future)
+                // This is the same source used for future quarters, so we use it for past quarters too
+                if (forwardEstimates && forwardEstimates.eps) {
+                    Object.keys(forwardEstimates.eps).forEach(quarter => {
+                        const epsEst = forwardEstimates.eps[quarter];
+                        if (epsEst !== null && epsEst !== undefined && !isNaN(epsEst) && epsEst !== 0) {
+                            // Backend data takes precedence, but if not available, use forwardEstimates
+                            if (!epsEstimateMap[quarter]) {
+                                epsEstimateMap[quarter] = epsEst;
+                            }
+                        }
+                    });
+                }
                 
                 expectations = [];
                 beatMissed = [];
@@ -22119,11 +22136,10 @@
                     // Get quarter string from filtered data (which matches valid EPS indices)
                     const quarterStr = filteredData[i]?.quarter || filteredData[i]?.date;
                     
-                    // Use backend estimate if available (lookup by quarter string)
+                    // Use estimate from map (includes both backend and forwardEstimates)
                     if (quarterStr && epsEstimateMap[quarterStr]) {
                         estimate = epsEstimateMap[quarterStr];
                     }
-                    // No fallback - if estimate not available, leave as null
                     
                     expectations.push(estimate);
                     
