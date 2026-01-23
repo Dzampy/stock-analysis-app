@@ -20753,17 +20753,16 @@
                 return;
             }
             
-            // Check canvas dimensions
-            console.log('Canvas dimensions:', {
-                width: ctx.width,
-                height: ctx.height,
-                clientWidth: ctx.clientWidth,
-                clientHeight: ctx.clientHeight,
-                offsetWidth: ctx.offsetWidth,
-                offsetHeight: ctx.offsetHeight,
-                style: ctx.style.cssText
-            });
-            
+            // Validate and normalize forwardEstimates
+            if (!forwardEstimates) {
+                forwardEstimates = { revenue: {}, eps: {} };
+            }
+            if (!forwardEstimates.revenue) {
+                forwardEstimates.revenue = {};
+            }
+            if (!forwardEstimates.eps) {
+                forwardEstimates.eps = {};
+            }
             
             // Destroy existing chart if it exists
             if (window.revenueChartInstance) {
