@@ -13,4 +13,8 @@ services:
         sync: false
       - key: REDDIT_CLIENT_SECRET
         sync: false
+      # Optional: Redis for cache and rate-limit storage (multi-worker, persistent).
+      # Add a Redis instance in Render Dashboard and set CACHE_REDIS_URL (e.g. redis://...).
+      # - key: CACHE_REDIS_URL
+      #   sync: false
 

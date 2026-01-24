@@ -4,12 +4,23 @@ Configuration module - API keys, feature flags, constants
 import os
 from app.utils.logger import logger
 
-# Cache configuration
-CACHE_CONFIG = {
-    'CACHE_TYPE': 'simple',  # Use simple in-memory cache (can upgrade to Redis later)
-    'CACHE_DEFAULT_TIMEOUT': 300,  # Default 5 minutes
-    'CACHE_THRESHOLD': 1000,  # Maximum number of items in cache
-}
+# Cache: Redis if CACHE_REDIS_URL is set, otherwise in-memory (simple)
+_CACHE_REDIS_URL = os.getenv('CACHE_REDIS_URL', '').strip()
+if _CACHE_REDIS_URL:
+    CACHE_CONFIG = {
+        'CACHE_TYPE': 'redis',
+        'CACHE_REDIS_URL': _CACHE_REDIS_URL,
+        'CACHE_DEFAULT_TIMEOUT': 300,
+        'CACHE_KEY_PREFIX': 'stockapp_',
+    }
+    logger.info("Cache configured to use Redis")
+else:
+    CACHE_CONFIG = {
+        'CACHE_TYPE': 'simple',
+        'CACHE_DEFAULT_TIMEOUT': 300,
+        'CACHE_THRESHOLD': 1000,
+    }
+    logger.info("Cache configured to use in-memory (set CACHE_REDIS_URL for Redis)")
 
 # Cache timeouts for different data types (in seconds)
 CACHE_TIMEOUTS = {

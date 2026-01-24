@@ -88,12 +88,36 @@ def add_cache_headers(response):
             response.headers['Cache-Control'] = 'private, max-age=60'
     return response
 
-# Initialize caching
+# Initialize caching (Redis if CACHE_REDIS_URL, else in-memory)
 from flask_caching import Cache
 from app.config import CACHE_CONFIG
 cache = Cache()
-cache.init_app(app, config=CACHE_CONFIG)
-logger.info("Flask-Caching initialized with simple cache backend")
+try:
+    cache.init_app(app, config=CACHE_CONFIG)
+    _backend = CACHE_CONFIG.get('CACHE_TYPE', 'simple')
+    logger.info(f"Flask-Caching initialized: {_backend}")
+except Exception as e:
+    logger.warning(f"Flask-Caching init failed ({e}), using null cache")
+    cache.init_app(app, config={'CACHE_TYPE': 'null'})
+
+# Rate limiting (IP-based, 100/min for /api/*; index and static exempted via default)
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=['100 per minute'],
+    storage_uri=os.environ.get('CACHE_REDIS_URL') or 'memory://',
+)
+limiter.init_app(app)
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    from flask import jsonify
+    return jsonify({
+        'error': 'Too many requests',
+        'message': 'Rate limit exceeded. Please try again later.',
+        'retry_after': 60,
+    }), 429, {'Retry-After': '60', 'Content-Type': 'application/json'}
 
 # Export cache for use in services
 __all__ = ['app', 'cache']
