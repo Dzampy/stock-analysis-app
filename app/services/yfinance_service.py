@@ -717,6 +717,14 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
                             logger.debug(f"Using yfinance revenue for {ticker} {quarter_str}: {revenue_val}")
                     
                     net_income_val = float(net_income_row_q.iloc[i]) if net_income_row_q is not None and i < len(net_income_row_q) else None
+                    operating_income_val = None
+                    if operating_income_row_q is not None and i < len(operating_income_row_q):
+                        try:
+                            oi = float(operating_income_row_q.iloc[i])
+                            if oi is not None and not pd.isna(oi):
+                                operating_income_val = oi
+                        except (IndexError, ValueError, TypeError):
+                            pass
                     
                     if revenue_val is not None and not pd.isna(revenue_val):
                         # Try to get EPS from income statement
@@ -824,6 +832,7 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
                             'revenue': revenue_val,
                             'revenue_estimate': revenue_estimate,  # Analyst estimate or None
                             'net_income': net_income_val if net_income_val is not None and not pd.isna(net_income_val) else None,
+                            'operating_income': operating_income_val,
                             'eps': eps_val,
                             'eps_estimate': eps_estimate  # Analyst estimate or None
                         })
