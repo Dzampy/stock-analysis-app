@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@3.0.0/dist/chartjs-chart-treemap.min.js"></script>
     <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         :root {
@@ -4699,6 +4700,20 @@
                 </div>
             </div>
             
+            <!-- Map Group -->
+            <div class="nav-group">
+                <div class="nav-group-header" onclick="if(typeof window.toggleNavGroup === 'function') { window.toggleNavGroup('map'); } else { console.error('navigateToSection not available'); alert('Please wait, page is still loading...'); } return false;">
+                    <span class="nav-group-icon">🗺️</span>
+                    <span class="nav-group-title">Mapa</span>
+                    <span class="nav-group-chevron" id="chevron-map">▼</span>
+                </div>
+                <div class="nav-group-items" id="nav-group-map">
+                    <a href="#" class="nav-item" data-section="customMapSection" onclick="if(typeof window.navigateToSection === 'function') { window.navigateToSection('customMapSection'); } else { console.error('navigateToSection not available'); alert('Please wait, page is still loading...'); } return false;">
+                        <span>🗺️ Custom Map</span>
+                    </a>
+                </div>
+            </div>
+            
             <!-- Portfolio & Tracking Group -->
             <div class="nav-group">
                 <div class="nav-group-header" onclick="if(typeof window.toggleNavGroup === 'function') { window.toggleNavGroup('portfolio'); } else { console.error('navigateToSection not available'); alert('Please wait, page is still loading...'); } return false;">
@@ -5148,6 +5163,33 @@
                             <div style="font-size: 3em; margin-bottom: 20px;">⭐</div>
                             <p>Your watchlist is empty. Add stocks to track them here.</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Map Section -->
+        <div id="customMapSection" class="hidden">
+            <div class="card">
+                <h2>🗺️ Custom Map</h2>
+                <div class="section-description">
+                    Finviz-style treemap: tile size = market cap, color = % change (green up, red down). Enter tickers or load from your watchlist.
+                </div>
+                <div style="margin-top: 20px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px;">
+                        <textarea id="mapTickersInput" placeholder="Tickers (e.g. AAPL, MSFT, GOOGL — comma, space or newline)" rows="2" style="flex: 1; min-width: 260px; max-width: 480px; padding: 12px 16px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--bg-primary); color: var(--text-primary); font-size: 1em; resize: vertical;"></textarea>
+                        <button type="button" onclick="loadFromWatchlistIntoMap()" class="ripple-effect" style="padding: 12px 20px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">⭐ Načíst z Watchlistu</button>
+                        <select id="mapPeriod" style="padding: 12px 16px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--bg-primary); color: var(--text-primary); font-size: 1em; cursor: pointer;">
+                            <option value="1d">1 den</option>
+                            <option value="5d">5 dní</option>
+                            <option value="1m">1 měsíc</option>
+                        </select>
+                        <button type="button" onclick="loadMapData()" class="ripple-effect" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Zobrazit mapu</button>
+                    </div>
+                    <p style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 12px;">Zelená = růst, červená = pokles. Velikost = tržní kapitalizace.</p>
+                    <div id="mapChartContainer" style="min-height: 400px; height: 480px; position: relative; background: var(--glass-bg); border-radius: 12px; border: 1px solid var(--border-color);">
+                        <canvas id="mapChart" style="width: 100% !important; height: 100% !important;"></canvas>
+                        <div id="mapChartPlaceholder" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); pointer-events: none;">Zadejte tickery a klikněte na Zobrazit mapu nebo Načíst z Watchlistu.</div>
                     </div>
                 </div>
             </div>
@@ -6064,7 +6106,8 @@
             'socialSentimentSection': 'Social Sentiment',
             'settingsSection': 'Settings',
             'watchlistSection': 'Watchlist',
-            'educationSection': 'Learn'
+            'educationSection': 'Learn',
+            'customMapSection': 'Custom Map'
         };
 
         // Initialize sidebar state from localStorage
@@ -6160,7 +6203,7 @@
                 'newsSection', 'earningsCalendarSection', 'economicCalendarSection',
                 'portfolioSection', 'alertsDashboardSection', 'analystInsiderSection',
                 'aiRecommendationsSection', 'socialSentimentSection', 'settingsSection',
-                'watchlistSection', 'educationSection'
+                'watchlistSection', 'educationSection', 'customMapSection'
             ];
             
             allSections.forEach(id => {
@@ -6210,6 +6253,8 @@
                         loadEducationContent();
                         switchEducationTab('metrics');
                     }, 50);
+                } else if (sectionId === 'customMapSection') {
+                    // No special load; placeholder and chart handled by loadMapData/renderMapChart
                 } else if (sectionId === 'settingsSection') {
                     setTimeout(() => {
                         console.log('Loading settings...');
@@ -6375,7 +6420,7 @@
                 'newsSection', 'earningsCalendarSection', 'economicCalendarSection',
                 'portfolioSection', 'alertsDashboardSection', 'analystInsiderSection',
                 'aiRecommendationsSection', 'socialSentimentSection', 'settingsSection',
-                'watchlistSection', 'educationSection'
+                'watchlistSection', 'educationSection', 'customMapSection'
             ];
             allSections.forEach(id => {
                 const el = document.getElementById(id);
@@ -13883,6 +13928,142 @@
             }
             return null;
         }
+
+        // --- Custom Map (treemap) ---
+        function loadFromWatchlistIntoMap() {
+            const tickers = getAllTickers();
+            if (!tickers || tickers.length === 0) {
+                if (typeof showToast === 'function') showToast('Watchlist je prázdný.', 'info');
+                return;
+            }
+            const el = document.getElementById('mapTickersInput');
+            if (el) el.value = tickers.join(', ');
+            loadMapData();
+        }
+        window.loadFromWatchlistIntoMap = loadFromWatchlistIntoMap;
+
+        async function loadMapData() {
+            const el = document.getElementById('mapTickersInput');
+            const raw = (el && el.value) ? el.value : '';
+            const tickers = raw.split(/[\s,\n]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
+            const uniq = [...new Set(tickers)].slice(0, 80);
+
+            if (uniq.length === 0) {
+                if (typeof showToast === 'function') showToast('Přidejte alespoň jeden ticker.', 'info');
+                return;
+            }
+
+            const container = document.getElementById('mapChartContainer');
+            const placeholder = document.getElementById('mapChartPlaceholder');
+            if (placeholder) {
+                placeholder.style.display = 'flex';
+                placeholder.innerHTML = '<div class="spinner"></div><p style="margin-top: 12px;">Načítám…</p>';
+            }
+
+            try {
+                const period = (document.getElementById('mapPeriod') && document.getElementById('mapPeriod').value) || '1d';
+                const res = await fetch('/api/map/data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tickers: uniq, period: period })
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    if (placeholder) { placeholder.style.display = 'flex'; placeholder.textContent = data.error || 'Chyba načtení.'; }
+                    if (typeof showToast === 'function') showToast(data.error || 'Chyba načtení mapy', 'error');
+                    return;
+                }
+
+                const items = (data && data.items) ? data.items : [];
+                if (items.length === 0) {
+                    if (placeholder) { placeholder.style.display = 'flex'; placeholder.textContent = 'Žádná data.'; }
+                    return;
+                }
+
+                if (placeholder) placeholder.style.display = 'none';
+                renderMapChart(items);
+            } catch (e) {
+                if (placeholder) { placeholder.style.display = 'flex'; placeholder.textContent = 'Chyba: ' + (e.message || 'selhalo načtení'); }
+                if (typeof showToast === 'function') showToast('Chyba načtení mapy', 'error');
+            }
+        }
+        window.loadMapData = loadMapData;
+
+        function renderMapChart(items) {
+            const canvas = document.getElementById('mapChart');
+            if (!canvas) return;
+
+            if (window.mapChartInstance) {
+                window.mapChartInstance.destroy();
+                window.mapChartInstance = null;
+            }
+
+            const tree = items.map(i => ({
+                ticker: i.ticker,
+                name: i.name || i.ticker,
+                value: Math.max(1, i.market_cap || 1),
+                change_pct: i.change_pct
+            }));
+
+            const isDark = document.body.classList.contains('dark-mode');
+            const labelColor = isDark ? '#e5e7eb' : '#1f2937';
+
+            const cfg = {
+                type: 'treemap',
+                data: {
+                    datasets: [{
+                        tree: tree,
+                        key: 'value',
+                        spacing: 2,
+                        borderWidth: 1,
+                        borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                        backgroundColor: function(ctx) {
+                            if (ctx.type !== 'data') return 'transparent';
+                            const ch = ctx.raw && ctx.raw.change_pct;
+                            if (ch == null) return isDark ? 'rgba(128,128,128,0.5)' : 'rgba(128,128,128,0.4)';
+                            if (ch > 0) return 'rgba(16,185,129,0.75)';
+                            return 'rgba(239,68,68,0.75)';
+                        },
+                        labels: {
+                            display: true,
+                            color: labelColor,
+                            formatter: function(ctx) {
+                                const r = ctx.raw;
+                                if (!r) return '';
+                                const line2 = (r.change_pct != null) ? r.change_pct.toFixed(2) + '%' : 'N/A';
+                                return [r.ticker, line2];
+                            }
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    onClick: function(evt, elements, chart) {
+                        if (!elements || elements.length === 0) return;
+                        const el = elements[0];
+                        const raw = (el.$context && el.$context.raw) ? el.$context.raw : (chart.data.datasets[0].tree && chart.data.datasets[0].tree[el.index]);
+                        if (raw && raw.ticker) {
+                            const ti = document.getElementById('tickerInput');
+                            if (ti) ti.value = raw.ticker;
+                            if (typeof showStockAnalysis === 'function') showStockAnalysis();
+                            if (typeof searchStock === 'function') searchStock();
+                        }
+                    }
+                }
+            };
+
+            try {
+                window.mapChartInstance = new Chart(canvas, cfg);
+            } catch (err) {
+                console.error('Treemap init error:', err);
+                var ph = document.getElementById('mapChartPlaceholder');
+                if (ph) { ph.style.display = 'flex'; ph.textContent = 'Graf se nepodařilo vykreslit. (Treemap plugin?)'; }
+            }
+        }
+        window.renderMapChart = renderMapChart;
 
         function addToWatchlist(event, groupName = null) {
             if (event) {

@@ -123,7 +123,7 @@ def ratelimit_handler(e):
 __all__ = ['app', 'cache']
 
 # Register blueprints
-from app.routes import stock, financials, ai, news, analyst, screener, portfolio, search
+from app.routes import stock, financials, ai, news, analyst, screener, portfolio, search, map_routes
 app.register_blueprint(stock.bp)
 app.register_blueprint(financials.bp)
 app.register_blueprint(ai.bp)
@@ -132,6 +132,7 @@ app.register_blueprint(analyst.bp)
 app.register_blueprint(screener.bp)
 app.register_blueprint(portfolio.bp)
 app.register_blueprint(search.bp)
+app.register_blueprint(map_routes.bp)
 
 logger.info("Flask application initialized")
 
