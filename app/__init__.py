@@ -39,7 +39,7 @@ def create_app():
         return jsonify({'error': 'Too many requests', 'message': 'Rate limit exceeded.', 'retry_after': 60}), 429, {'Retry-After': '60'}
 
     # Register blueprints
-    from app.routes import stock, financials, ai, news, analyst, screener, portfolio, search
+    from app.routes import stock, financials, ai, news, analyst, screener, portfolio, search, map_routes
 
     app.register_blueprint(stock.bp)
     app.register_blueprint(financials.bp)
@@ -49,6 +49,7 @@ def create_app():
     app.register_blueprint(screener.bp)
     app.register_blueprint(portfolio.bp)
     app.register_blueprint(search.bp)
+    app.register_blueprint(map_routes.bp)
 
     # Error handlers
     @app.errorhandler(404)
