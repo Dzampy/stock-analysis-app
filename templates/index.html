@@ -14000,8 +14000,8 @@
             }
 
             const tree = items.map(i => ({
-                ticker: i.ticker,
-                name: i.name || i.ticker,
+                ticker: String(i.ticker || i.symbol || '').toUpperCase() || '?',
+                name: i.name || i.ticker || '?',
                 value: Math.max(1, i.market_cap || 1),
                 change_pct: i.change_pct
             }));
@@ -14020,7 +14020,13 @@
                         borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
                         backgroundColor: function(ctx) {
                             if (ctx.type !== 'data') return 'transparent';
-                            const ch = ctx.raw && ctx.raw.change_pct;
+                            var it = ctx.raw;
+                            if (!it || typeof it === 'number') {
+                                var t = ctx.chart?.data?.datasets?.[ctx.datasetIndex]?.tree;
+                                var idx = ctx.dataIndex ?? ctx.index;
+                                if (Array.isArray(t) && typeof idx === 'number') it = t[idx];
+                            }
+                            var ch = it && it.change_pct;
                             if (ch == null) return isDark ? 'rgba(128,128,128,0.5)' : 'rgba(128,128,128,0.4)';
                             if (ch > 0) return 'rgba(16,185,129,0.75)';
                             return 'rgba(239,68,68,0.75)';
@@ -14029,10 +14035,17 @@
                             display: true,
                             color: labelColor,
                             formatter: function(ctx) {
-                                const r = ctx.raw;
-                                if (!r) return '';
-                                const line2 = (r.change_pct != null) ? r.change_pct.toFixed(2) + '%' : 'N/A';
-                                return [r.ticker, line2];
+                                if (ctx.type !== 'data') return '';
+                                var it = ctx.raw;
+                                if (!it || typeof it === 'number' || (it.ticker == null && it.name == null)) {
+                                    var t = ctx.chart?.data?.datasets?.[ctx.datasetIndex]?.tree;
+                                    var idx = ctx.dataIndex ?? ctx.index;
+                                    if (Array.isArray(t) && typeof idx === 'number') it = t[idx];
+                                }
+                                if (!it) return '';
+                                var ticker = String(it.ticker || it.name || '').trim() || '?';
+                                var line2 = (it.change_pct != null) ? it.change_pct.toFixed(2) + '%' : 'N/A';
+                                return [ticker, line2];
                             }
                         }
                     }]
@@ -14040,14 +14053,45 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    var it = tooltipItems[0]?.raw;
+                                    if (!it || typeof it === 'number') {
+                                        var ch = tooltipItems[0]?.chart?.data?.datasets?.[tooltipItems[0]?.datasetIndex]?.tree;
+                                        var idx = tooltipItems[0]?.dataIndex ?? tooltipItems[0]?.index;
+                                        if (Array.isArray(ch) && typeof idx === 'number') it = ch[idx];
+                                    }
+                                    return (it && (it.ticker || it.name)) ? String(it.ticker || it.name) : '';
+                                },
+                                label: function(ctx) {
+                                    var it = ctx.raw;
+                                    if (!it || typeof it === 'number') {
+                                        var tr = ctx.chart?.data?.datasets?.[ctx.datasetIndex]?.tree;
+                                        var i = ctx.dataIndex ?? ctx.index;
+                                        if (Array.isArray(tr) && typeof i === 'number') it = tr[i];
+                                    }
+                                    if (!it) return '';
+                                    var parts = [];
+                                    if (it.change_pct != null) parts.push('Změna: ' + (it.change_pct >= 0 ? '+' : '') + it.change_pct.toFixed(2) + '%');
+                                    var v = it.value != null ? it.value : (it.market_cap);
+                                    if (v != null && typeof formatMarketCap === 'function') parts.push('Market cap: ' + formatMarketCap(v));
+                                    return parts.length ? parts : ['—'];
+                                }
+                            }
+                        }
+                    },
                     onClick: function(evt, elements, chart) {
                         if (!elements || elements.length === 0) return;
-                        const el = elements[0];
-                        const raw = (el.$context && el.$context.raw) ? el.$context.raw : (chart.data.datasets[0].tree && chart.data.datasets[0].tree[el.index]);
-                        if (raw && raw.ticker) {
-                            const ti = document.getElementById('tickerInput');
-                            if (ti) ti.value = raw.ticker;
+                        var el = elements[0];
+                        var raw = (el.$context && el.$context.raw) ? el.$context.raw : (chart.data.datasets[0].tree && chart.data.datasets[0].tree[el.index]);
+                        if (!raw || typeof raw === 'number') raw = (chart.data.datasets[0].tree && chart.data.datasets[0].tree[el.index]);
+                        var ticker = raw && (raw.ticker || raw.name);
+                        if (ticker) {
+                            var ti = document.getElementById('tickerInput');
+                            if (ti) ti.value = String(ticker).toUpperCase();
                             if (typeof showStockAnalysis === 'function') showStockAnalysis();
                             if (typeof searchStock === 'function') searchStock();
                         }
