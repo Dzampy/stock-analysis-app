@@ -14026,7 +14026,17 @@
                         spacing: 2,
                         borderWidth: 1,
                         borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
-                        backgroundColor: tree.map(function(t){ return t._bg; }),
+                        backgroundColor: function(ctx) {
+                            if (ctx.type !== 'data') return grayColor;
+                            var it = ctx.raw;
+                            if (!it || typeof it === 'number') {
+                                var t = ctx.chart?.data?.datasets?.[ctx.datasetIndex]?.tree;
+                                var idx = ctx.dataIndex ?? ctx.index;
+                                if (Array.isArray(t) && typeof idx === 'number') it = t[idx];
+                            }
+                            var bg = (it && it._bg) || (it && it._data && it._data._bg);
+                            return bg || grayColor;
+                        },
                         labels: {
                             display: true,
                             color: labelColor,
