@@ -14029,12 +14029,18 @@
                         backgroundColor: function(ctx) {
                             if (ctx.type !== 'data') return 'transparent';
                             var it = ctx.raw;
+                            var tr = ctx.chart?.data?.datasets?.[ctx.datasetIndex]?.tree;
                             if (!it || typeof it === 'number') {
-                                var tr = ctx.chart?.data?.datasets?.[ctx.datasetIndex]?.tree;
                                 var idx = ctx.dataIndex ?? ctx.index;
+                                var r = ctx.raw;
                                 if (Array.isArray(tr) && typeof idx === 'number') it = tr[idx];
+                                else if (Array.isArray(tr) && typeof r === 'number') it = tr.find(function(x){ return typeof x === 'object' && x != null && Math.abs((x.value || 0) - r) < 0.01; });
                             }
-                            return (it && it._bg) ? it._bg : grayColor;
+                            if (!it || typeof it === 'number') return grayColor;
+                            var ch = it.change_pct;
+                            if (ch != null) return ch > 0 ? 'rgba(16,185,129,0.75)' : 'rgba(239,68,68,0.75)';
+                            if (it._bg) return it._bg;
+                            return grayColor;
                         },
                         labels: {
                             display: true,
