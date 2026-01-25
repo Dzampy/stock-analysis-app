@@ -5186,7 +5186,7 @@
                         </select>
                         <button type="button" onclick="loadMapData()" class="ripple-effect" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Zobrazit mapu</button>
                     </div>
-                    <p style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 12px;">Zelená = růst, červená = pokles. Velikost = tržní kapitalizace.</p>
+                    <p style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 12px;">Zelená = růst, červená = pokles, šedá = N/A. Velikost ∝ log(market cap), aby byly vidět i menší akcie.</p>
                     <div id="mapChartContainer" style="min-height: 400px; height: 480px; position: relative; background: var(--glass-bg); border-radius: 12px; border: 1px solid var(--border-color);">
                         <canvas id="mapChart" style="width: 100% !important; height: 100% !important;"></canvas>
                         <div id="mapChartPlaceholder" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); pointer-events: none;">Zadejte tickery a klikněte na Zobrazit mapu nebo Načíst z Watchlistu.</div>
@@ -13999,15 +13999,23 @@
                 window.mapChartInstance = null;
             }
 
-            const tree = items.map(i => ({
-                ticker: String(i.ticker || i.symbol || '').toUpperCase() || '?',
-                name: i.name || i.ticker || '?',
-                value: Math.max(1, i.market_cap || 1),
-                change_pct: i.change_pct
-            }));
-
             const isDark = document.body.classList.contains('dark-mode');
             const labelColor = isDark ? '#e5e7eb' : '#1f2937';
+            const grayColor = isDark ? 'rgba(128,128,128,0.5)' : 'rgba(128,128,128,0.4)';
+
+            const tree = items.map(i => {
+                var ch = i.change_pct;
+                var bg = (ch == null) ? grayColor : (ch > 0 ? 'rgba(16,185,129,0.75)' : 'rgba(239,68,68,0.75)');
+                var cap = Math.max(1, Number(i.market_cap) || 1);
+                return {
+                    ticker: String(i.ticker || i.symbol || '').toUpperCase() || '?',
+                    name: i.name || i.ticker || '?',
+                    value: Math.max(0.5, Math.log10(cap)),
+                    change_pct: i.change_pct,
+                    _bg: bg,
+                    _cap: cap
+                };
+            });
 
             const cfg = {
                 type: 'treemap',
@@ -14022,14 +14030,11 @@
                             if (ctx.type !== 'data') return 'transparent';
                             var it = ctx.raw;
                             if (!it || typeof it === 'number') {
-                                var t = ctx.chart?.data?.datasets?.[ctx.datasetIndex]?.tree;
+                                var tr = ctx.chart?.data?.datasets?.[ctx.datasetIndex]?.tree;
                                 var idx = ctx.dataIndex ?? ctx.index;
-                                if (Array.isArray(t) && typeof idx === 'number') it = t[idx];
+                                if (Array.isArray(tr) && typeof idx === 'number') it = tr[idx];
                             }
-                            var ch = it && it.change_pct;
-                            if (ch == null) return isDark ? 'rgba(128,128,128,0.5)' : 'rgba(128,128,128,0.4)';
-                            if (ch > 0) return 'rgba(16,185,129,0.75)';
-                            return 'rgba(239,68,68,0.75)';
+                            return (it && it._bg) ? it._bg : grayColor;
                         },
                         labels: {
                             display: true,
@@ -14076,7 +14081,7 @@
                                     if (!it) return '';
                                     var parts = [];
                                     if (it.change_pct != null) parts.push('Změna: ' + (it.change_pct >= 0 ? '+' : '') + it.change_pct.toFixed(2) + '%');
-                                    var v = it.value != null ? it.value : (it.market_cap);
+                                    var v = (it._cap != null) ? it._cap : (it.market_cap);
                                     if (v != null && typeof formatMarketCap === 'function') parts.push('Market cap: ' + formatMarketCap(v));
                                     return parts.length ? parts : ['—'];
                                 }
