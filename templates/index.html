@@ -5182,15 +5182,74 @@
                         <select id="mapPeriod" style="padding: 12px 16px; border: 2px solid var(--border-color); border-radius: 10px; background: var(--bg-primary); color: var(--text-primary); font-size: 1em; cursor: pointer;">
                             <option value="1d">1 den</option>
                             <option value="5d">5 dní</option>
+                            <option value="1w">1 týden</option>
                             <option value="1m">1 měsíc</option>
+                            <option value="3m">3 měsíce</option>
+                            <option value="6m">6 měsíců</option>
+                            <option value="1y">1 rok</option>
+                            <option value="ytd">YTD</option>
                         </select>
                         <button type="button" onclick="loadMapData()" class="ripple-effect" style="padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">Zobrazit mapu</button>
                     </div>
-                    <p style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 12px;">Zelená = růst, červená = pokles, šedá = N/A. Velikost ∝ log(market cap), aby byly vidět i menší akcie.</p>
-                    <div id="mapChartContainer" style="min-height: 400px; height: 480px; position: relative; background: var(--glass-bg); border-radius: 12px; border: 1px solid var(--border-color);">
-                        <canvas id="mapChart" style="width: 100% !important; height: 100% !important;"></canvas>
+                    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <label style="font-size: 0.9em; color: var(--text-secondary);">Filtr:</label>
+                            <select id="mapFilter" style="padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.9em; cursor: pointer;">
+                                <option value="all">Vše</option>
+                                <option value="gainers">Růst</option>
+                                <option value="losers">Pokles</option>
+                                <option value="na">N/A</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <label style="font-size: 0.9em; color: var(--text-secondary);">Sort:</label>
+                            <select id="mapSort" style="padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.9em; cursor: pointer;">
+                                <option value="marketcap">Market Cap</option>
+                                <option value="change">Změna %</option>
+                                <option value="ticker">Ticker</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <label style="font-size: 0.9em; color: var(--text-secondary);">Zobrazit:</label>
+                            <select id="mapDisplayMode" style="padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.9em; cursor: pointer;">
+                                <option value="ticker">Ticker</option>
+                                <option value="name">Název</option>
+                            </select>
+                        </div>
+                        <button type="button" onclick="saveMapPreset()" class="ripple-effect" style="padding: 8px 16px; background: var(--bg-secondary); color: var(--text-primary); border: 2px solid var(--border-color); border-radius: 8px; font-size: 0.9em; cursor: pointer;">💾 Uložit preset</button>
+                        <select id="mapPresetSelect" onchange="loadMapPreset()" style="padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.9em; cursor: pointer;">
+                            <option value="">Načíst preset...</option>
+                        </select>
+                        <button type="button" onclick="exportMapAsPNG()" class="ripple-effect" style="padding: 8px 16px; background: var(--bg-secondary); color: var(--text-primary); border: 2px solid var(--border-color); border-radius: 8px; font-size: 0.9em; cursor: pointer;">📥 Export PNG</button>
+                        <button type="button" onclick="copyMapTickers()" class="ripple-effect" style="padding: 8px 16px; background: var(--bg-secondary); color: var(--text-primary); border: 2px solid var(--border-color); border-radius: 8px; font-size: 0.9em; cursor: pointer;">📋 Kopírovat tickery</button>
+                    </div>
+                    <div id="mapStatistics" style="display: none; margin-bottom: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.9em;">
+                            <div><strong>Průměrná změna:</strong> <span id="mapAvgChange">—</span></div>
+                            <div><strong>Zelené:</strong> <span id="mapGainers">—</span></div>
+                            <div><strong>Červené:</strong> <span id="mapLosers">—</span></div>
+                            <div><strong>Top gainer:</strong> <span id="mapTopGainer">—</span></div>
+                            <div><strong>Top loser:</strong> <span id="mapTopLoser">—</span></div>
+                        </div>
+                    </div>
+                    <div id="mapFailedTickers" style="display: none; margin-bottom: 12px; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3);">
+                        <p style="font-size: 0.9em; color: #ef4444; margin: 0 0 8px 0;"><strong>⚠️ Nepodařilo se načíst:</strong></p>
+                        <div id="mapFailedTickersList" style="font-size: 0.85em; color: var(--text-secondary);"></div>
+                    </div>
+                    <p style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 12px;">Zelená = růst, červená = pokles, šedá = N/A. Intenzita barvy = velikost změny. Velikost ∝ log(market cap), aby byly vidět i menší akcie.</p>
+                    <div id="mapChartContainer" style="min-height: 400px; height: 480px; position: relative; background: var(--glass-bg); border-radius: 12px; border: 1px solid var(--border-color); transition: opacity 0.3s ease;">
+                        <canvas id="mapChart" style="width: 100% !important; height: 100% !important; transition: opacity 0.3s ease;"></canvas>
                         <div id="mapChartPlaceholder" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); pointer-events: none;">Zadejte tickery a klikněte na Zobrazit mapu nebo Načíst z Watchlistu.</div>
                     </div>
+                    <style>
+                        #mapChartContainer canvas {
+                            animation: fadeIn 0.3s ease-in;
+                        }
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                    </style>
                 </div>
             </div>
         </div>
@@ -13942,6 +14001,9 @@
         }
         window.loadFromWatchlistIntoMap = loadFromWatchlistIntoMap;
 
+        // Store current map data for filtering/sorting
+        window.currentMapData = null;
+
         async function loadMapData() {
             const el = document.getElementById('mapTickersInput');
             const raw = (el && el.value) ? el.value : '';
@@ -13960,6 +14022,12 @@
                 placeholder.innerHTML = '<div class="spinner"></div><p style="margin-top: 12px;">Načítám…</p>';
             }
 
+            // Hide statistics and failed tickers initially
+            const statsDiv = document.getElementById('mapStatistics');
+            const failedDiv = document.getElementById('mapFailedTickers');
+            if (statsDiv) statsDiv.style.display = 'none';
+            if (failedDiv) failedDiv.style.display = 'none';
+
             try {
                 const period = (document.getElementById('mapPeriod') && document.getElementById('mapPeriod').value) || '1d';
                 const res = await fetch('/api/map/data', {
@@ -13976,19 +14044,72 @@
                 }
 
                 const items = (data && data.items) ? data.items : [];
+                const failedTickers = (data && data.failed_tickers) ? data.failed_tickers : [];
+                
                 if (items.length === 0) {
                     if (placeholder) { placeholder.style.display = 'flex'; placeholder.textContent = 'Žádná data.'; }
                     return;
                 }
 
+                // Store data for filtering/sorting
+                window.currentMapData = items;
+
+                // Show failed tickers if any
+                if (failedTickers.length > 0) {
+                    const failedList = document.getElementById('mapFailedTickersList');
+                    if (failedList && failedDiv) {
+                        failedList.textContent = failedTickers.join(', ');
+                        failedDiv.style.display = 'block';
+                    }
+                } else if (failedDiv) {
+                    failedDiv.style.display = 'none';
+                }
+
                 if (placeholder) placeholder.style.display = 'none';
                 renderMapChart(items);
+                updateMapStatistics(items);
+                refreshMapPresets();
             } catch (e) {
                 if (placeholder) { placeholder.style.display = 'flex'; placeholder.textContent = 'Chyba: ' + (e.message || 'selhalo načtení'); }
                 if (typeof showToast === 'function') showToast('Chyba načtení mapy', 'error');
             }
         }
         window.loadMapData = loadMapData;
+
+        // Calculate gradient color based on change percentage
+        function calculateGradientColor(change_pct, isDark) {
+            const grayColor = isDark ? 'rgba(128,128,128,0.5)' : 'rgba(128,128,128,0.4)';
+            if (change_pct == null || change_pct === undefined) return grayColor;
+            
+            const absChange = Math.abs(change_pct);
+            // Intensity: 0.3 (min) to 0.9 (max), max at 15% change
+            const intensity = Math.min(0.9, Math.max(0.3, 0.3 + (absChange / 15) * 0.6));
+            
+            if (change_pct > 0) {
+                // Green: rgba(16,185,129, intensity)
+                return `rgba(16,185,129,${intensity})`;
+            } else {
+                // Red: rgba(239,68,68, intensity)
+                return `rgba(239,68,68,${intensity})`;
+            }
+        }
+
+        // Calculate text color based on background brightness
+        function getTextColorForBackground(bgColor, isDark) {
+            // Extract RGB from rgba string
+            const match = bgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+            if (!match) return isDark ? '#e5e7eb' : '#1f2937';
+            
+            const r = parseInt(match[1]);
+            const g = parseInt(match[2]);
+            const b = parseInt(match[3]);
+            
+            // Calculate brightness (0-255)
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            
+            // Use white text on dark backgrounds, black on light
+            return brightness > 128 ? '#1f2937' : '#ffffff';
+        }
 
         function renderMapChart(items) {
             const canvas = document.getElementById('mapChart');
@@ -14000,12 +14121,36 @@
             }
 
             const isDark = document.body.classList.contains('dark-mode');
-            const labelColor = isDark ? '#e5e7eb' : '#1f2937';
             const grayColor = isDark ? 'rgba(128,128,128,0.5)' : 'rgba(128,128,128,0.4)';
 
-            const tree = items.map(i => {
+            // Apply filtering
+            let filteredItems = [...items];
+            const filterType = document.getElementById('mapFilter')?.value || 'all';
+            if (filterType === 'gainers') {
+                filteredItems = filteredItems.filter(i => i.change_pct != null && i.change_pct > 0);
+            } else if (filterType === 'losers') {
+                filteredItems = filteredItems.filter(i => i.change_pct != null && i.change_pct < 0);
+            } else if (filterType === 'na') {
+                filteredItems = filteredItems.filter(i => i.change_pct == null || i.change_pct === undefined);
+            }
+
+            // Apply sorting
+            const sortBy = document.getElementById('mapSort')?.value || 'marketcap';
+            if (sortBy === 'change') {
+                filteredItems.sort((a, b) => (b.change_pct || 0) - (a.change_pct || 0));
+            } else if (sortBy === 'ticker') {
+                filteredItems.sort((a, b) => (a.ticker || '').localeCompare(b.ticker || ''));
+            } else {
+                // Market cap (default) - already sorted by backend, but re-sort to be sure
+                filteredItems.sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
+            }
+
+            // Get display mode
+            const displayMode = document.getElementById('mapDisplayMode')?.value || 'ticker';
+
+            const tree = filteredItems.map(i => {
                 var ch = i.change_pct;
-                var bg = (ch == null) ? grayColor : (ch > 0 ? 'rgba(16,185,129,0.75)' : 'rgba(239,68,68,0.75)');
+                var bg = calculateGradientColor(ch, isDark);
                 var cap = Math.max(1, Number(i.market_cap) || 1);
                 return {
                     ticker: String(i.ticker || i.symbol || '').toUpperCase() || '?',
@@ -14013,7 +14158,12 @@
                     value: Math.max(0.5, Math.log10(cap)),
                     change_pct: i.change_pct,
                     _bg: bg,
-                    _cap: cap
+                    _cap: cap,
+                    sector: i.sector,
+                    industry: i.industry,
+                    volume: i.volume,
+                    pe_ratio: i.pe_ratio,
+                    _displayMode: displayMode
                 };
             });
 
@@ -14026,6 +14176,7 @@
                         spacing: 2,
                         borderWidth: 1,
                         borderColor: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)',
+                        borderRadius: 4,
                         backgroundColor: function(ctx) {
                             if (ctx.type !== 'data') return grayColor;
                             var it = ctx.raw;
@@ -14039,7 +14190,17 @@
                         },
                         labels: {
                             display: true,
-                            color: labelColor,
+                            color: function(ctx) {
+                                if (ctx.type !== 'data') return isDark ? '#e5e7eb' : '#1f2937';
+                                var it = ctx.raw;
+                                if (!it || typeof it === 'number') {
+                                    var t = ctx.chart?.data?.datasets?.[ctx.datasetIndex]?.tree;
+                                    var idx = ctx.dataIndex ?? ctx.index;
+                                    if (Array.isArray(t) && typeof idx === 'number') it = t[idx];
+                                }
+                                if (!it || !it._bg) return isDark ? '#e5e7eb' : '#1f2937';
+                                return getTextColorForBackground(it._bg, isDark);
+                            },
                             formatter: function(ctx) {
                                 if (ctx.type !== 'data') return '';
                                 var it = ctx.raw;
@@ -14049,9 +14210,10 @@
                                     if (Array.isArray(t) && typeof idx === 'number') it = t[idx];
                                 }
                                 if (!it) return '';
-                                var ticker = String(it.ticker || it.name || '').trim() || '?';
+                                var displayMode = it._displayMode || 'ticker';
+                                var line1 = displayMode === 'name' ? (it.name || it.ticker || '?') : (it.ticker || '?');
                                 var line2 = (it.change_pct != null) ? it.change_pct.toFixed(2) + '%' : 'N/A';
-                                return [ticker, line2];
+                                return [line1, line2];
                             }
                         }
                     }]
@@ -14070,7 +14232,10 @@
                                         var idx = tooltipItems[0]?.dataIndex ?? tooltipItems[0]?.index;
                                         if (Array.isArray(ch) && typeof idx === 'number') it = ch[idx];
                                     }
-                                    return (it && (it.ticker || it.name)) ? String(it.ticker || it.name) : '';
+                                    if (!it) return '';
+                                    var name = it.name || it.ticker || '';
+                                    var ticker = it.ticker || '';
+                                    return name !== ticker ? name + ' (' + ticker + ')' : ticker;
                                 },
                                 label: function(ctx) {
                                     var it = ctx.raw;
@@ -14084,6 +14249,10 @@
                                     if (it.change_pct != null) parts.push('Změna: ' + (it.change_pct >= 0 ? '+' : '') + it.change_pct.toFixed(2) + '%');
                                     var v = (it._cap != null) ? it._cap : (it.market_cap);
                                     if (v != null && typeof formatMarketCap === 'function') parts.push('Market cap: ' + formatMarketCap(v));
+                                    if (it.sector) parts.push('Sector: ' + it.sector);
+                                    if (it.industry) parts.push('Industry: ' + it.industry);
+                                    if (it.volume != null && typeof formatNumber === 'function') parts.push('Volume: ' + formatNumber(it.volume));
+                                    if (it.pe_ratio != null) parts.push('P/E: ' + it.pe_ratio.toFixed(2));
                                     return parts.length ? parts : ['—'];
                                 }
                             }
@@ -14114,6 +14283,211 @@
             }
         }
         window.renderMapChart = renderMapChart;
+
+        // Update statistics
+        function updateMapStatistics(items) {
+            const statsDiv = document.getElementById('mapStatistics');
+            if (!statsDiv || !items || items.length === 0) {
+                if (statsDiv) statsDiv.style.display = 'none';
+                return;
+            }
+
+            const validChanges = items.filter(i => i.change_pct != null).map(i => i.change_pct);
+            const avgChange = validChanges.length > 0 
+                ? (validChanges.reduce((a, b) => a + b, 0) / validChanges.length).toFixed(2)
+                : 'N/A';
+            
+            const gainers = items.filter(i => i.change_pct != null && i.change_pct > 0).length;
+            const losers = items.filter(i => i.change_pct != null && i.change_pct < 0).length;
+            
+            const topGainer = items.reduce((max, item) => {
+                if (item.change_pct != null && (max.change_pct == null || item.change_pct > max.change_pct)) {
+                    return item;
+                }
+                return max;
+            }, { ticker: 'N/A', change_pct: null });
+            
+            const topLoser = items.reduce((min, item) => {
+                if (item.change_pct != null && (min.change_pct == null || item.change_pct < min.change_pct)) {
+                    return item;
+                }
+                return min;
+            }, { ticker: 'N/A', change_pct: null });
+
+            document.getElementById('mapAvgChange').textContent = avgChange === 'N/A' ? 'N/A' : (avgChange >= 0 ? '+' : '') + avgChange + '%';
+            document.getElementById('mapGainers').textContent = gainers;
+            document.getElementById('mapLosers').textContent = losers;
+            document.getElementById('mapTopGainer').textContent = topGainer.change_pct != null 
+                ? topGainer.ticker + ' (' + (topGainer.change_pct >= 0 ? '+' : '') + topGainer.change_pct.toFixed(2) + '%)'
+                : 'N/A';
+            document.getElementById('mapTopLoser').textContent = topLoser.change_pct != null
+                ? topLoser.ticker + ' (' + (topLoser.change_pct >= 0 ? '+' : '') + topLoser.change_pct.toFixed(2) + '%)'
+                : 'N/A';
+            
+            statsDiv.style.display = 'block';
+        }
+
+        // Preset management
+        function saveMapPreset() {
+            const tickersInput = document.getElementById('mapTickersInput');
+            const periodSelect = document.getElementById('mapPeriod');
+            if (!tickersInput || !periodSelect) return;
+
+            const tickers = tickersInput.value.trim();
+            const period = periodSelect.value;
+            
+            if (!tickers) {
+                if (typeof showToast === 'function') showToast('Zadejte tickery pro uložení presetu.', 'info');
+                return;
+            }
+
+            const presetName = prompt('Název presetu:');
+            if (!presetName || !presetName.trim()) return;
+
+            const presets = JSON.parse(localStorage.getItem('mapPresets') || '{}');
+            presets[presetName.trim()] = { tickers: tickers, period: period };
+            localStorage.setItem('mapPresets', JSON.stringify(presets));
+            
+            if (typeof showToast === 'function') showToast('Preset uložen.', 'success');
+            refreshMapPresets();
+        }
+
+        function loadMapPreset() {
+            const select = document.getElementById('mapPresetSelect');
+            if (!select || !select.value) return;
+
+            const presets = JSON.parse(localStorage.getItem('mapPresets') || '{}');
+            const preset = presets[select.value];
+            
+            if (!preset) return;
+
+            const tickersInput = document.getElementById('mapTickersInput');
+            const periodSelect = document.getElementById('mapPeriod');
+            
+            if (tickersInput) tickersInput.value = preset.tickers || '';
+            if (periodSelect) periodSelect.value = preset.period || '1d';
+            
+            // Reset select to show placeholder
+            select.value = '';
+            
+            // Auto-load if data exists
+            if (preset.tickers) {
+                loadMapData();
+            }
+        }
+
+        function refreshMapPresets() {
+            const select = document.getElementById('mapPresetSelect');
+            if (!select) return;
+
+            const presets = JSON.parse(localStorage.getItem('mapPresets') || '{}');
+            const currentValue = select.value;
+            
+            // Clear existing options except placeholder
+            select.innerHTML = '<option value="">Načíst preset...</option>';
+            
+            // Add presets
+            Object.keys(presets).sort().forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+            
+            // Restore selection if still valid
+            if (currentValue && presets[currentValue]) {
+                select.value = currentValue;
+            }
+        }
+
+        // Export functions
+        function exportMapAsPNG() {
+            if (!window.mapChartInstance) {
+                if (typeof showToast === 'function') showToast('Nejdříve načtěte mapu.', 'info');
+                return;
+            }
+
+            try {
+                const url = window.mapChartInstance.toBase64Image();
+                const link = document.createElement('a');
+                link.download = 'treemap-' + new Date().toISOString().split('T')[0] + '.png';
+                link.href = url;
+                link.click();
+                if (typeof showToast === 'function') showToast('Mapa exportována.', 'success');
+            } catch (e) {
+                console.error('Export error:', e);
+                if (typeof showToast === 'function') showToast('Chyba při exportu.', 'error');
+            }
+        }
+
+        function copyMapTickers() {
+            const tickersInput = document.getElementById('mapTickersInput');
+            if (!tickersInput || !tickersInput.value.trim()) {
+                if (typeof showToast === 'function') showToast('Žádné tickery ke zkopírování.', 'info');
+                return;
+            }
+
+            navigator.clipboard.writeText(tickersInput.value.trim()).then(() => {
+                if (typeof showToast === 'function') showToast('Tickery zkopírovány do schránky.', 'success');
+            }).catch(() => {
+                if (typeof showToast === 'function') showToast('Chyba při kopírování.', 'error');
+            });
+        }
+
+        // Export functions to window
+        window.saveMapPreset = saveMapPreset;
+        window.loadMapPreset = loadMapPreset;
+        window.refreshMapPresets = refreshMapPresets;
+        window.exportMapAsPNG = exportMapAsPNG;
+        window.copyMapTickers = copyMapTickers;
+        window.updateMapStatistics = updateMapStatistics;
+        window.calculateGradientColor = calculateGradientColor;
+        window.getTextColorForBackground = getTextColorForBackground;
+
+        // Initialize presets on page load
+        if (typeof document !== 'undefined') {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function() {
+                    refreshMapPresets();
+                    setupMapEventListeners();
+                });
+            } else {
+                refreshMapPresets();
+                setupMapEventListeners();
+            }
+        }
+
+        // Event listeners for filter/sort/display mode changes
+        function setupMapEventListeners() {
+            const filterSelect = document.getElementById('mapFilter');
+            const sortSelect = document.getElementById('mapSort');
+            const displaySelect = document.getElementById('mapDisplayMode');
+            
+            if (filterSelect) {
+                filterSelect.addEventListener('change', function() {
+                    if (window.currentMapData) {
+                        renderMapChart(window.currentMapData);
+                        updateMapStatistics(window.currentMapData);
+                    }
+                });
+            }
+            
+            if (sortSelect) {
+                sortSelect.addEventListener('change', function() {
+                    if (window.currentMapData) {
+                        renderMapChart(window.currentMapData);
+                    }
+                });
+            }
+            
+            if (displaySelect) {
+                displaySelect.addEventListener('change', function() {
+                    if (window.currentMapData) {
+                        renderMapChart(window.currentMapData);
+                    }
+                });
+            }
+        }
 
         function addToWatchlist(event, groupName = null) {
             if (event) {
