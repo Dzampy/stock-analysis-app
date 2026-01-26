@@ -5203,13 +5203,13 @@
                         </div>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <label style="font-size: 0.9em; color: var(--text-secondary);">Sektor:</label>
-                            <select id="mapSectorFilter" multiple style="padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.9em; cursor: pointer; min-width: 150px; max-height: 100px;">
+                            <select id="mapSectorFilter" style="padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.9em; cursor: pointer; min-width: 150px;">
                                 <option value="">Všechny sektory</option>
                             </select>
                         </div>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <label style="font-size: 0.9em; color: var(--text-secondary);">Industry:</label>
-                            <select id="mapIndustryFilter" multiple style="padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.9em; cursor: pointer; min-width: 150px; max-height: 100px;">
+                            <select id="mapIndustryFilter" style="padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.9em; cursor: pointer; min-width: 150px;">
                                 <option value="">Všechny industries</option>
                             </select>
                         </div>
@@ -14171,19 +14171,19 @@
 
             // Apply sector filtering
             const sectorSelect = document.getElementById('mapSectorFilter');
-            if (sectorSelect) {
-                const selectedSectors = Array.from(sectorSelect.selectedOptions).map(opt => opt.value).filter(Boolean);
-                if (selectedSectors.length > 0) {
-                    filteredItems = filteredItems.filter(i => i.sector && selectedSectors.includes(i.sector));
+            if (sectorSelect && sectorSelect.value) {
+                const selectedSector = sectorSelect.value;
+                if (selectedSector) {
+                    filteredItems = filteredItems.filter(i => i.sector && i.sector === selectedSector);
                 }
             }
 
             // Apply industry filtering
             const industrySelect = document.getElementById('mapIndustryFilter');
-            if (industrySelect) {
-                const selectedIndustries = Array.from(industrySelect.selectedOptions).map(opt => opt.value).filter(Boolean);
-                if (selectedIndustries.length > 0) {
-                    filteredItems = filteredItems.filter(i => i.industry && selectedIndustries.includes(i.industry));
+            if (industrySelect && industrySelect.value) {
+                const selectedIndustry = industrySelect.value;
+                if (selectedIndustry) {
+                    filteredItems = filteredItems.filter(i => i.industry && i.industry === selectedIndustry);
                 }
             }
 
@@ -14503,34 +14503,34 @@
             });
 
             // Update sector dropdown
-            const currentSectorSelection = Array.from(sectorSelect.selectedOptions).map(opt => opt.value);
+            const currentSectorValue = sectorSelect.value;
             sectorSelect.innerHTML = '<option value="">Všechny sektory</option>';
             Array.from(sectors).sort().forEach(sector => {
                 const option = document.createElement('option');
                 option.value = sector;
                 option.textContent = sector;
-                if (currentSectorSelection.includes(sector)) option.selected = true;
+                if (currentSectorValue === sector) option.selected = true;
                 sectorSelect.appendChild(option);
             });
 
-            // Update industry dropdown (filtered by selected sectors)
-            const selectedSectors = Array.from(sectorSelect.selectedOptions).map(opt => opt.value).filter(Boolean);
-            const filteredIndustries = selectedSectors.length > 0
-                ? items.filter(item => item.sector && selectedSectors.includes(item.sector))
+            // Update industry dropdown (filtered by selected sector)
+            const selectedSector = sectorSelect.value;
+            const filteredIndustries = selectedSector
+                ? items.filter(item => item.sector && item.sector === selectedSector)
                 : items;
             
-            const industriesForSelectedSectors = new Set();
+            const industriesForSelectedSector = new Set();
             filteredIndustries.forEach(item => {
-                if (item.industry) industriesForSelectedSectors.add(item.industry);
+                if (item.industry) industriesForSelectedSector.add(item.industry);
             });
 
-            const currentIndustrySelection = Array.from(industrySelect.selectedOptions).map(opt => opt.value);
+            const currentIndustryValue = industrySelect.value;
             industrySelect.innerHTML = '<option value="">Všechny industries</option>';
-            Array.from(industriesForSelectedSectors).sort().forEach(industry => {
+            Array.from(industriesForSelectedSector).sort().forEach(industry => {
                 const option = document.createElement('option');
                 option.value = industry;
                 option.textContent = industry;
-                if (currentIndustrySelection.includes(industry)) option.selected = true;
+                if (currentIndustryValue === industry) option.selected = true;
                 industrySelect.appendChild(option);
             });
         }
@@ -14596,18 +14596,18 @@
             }
 
             const sectorSelect = document.getElementById('mapSectorFilter');
-            if (sectorSelect) {
-                const selectedSectors = Array.from(sectorSelect.selectedOptions).map(opt => opt.value).filter(Boolean);
-                if (selectedSectors.length > 0) {
-                    filteredItems = filteredItems.filter(i => i.sector && selectedSectors.includes(i.sector));
+            if (sectorSelect && sectorSelect.value) {
+                const selectedSector = sectorSelect.value;
+                if (selectedSector) {
+                    filteredItems = filteredItems.filter(i => i.sector && i.sector === selectedSector);
                 }
             }
 
             const industrySelect = document.getElementById('mapIndustryFilter');
-            if (industrySelect) {
-                const selectedIndustries = Array.from(industrySelect.selectedOptions).map(opt => opt.value).filter(Boolean);
-                if (selectedIndustries.length > 0) {
-                    filteredItems = filteredItems.filter(i => i.industry && selectedIndustries.includes(i.industry));
+            if (industrySelect && industrySelect.value) {
+                const selectedIndustry = industrySelect.value;
+                if (selectedIndustry) {
+                    filteredItems = filteredItems.filter(i => i.industry && i.industry === selectedIndustry);
                 }
             }
 
@@ -14823,6 +14823,9 @@
             if (sectorSelect) {
                 sectorSelect.addEventListener('change', function() {
                     if (window.currentMapData) {
+                        // Reset industry filter when sector changes
+                        const industrySelect = document.getElementById('mapIndustryFilter');
+                        if (industrySelect) industrySelect.value = '';
                         updateMapSectorIndustryFilters(window.currentMapData);
                         renderMapChart(window.currentMapData);
                         updateMapStatistics(window.currentMapData);
