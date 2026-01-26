@@ -5202,6 +5202,18 @@
                             </select>
                         </div>
                         <div style="display: flex; gap: 8px; align-items: center;">
+                            <label style="font-size: 0.9em; color: var(--text-secondary);">Sektor:</label>
+                            <select id="mapSectorFilter" multiple style="padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.9em; cursor: pointer; min-width: 150px; max-height: 100px;">
+                                <option value="">Všechny sektory</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <label style="font-size: 0.9em; color: var(--text-secondary);">Industry:</label>
+                            <select id="mapIndustryFilter" multiple style="padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.9em; cursor: pointer; min-width: 150px; max-height: 100px;">
+                                <option value="">Všechny industries</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
                             <label style="font-size: 0.9em; color: var(--text-secondary);">Sort:</label>
                             <select id="mapSort" style="padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.9em; cursor: pointer;">
                                 <option value="marketcap">Market Cap</option>
@@ -5222,6 +5234,25 @@
                         </select>
                         <button type="button" onclick="exportMapAsPNG()" class="ripple-effect" style="padding: 8px 16px; background: var(--bg-secondary); color: var(--text-primary); border: 2px solid var(--border-color); border-radius: 8px; font-size: 0.9em; cursor: pointer;">📥 Export PNG</button>
                         <button type="button" onclick="copyMapTickers()" class="ripple-effect" style="padding: 8px 16px; background: var(--bg-secondary); color: var(--text-primary); border: 2px solid var(--border-color); border-radius: 8px; font-size: 0.9em; cursor: pointer;">📋 Kopírovat tickery</button>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px;">
+                        <button type="button" onclick="addAllMapTickersToWatchlist()" class="ripple-effect" style="padding: 8px 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 8px; font-size: 0.9em; cursor: pointer; font-weight: 600;">➕ Přidat všechny do Watchlistu</button>
+                        <button type="button" onclick="addFilteredMapTickersToWatchlist()" class="ripple-effect" style="padding: 8px 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 8px; font-size: 0.9em; cursor: pointer; font-weight: 600;">➕ Přidat filtrované do Watchlistu</button>
+                        <button type="button" onclick="removeAllMapTickersFromWatchlist()" class="ripple-effect" style="padding: 8px 16px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; border-radius: 8px; font-size: 0.9em; cursor: pointer; font-weight: 600;">➖ Odebrat z Watchlistu</button>
+                        <div style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
+                            <label style="font-size: 0.9em; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" id="mapAutoRefresh" onchange="toggleMapAutoRefresh()" style="cursor: pointer;">
+                                Auto-refresh
+                            </label>
+                            <select id="mapAutoRefreshInterval" style="padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.9em; cursor: pointer;" disabled>
+                                <option value="30">30s</option>
+                                <option value="60">1m</option>
+                                <option value="300">5m</option>
+                            </select>
+                        </div>
+                        <div id="mapLastUpdate" style="font-size: 0.85em; color: var(--text-secondary); display: none;">
+                            Aktualizováno před <span id="mapLastUpdateTime">—</span>
+                        </div>
                     </div>
                     <div id="mapStatistics" style="display: none; margin-bottom: 12px; padding: 12px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
                         <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.9em;">
@@ -14054,6 +14085,9 @@
                 // Store data for filtering/sorting
                 window.currentMapData = items;
 
+                // Update sector and industry filters
+                updateMapSectorIndustryFilters(items);
+
                 // Show failed tickers if any
                 if (failedTickers.length > 0) {
                     const failedList = document.getElementById('mapFailedTickersList');
@@ -14069,6 +14103,7 @@
                 renderMapChart(items);
                 updateMapStatistics(items);
                 refreshMapPresets();
+                updateMapLastUpdateTime();
             } catch (e) {
                 if (placeholder) { placeholder.style.display = 'flex'; placeholder.textContent = 'Chyba: ' + (e.message || 'selhalo načtení'); }
                 if (typeof showToast === 'function') showToast('Chyba načtení mapy', 'error');
@@ -14132,6 +14167,24 @@
                 filteredItems = filteredItems.filter(i => i.change_pct != null && i.change_pct < 0);
             } else if (filterType === 'na') {
                 filteredItems = filteredItems.filter(i => i.change_pct == null || i.change_pct === undefined);
+            }
+
+            // Apply sector filtering
+            const sectorSelect = document.getElementById('mapSectorFilter');
+            if (sectorSelect) {
+                const selectedSectors = Array.from(sectorSelect.selectedOptions).map(opt => opt.value).filter(Boolean);
+                if (selectedSectors.length > 0) {
+                    filteredItems = filteredItems.filter(i => i.sector && selectedSectors.includes(i.sector));
+                }
+            }
+
+            // Apply industry filtering
+            const industrySelect = document.getElementById('mapIndustryFilter');
+            if (industrySelect) {
+                const selectedIndustries = Array.from(industrySelect.selectedOptions).map(opt => opt.value).filter(Boolean);
+                if (selectedIndustries.length > 0) {
+                    filteredItems = filteredItems.filter(i => i.industry && selectedIndustries.includes(i.industry));
+                }
             }
 
             // Apply sorting
@@ -14434,6 +14487,294 @@
             });
         }
 
+        // Update sector and industry filter dropdowns
+        function updateMapSectorIndustryFilters(items) {
+            const sectorSelect = document.getElementById('mapSectorFilter');
+            const industrySelect = document.getElementById('mapIndustryFilter');
+            
+            if (!sectorSelect || !industrySelect) return;
+
+            // Get unique sectors and industries
+            const sectors = new Set();
+            const industries = new Set();
+            items.forEach(item => {
+                if (item.sector) sectors.add(item.sector);
+                if (item.industry) industries.add(item.industry);
+            });
+
+            // Update sector dropdown
+            const currentSectorSelection = Array.from(sectorSelect.selectedOptions).map(opt => opt.value);
+            sectorSelect.innerHTML = '<option value="">Všechny sektory</option>';
+            Array.from(sectors).sort().forEach(sector => {
+                const option = document.createElement('option');
+                option.value = sector;
+                option.textContent = sector;
+                if (currentSectorSelection.includes(sector)) option.selected = true;
+                sectorSelect.appendChild(option);
+            });
+
+            // Update industry dropdown (filtered by selected sectors)
+            const selectedSectors = Array.from(sectorSelect.selectedOptions).map(opt => opt.value).filter(Boolean);
+            const filteredIndustries = selectedSectors.length > 0
+                ? items.filter(item => item.sector && selectedSectors.includes(item.sector))
+                : items;
+            
+            const industriesForSelectedSectors = new Set();
+            filteredIndustries.forEach(item => {
+                if (item.industry) industriesForSelectedSectors.add(item.industry);
+            });
+
+            const currentIndustrySelection = Array.from(industrySelect.selectedOptions).map(opt => opt.value);
+            industrySelect.innerHTML = '<option value="">Všechny industries</option>';
+            Array.from(industriesForSelectedSectors).sort().forEach(industry => {
+                const option = document.createElement('option');
+                option.value = industry;
+                option.textContent = industry;
+                if (currentIndustrySelection.includes(industry)) option.selected = true;
+                industrySelect.appendChild(option);
+            });
+        }
+
+        // Bulk operations for watchlist
+        function addAllMapTickersToWatchlist() {
+            if (!window.currentMapData || window.currentMapData.length === 0) {
+                if (typeof showToast === 'function') showToast('Žádná data k přidání.', 'info');
+                return;
+            }
+
+            const tickers = window.currentMapData.map(item => item.ticker).filter(Boolean);
+            if (tickers.length === 0) {
+                if (typeof showToast === 'function') showToast('Žádné tickery k přidání.', 'info');
+                return;
+            }
+
+            if (!confirm(`Přidat ${tickers.length} tickerů do watchlistu?`)) {
+                return;
+            }
+
+            const watchlist = getWatchlist();
+            const allTickers = getAllTickers();
+            let addedCount = 0;
+
+            // Ensure watchlist has proper structure
+            if (!watchlist.groups) watchlist.groups = {};
+            if (!watchlist.groups["Uncategorized"]) watchlist.groups["Uncategorized"] = [];
+            if (!watchlist.order) watchlist.order = ["Uncategorized"];
+
+            tickers.forEach(ticker => {
+                if (!allTickers.includes(ticker)) {
+                    if (!watchlist.groups["Uncategorized"].includes(ticker)) {
+                        watchlist.groups["Uncategorized"].push(ticker);
+                        addedCount++;
+                    }
+                }
+            });
+
+            if (addedCount > 0) {
+                saveWatchlist(watchlist);
+                if (typeof showToast === 'function') showToast(`${addedCount} tickerů přidáno do watchlistu.`, 'success');
+            } else {
+                if (typeof showToast === 'function') showToast('Všechny tickery jsou již v watchlistu.', 'info');
+            }
+        }
+
+        function addFilteredMapTickersToWatchlist() {
+            if (!window.currentMapData || window.currentMapData.length === 0) {
+                if (typeof showToast === 'function') showToast('Žádná data k přidání.', 'info');
+                return;
+            }
+
+            // Get filtered items (same logic as in renderMapChart)
+            let filteredItems = [...window.currentMapData];
+            const filterType = document.getElementById('mapFilter')?.value || 'all';
+            if (filterType === 'gainers') {
+                filteredItems = filteredItems.filter(i => i.change_pct != null && i.change_pct > 0);
+            } else if (filterType === 'losers') {
+                filteredItems = filteredItems.filter(i => i.change_pct != null && i.change_pct < 0);
+            } else if (filterType === 'na') {
+                filteredItems = filteredItems.filter(i => i.change_pct == null || i.change_pct === undefined);
+            }
+
+            const sectorSelect = document.getElementById('mapSectorFilter');
+            if (sectorSelect) {
+                const selectedSectors = Array.from(sectorSelect.selectedOptions).map(opt => opt.value).filter(Boolean);
+                if (selectedSectors.length > 0) {
+                    filteredItems = filteredItems.filter(i => i.sector && selectedSectors.includes(i.sector));
+                }
+            }
+
+            const industrySelect = document.getElementById('mapIndustryFilter');
+            if (industrySelect) {
+                const selectedIndustries = Array.from(industrySelect.selectedOptions).map(opt => opt.value).filter(Boolean);
+                if (selectedIndustries.length > 0) {
+                    filteredItems = filteredItems.filter(i => i.industry && selectedIndustries.includes(i.industry));
+                }
+            }
+
+            const tickers = filteredItems.map(item => item.ticker).filter(Boolean);
+            if (tickers.length === 0) {
+                if (typeof showToast === 'function') showToast('Žádné filtrované tickery k přidání.', 'info');
+                return;
+            }
+
+            if (!confirm(`Přidat ${tickers.length} filtrovaných tickerů do watchlistu?`)) {
+                return;
+            }
+
+            const watchlist = getWatchlist();
+            const allTickers = getAllTickers();
+            let addedCount = 0;
+
+            if (!watchlist.groups) watchlist.groups = {};
+            if (!watchlist.groups["Uncategorized"]) watchlist.groups["Uncategorized"] = [];
+            if (!watchlist.order) watchlist.order = ["Uncategorized"];
+
+            tickers.forEach(ticker => {
+                if (!allTickers.includes(ticker)) {
+                    if (!watchlist.groups["Uncategorized"].includes(ticker)) {
+                        watchlist.groups["Uncategorized"].push(ticker);
+                        addedCount++;
+                    }
+                }
+            });
+
+            if (addedCount > 0) {
+                saveWatchlist(watchlist);
+                if (typeof showToast === 'function') showToast(`${addedCount} tickerů přidáno do watchlistu.`, 'success');
+            } else {
+                if (typeof showToast === 'function') showToast('Všechny filtrované tickery jsou již v watchlistu.', 'info');
+            }
+        }
+
+        function removeAllMapTickersFromWatchlist() {
+            if (!window.currentMapData || window.currentMapData.length === 0) {
+                if (typeof showToast === 'function') showToast('Žádná data k odebrání.', 'info');
+                return;
+            }
+
+            const tickers = window.currentMapData.map(item => item.ticker).filter(Boolean);
+            if (tickers.length === 0) {
+                if (typeof showToast === 'function') showToast('Žádné tickery k odebrání.', 'info');
+                return;
+            }
+
+            if (!confirm(`Odebrat ${tickers.length} tickerů z watchlistu?`)) {
+                return;
+            }
+
+            const watchlist = getWatchlist();
+            let removedCount = 0;
+
+            if (watchlist.groups) {
+                for (const groupName in watchlist.groups) {
+                    if (Array.isArray(watchlist.groups[groupName])) {
+                        const beforeLength = watchlist.groups[groupName].length;
+                        watchlist.groups[groupName] = watchlist.groups[groupName].filter(t => !tickers.includes(t));
+                        removedCount += beforeLength - watchlist.groups[groupName].length;
+                    }
+                }
+            }
+
+            if (removedCount > 0) {
+                saveWatchlist(watchlist);
+                if (typeof showToast === 'function') showToast(`${removedCount} tickerů odebráno z watchlistu.`, 'success');
+            } else {
+                if (typeof showToast === 'function') showToast('Žádné tickery nebyly v watchlistu.', 'info');
+            }
+        }
+
+        // Auto-refresh functionality
+        window.mapAutoRefreshInterval = null;
+        window.mapLastUpdateTime = null;
+        window.mapLastUpdateInterval = null;
+
+        function toggleMapAutoRefresh() {
+            const checkbox = document.getElementById('mapAutoRefresh');
+            const intervalSelect = document.getElementById('mapAutoRefreshInterval');
+            const lastUpdateDiv = document.getElementById('mapLastUpdate');
+            
+            if (!checkbox || !intervalSelect) return;
+
+            if (checkbox.checked) {
+                intervalSelect.disabled = false;
+                startMapAutoRefresh();
+                if (lastUpdateDiv) lastUpdateDiv.style.display = 'block';
+            } else {
+                intervalSelect.disabled = true;
+                stopMapAutoRefresh();
+                if (lastUpdateDiv) lastUpdateDiv.style.display = 'none';
+            }
+        }
+
+        function startMapAutoRefresh() {
+            stopMapAutoRefresh(); // Clear any existing interval
+
+            const intervalSelect = document.getElementById('mapAutoRefreshInterval');
+            if (!intervalSelect) return;
+
+            const intervalSeconds = parseInt(intervalSelect.value) || 60;
+            
+            window.mapAutoRefreshInterval = setInterval(() => {
+                if (window.currentMapData && window.currentMapData.length > 0) {
+                    loadMapData();
+                }
+            }, intervalSeconds * 1000);
+
+            updateMapLastUpdateTime();
+        }
+
+        function stopMapAutoRefresh() {
+            if (window.mapAutoRefreshInterval) {
+                clearInterval(window.mapAutoRefreshInterval);
+                window.mapAutoRefreshInterval = null;
+            }
+            if (window.mapLastUpdateInterval) {
+                clearInterval(window.mapLastUpdateInterval);
+                window.mapLastUpdateInterval = null;
+            }
+        }
+
+        function updateMapLastUpdateTime() {
+            window.mapLastUpdateTime = Date.now();
+            const timeSpan = document.getElementById('mapLastUpdateTime');
+            if (timeSpan) {
+                updateMapLastUpdateDisplay();
+                // Update every second
+                if (window.mapLastUpdateInterval) clearInterval(window.mapLastUpdateInterval);
+                window.mapLastUpdateInterval = setInterval(updateMapLastUpdateDisplay, 1000);
+            }
+        }
+
+        function updateMapLastUpdateDisplay() {
+            const timeSpan = document.getElementById('mapLastUpdateTime');
+            if (!timeSpan || !window.mapLastUpdateTime) return;
+
+            const elapsed = Math.floor((Date.now() - window.mapLastUpdateTime) / 1000);
+            let display;
+            if (elapsed < 60) {
+                display = elapsed + 's';
+            } else if (elapsed < 3600) {
+                display = Math.floor(elapsed / 60) + 'm';
+            } else {
+                display = Math.floor(elapsed / 3600) + 'h';
+            }
+            timeSpan.textContent = display;
+        }
+
+        // Stop auto-refresh when leaving section
+        const originalNavigateToSection = window.navigateToSection;
+        if (typeof originalNavigateToSection === 'function') {
+            window.navigateToSection = function(sectionId) {
+                if (sectionId !== 'customMapSection') {
+                    stopMapAutoRefresh();
+                    const checkbox = document.getElementById('mapAutoRefresh');
+                    if (checkbox) checkbox.checked = false;
+                    toggleMapAutoRefresh();
+                }
+                return originalNavigateToSection.call(this, sectionId);
+            };
+        }
+
         // Export functions to window
         window.saveMapPreset = saveMapPreset;
         window.loadMapPreset = loadMapPreset;
@@ -14443,6 +14784,11 @@
         window.updateMapStatistics = updateMapStatistics;
         window.calculateGradientColor = calculateGradientColor;
         window.getTextColorForBackground = getTextColorForBackground;
+        window.addAllMapTickersToWatchlist = addAllMapTickersToWatchlist;
+        window.addFilteredMapTickersToWatchlist = addFilteredMapTickersToWatchlist;
+        window.removeAllMapTickersFromWatchlist = removeAllMapTickersFromWatchlist;
+        window.toggleMapAutoRefresh = toggleMapAutoRefresh;
+        window.updateMapSectorIndustryFilters = updateMapSectorIndustryFilters;
 
         // Initialize presets on page load
         if (typeof document !== 'undefined') {
@@ -14462,9 +14808,30 @@
             const filterSelect = document.getElementById('mapFilter');
             const sortSelect = document.getElementById('mapSort');
             const displaySelect = document.getElementById('mapDisplayMode');
+            const sectorSelect = document.getElementById('mapSectorFilter');
+            const industrySelect = document.getElementById('mapIndustryFilter');
             
             if (filterSelect) {
                 filterSelect.addEventListener('change', function() {
+                    if (window.currentMapData) {
+                        renderMapChart(window.currentMapData);
+                        updateMapStatistics(window.currentMapData);
+                    }
+                });
+            }
+            
+            if (sectorSelect) {
+                sectorSelect.addEventListener('change', function() {
+                    if (window.currentMapData) {
+                        updateMapSectorIndustryFilters(window.currentMapData);
+                        renderMapChart(window.currentMapData);
+                        updateMapStatistics(window.currentMapData);
+                    }
+                });
+            }
+            
+            if (industrySelect) {
+                industrySelect.addEventListener('change', function() {
                     if (window.currentMapData) {
                         renderMapChart(window.currentMapData);
                         updateMapStatistics(window.currentMapData);
