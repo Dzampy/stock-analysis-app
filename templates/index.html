@@ -14085,8 +14085,20 @@
                 // Store data for filtering/sorting
                 window.currentMapData = items;
 
+                // Debug: check if items have sector/industry
+                console.log('Map data loaded:', items.length, 'items');
+                if (items.length > 0) {
+                    console.log('Sample item:', items[0]);
+                    const itemsWithSector = items.filter(i => i.sector).length;
+                    const itemsWithIndustry = items.filter(i => i.industry).length;
+                    console.log(`Items with sector: ${itemsWithSector}/${items.length}, with industry: ${itemsWithIndustry}/${items.length}`);
+                }
+
                 // Update sector and industry filters
-                updateMapSectorIndustryFilters(items);
+                // Use setTimeout to ensure DOM is ready
+                setTimeout(() => {
+                    updateMapSectorIndustryFilters(items);
+                }, 100);
 
                 // Show failed tickers if any
                 if (failedTickers.length > 0) {
@@ -14104,6 +14116,13 @@
                 updateMapStatistics(items);
                 refreshMapPresets();
                 updateMapLastUpdateTime();
+                
+                // Ensure filters are updated after render
+                setTimeout(() => {
+                    if (window.currentMapData) {
+                        updateMapSectorIndustryFilters(window.currentMapData);
+                    }
+                }, 300);
             } catch (e) {
                 if (placeholder) { placeholder.style.display = 'flex'; placeholder.textContent = 'Chyba: ' + (e.message || 'selhalo načtení'); }
                 if (typeof showToast === 'function') showToast('Chyba načtení mapy', 'error');
@@ -14492,26 +14511,43 @@
             const sectorSelect = document.getElementById('mapSectorFilter');
             const industrySelect = document.getElementById('mapIndustryFilter');
             
-            if (!sectorSelect || !industrySelect) return;
+            if (!sectorSelect || !industrySelect) {
+                console.warn('Sector or Industry select elements not found');
+                return;
+            }
+
+            if (!items || items.length === 0) {
+                console.warn('No items to populate filters');
+                return;
+            }
 
             // Get unique sectors and industries
             const sectors = new Set();
             const industries = new Set();
             items.forEach(item => {
-                if (item.sector) sectors.add(item.sector);
-                if (item.industry) industries.add(item.industry);
+                if (item.sector && item.sector.trim()) {
+                    sectors.add(item.sector.trim());
+                }
+                if (item.industry && item.industry.trim()) {
+                    industries.add(item.industry.trim());
+                }
             });
+
+            console.log('Found sectors:', Array.from(sectors));
+            console.log('Found industries:', Array.from(industries));
 
             // Update sector dropdown
             const currentSectorValue = sectorSelect.value;
             sectorSelect.innerHTML = '<option value="">Všechny sektory</option>';
-            Array.from(sectors).sort().forEach(sector => {
-                const option = document.createElement('option');
-                option.value = sector;
-                option.textContent = sector;
-                if (currentSectorValue === sector) option.selected = true;
-                sectorSelect.appendChild(option);
-            });
+            if (sectors.size > 0) {
+                Array.from(sectors).sort().forEach(sector => {
+                    const option = document.createElement('option');
+                    option.value = sector;
+                    option.textContent = sector;
+                    if (currentSectorValue === sector) option.selected = true;
+                    sectorSelect.appendChild(option);
+                });
+            }
 
             // Update industry dropdown (filtered by selected sector)
             const selectedSector = sectorSelect.value;
@@ -14521,18 +14557,22 @@
             
             const industriesForSelectedSector = new Set();
             filteredIndustries.forEach(item => {
-                if (item.industry) industriesForSelectedSector.add(item.industry);
+                if (item.industry && item.industry.trim()) {
+                    industriesForSelectedSector.add(item.industry.trim());
+                }
             });
 
             const currentIndustryValue = industrySelect.value;
             industrySelect.innerHTML = '<option value="">Všechny industries</option>';
-            Array.from(industriesForSelectedSector).sort().forEach(industry => {
-                const option = document.createElement('option');
-                option.value = industry;
-                option.textContent = industry;
-                if (currentIndustryValue === industry) option.selected = true;
-                industrySelect.appendChild(option);
-            });
+            if (industriesForSelectedSector.size > 0) {
+                Array.from(industriesForSelectedSector).sort().forEach(industry => {
+                    const option = document.createElement('option');
+                    option.value = industry;
+                    option.textContent = industry;
+                    if (currentIndustryValue === industry) option.selected = true;
+                    industrySelect.appendChild(option);
+                });
+            }
         }
 
         // Bulk operations for watchlist
