@@ -14094,12 +14094,6 @@
                     console.log(`Items with sector: ${itemsWithSector}/${items.length}, with industry: ${itemsWithIndustry}/${items.length}`);
                 }
 
-                // Update sector and industry filters
-                // Use setTimeout to ensure DOM is ready
-                setTimeout(() => {
-                    updateMapSectorIndustryFilters(items);
-                }, 100);
-
                 // Show failed tickers if any
                 if (failedTickers.length > 0) {
                     const failedList = document.getElementById('mapFailedTickersList');
