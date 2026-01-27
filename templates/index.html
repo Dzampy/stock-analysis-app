@@ -14112,17 +14112,14 @@
                 }
 
                 if (placeholder) placeholder.style.display = 'none';
+                
+                // Update sector and industry filters BEFORE rendering chart
+                updateMapSectorIndustryFilters(items);
+                
                 renderMapChart(items);
                 updateMapStatistics(items);
                 refreshMapPresets();
                 updateMapLastUpdateTime();
-                
-                // Ensure filters are updated after render
-                setTimeout(() => {
-                    if (window.currentMapData) {
-                        updateMapSectorIndustryFilters(window.currentMapData);
-                    }
-                }, 300);
             } catch (e) {
                 if (placeholder) { placeholder.style.display = 'flex'; placeholder.textContent = 'Chyba: ' + (e.message || 'selhalo načtení'); }
                 if (typeof showToast === 'function') showToast('Chyba načtení mapy', 'error');
@@ -14533,8 +14530,8 @@
                 }
             });
 
-            console.log('Found sectors:', Array.from(sectors));
-            console.log('Found industries:', Array.from(industries));
+            console.log('Found sectors:', Array.from(sectors), 'count:', sectors.size);
+            console.log('Found industries:', Array.from(industries), 'count:', industries.size);
 
             // Update sector dropdown
             const currentSectorValue = sectorSelect.value;
@@ -14547,6 +14544,9 @@
                     if (currentSectorValue === sector) option.selected = true;
                     sectorSelect.appendChild(option);
                 });
+                console.log('Sector dropdown populated with', sectors.size, 'options');
+            } else {
+                console.warn('No sectors found in data!');
             }
 
             // Update industry dropdown (filtered by selected sector)
@@ -14572,6 +14572,9 @@
                     if (currentIndustryValue === industry) option.selected = true;
                     industrySelect.appendChild(option);
                 });
+                console.log('Industry dropdown populated with', industriesForSelectedSector.size, 'options');
+            } else {
+                console.warn('No industries found in data!');
             }
         }
 
