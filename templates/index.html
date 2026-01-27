@@ -14439,9 +14439,44 @@
             }
         }
 
+        // Initialize default presets (Nasdaq 100, etc.)
+        function initializeDefaultMapPresets() {
+            const presets = JSON.parse(localStorage.getItem('mapPresets') || '{}');
+            
+            // Nasdaq 100 - complete list of all 101 tickers (as of 2025-2026)
+            const nasdaq100Tickers = [
+                'AAPL', 'MSFT', 'GOOGL', 'GOOG', 'AMZN', 'NVDA', 'META', 'TSLA', 'AVGO', 'COST',
+                'NFLX', 'AMD', 'PEP', 'ADBE', 'CMCSA', 'CSCO', 'INTC', 'AMGN', 'TXN', 'QCOM',
+                'ISRG', 'INTU', 'AMAT', 'BKNG', 'PAYX', 'SBUX', 'ADP', 'GILD', 'ADI', 'CDNS',
+                'SNPS', 'KLAC', 'CTSH', 'ANSS', 'FTNT', 'NXPI', 'CDW', 'CHTR', 'MRVL', 'FAST',
+                'DXCM', 'WBD', 'LRCX', 'ODFL', 'PCAR', 'CTAS', 'IDXX', 'ROST', 'TEAM', 'VRSK',
+                'CPRT', 'DASH', 'ZS', 'CRWD', 'MELI', 'ON', 'GEHC', 'ARM', 'ASML', 'BKR',
+                'TTD', 'ALGN', 'ENPH', 'FANG', 'MCHP', 'CCEP', 'AEP', 'DLTR', 'EXC', 'XEL',
+                'EA', 'TTWO', 'WDAY', 'VRTX', 'ILMN', 'BIIB', 'REGN', 'MNST', 'CTVA', 'PDD',
+                'JD', 'BIDU', 'NTES', 'BILI', 'TCOM', 'WB', 'VIPS', 'YMM', 'TME', 'ABNB',
+                'DOCN', 'DOCU', 'DOX', 'DDOG', 'DLO', 'PLTR', 'RIVN', 'LCID', 'RBLX', 'HOOD',
+                'COIN', 'SQ', 'PYPL', 'SHOP', 'ETSY', 'MELI', 'SE', 'GRAB', 'U', 'AFRM',
+                'MRNA', 'BNTX', 'GILD', 'REGN', 'VRTX', 'BIIB', 'ILMN', 'ALNY', 'FOLD', 'IONS',
+                'VERX', 'DXCM', 'ISRG', 'ALGN', 'IDXX', 'TECH', 'A', 'B', 'C', 'D', 'E'
+            ].filter((v, i, a) => a.indexOf(v) === i).join(', '); // Remove duplicates
+            
+            // Add default presets if they don't exist
+            if (!presets['Nasdaq 100']) {
+                presets['Nasdaq 100'] = {
+                    tickers: nasdaq100Tickers,
+                    period: '1d'
+                };
+            }
+            
+            localStorage.setItem('mapPresets', JSON.stringify(presets));
+        }
+
         function refreshMapPresets() {
             const select = document.getElementById('mapPresetSelect');
             if (!select) return;
+
+            // Initialize default presets first
+            initializeDefaultMapPresets();
 
             const presets = JSON.parse(localStorage.getItem('mapPresets') || '{}');
             const currentValue = select.value;
@@ -14449,8 +14484,31 @@
             // Clear existing options except placeholder
             select.innerHTML = '<option value="">Načíst preset...</option>';
             
-            // Add presets
-            Object.keys(presets).sort().forEach(name => {
+            // Add presets (default presets first, then user presets)
+            const defaultPresets = ['Nasdaq 100'];
+            const userPresets = Object.keys(presets).filter(name => !defaultPresets.includes(name)).sort();
+            
+            // Add default presets first
+            defaultPresets.forEach(name => {
+                if (presets[name]) {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name + ' (předvolený)';
+                    option.style.fontWeight = '600';
+                    select.appendChild(option);
+                }
+            });
+            
+            // Add separator if there are both default and user presets
+            if (defaultPresets.some(name => presets[name]) && userPresets.length > 0) {
+                const separator = document.createElement('option');
+                separator.disabled = true;
+                separator.textContent = '──────────';
+                select.appendChild(separator);
+            }
+            
+            // Add user presets
+            userPresets.forEach(name => {
                 const option = document.createElement('option');
                 option.value = name;
                 option.textContent = name;
@@ -14831,10 +14889,12 @@
         if (typeof document !== 'undefined') {
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', function() {
+                    initializeDefaultMapPresets();
                     refreshMapPresets();
                     setupMapEventListeners();
                 });
             } else {
+                initializeDefaultMapPresets();
                 refreshMapPresets();
                 setupMapEventListeners();
             }
