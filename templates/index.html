@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/main.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@3.0.0/dist/chartjs-chart-treemap.min.js"></script>
@@ -12750,7 +12751,7 @@
                                                         pred = predObj;
                                                     }
                                                 } catch (priceError) {
-                                                    console.error(`Error accessing price for ${period}:`, priceError, {predObj, predictions});
+                                                    debugError(`Error accessing price for ${period}:`, priceError, {predObj, predictions});
                                                     pred = null;
                                                 }
                                             }
@@ -12771,7 +12772,7 @@
                                                 ci = null;
                                             }
                                         } catch (e) {
-                                            console.error(`Error extracting data for ${period}:`, e);
+                                            debugError(`Error extracting data for ${period}:`, e);
                                             pred = null;
                                             ret = null;
                                             ci = null;
@@ -13620,8 +13621,8 @@
                     }
                 });
             } catch (error) {
-                console.error('Error creating trading strategy chart:', error);
-                console.error('Error creating trading strategy chart:', error);
+                debugError('Error creating trading strategy chart:', error);
+                debugError('Error creating trading strategy chart:', error);
             }
         }
 
