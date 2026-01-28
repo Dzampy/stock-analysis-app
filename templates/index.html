@@ -6042,6 +6042,22 @@
                 }
             };
             
+            // Also create aliases for backwards compatibility
+            if (!window.console) window.console = {};
+            const originalConsoleLog = console.log;
+            const originalConsoleWarn = console.warn;
+            
+            // Override console.log and console.warn to use debug functions
+            console.log = function(...args) {
+                debugLog(...args);
+            };
+            
+            console.warn = function(...args) {
+                debugWarn(...args);
+            };
+            
+            // Keep console.error as is (errors should always be logged)
+            
             window.debugInfo = function(...args) {
                 if (DEBUG_ENABLED) {
                     console.info(...args);
@@ -6879,7 +6895,7 @@
             autocompleteResults = results;
             autocompleteVisible = html !== '';
             dropdown.style.display = autocompleteVisible ? 'block' : 'none';
-            console.log('[AUTOCOMPLETE] Dropdown display:', dropdown.style.display, 'HTML length:', html.length);
+            debugLog('[AUTOCOMPLETE] Dropdown display:', dropdown.style.display, 'HTML length:', html.length);
         }
 
         function setAutocompleteSelected(index) {
@@ -6928,11 +6944,11 @@
         // Direct handler for inline oninput (must be in global scope)
         async function handleTickerInputDirect(event) {
             const query = event.target.value.trim();
-            console.log('[AUTOCOMPLETE] Direct input handler:', query);
+            debugLog('[AUTOCOMPLETE] Direct input handler:', query);
             
             const dropdown = document.getElementById('tickerAutocomplete');
             if (!dropdown) {
-                console.error('[AUTOCOMPLETE] Dropdown not found!');
+                debugError('[AUTOCOMPLETE] Dropdown not found!');
                 return;
             }
             
@@ -6950,21 +6966,21 @@
             // Show loading state immediately
             dropdown.innerHTML = '<div class="autocomplete-loading">🔍 Searching...</div>';
             dropdown.style.display = 'block';
-            console.log('[AUTOCOMPLETE] Showing loading, dropdown display:', dropdown.style.display);
+            debugLog('[AUTOCOMPLETE] Showing loading, dropdown display:', dropdown.style.display);
 
             // Debounce API call
             autocompleteTimeout = setTimeout(async () => {
-                console.log('[AUTOCOMPLETE] Fetching results for:', query);
+                debugLog('[AUTOCOMPLETE] Fetching results for:', query);
                 const data = await fetchAutocompleteResults(query);
-                console.log('[AUTOCOMPLETE] Received data:', data);
+                debugLog('[AUTOCOMPLETE] Received data:', data);
                 
                 let html = '';
-                console.log('[AUTOCOMPLETE] Processing results:', data.results);
+                debugLog('[AUTOCOMPLETE] Processing results:', data.results);
                 if (data.results && data.results.length > 0) {
-                    console.log('[AUTOCOMPLETE] Found results, rendering...');
+                    debugLog('[AUTOCOMPLETE] Found results, rendering...');
                     html += '<div class="autocomplete-section"><div class="autocomplete-section-title">🔍 Search Results</div>';
                     data.results.forEach((item, index) => {
-                        console.log('[AUTOCOMPLETE] Rendering item:', item);
+                        debugLog('[AUTOCOMPLETE] Rendering item:', item);
                         const isFavorite = isFavoriteTicker(item.ticker);
                         // Escape HTML to prevent XSS
                         const ticker = String(item.ticker || '').replace(/"/g, '&quot;');
@@ -6996,9 +7012,9 @@
                 if (dropdown) {
                     dropdown.innerHTML = html;
                     dropdown.style.display = html !== '' ? 'block' : 'none';
-                    console.log('[AUTOCOMPLETE] Rendered dropdown:', { htmlLength: html.length, display: dropdown.style.display });
+                    debugLog('[AUTOCOMPLETE] Rendered dropdown:', { htmlLength: html.length, display: dropdown.style.display });
                 } else {
-                    console.error('[AUTOCOMPLETE] Dropdown element is null!');
+                    debugError('[AUTOCOMPLETE] Dropdown element is null!');
                 }
             }, 300);
         }
@@ -7007,7 +7023,7 @@
         function showAutocompleteDirect() {
             const dropdown = document.getElementById('tickerAutocomplete');
             const input = document.getElementById('tickerInput');
-            console.log('[AUTOCOMPLETE] Direct focus handler');
+            debugLog('[AUTOCOMPLETE] Direct focus handler');
             
             if (!dropdown || !input) {
                 console.error('[AUTOCOMPLETE] Dropdown or input not found');
@@ -7049,7 +7065,7 @@
                     }
                     dropdown.innerHTML = html;
                     dropdown.style.display = 'block';
-                    console.log('[AUTOCOMPLETE] Showing favorites/recent');
+                    debugLog('[AUTOCOMPLETE] Showing favorites/recent');
                 }
             } else {
                 // If there's a value, trigger input handler
@@ -7074,7 +7090,7 @@
 
         async function handleTickerInput(event) {
             const query = event.target.value.trim();
-            console.log('[AUTOCOMPLETE] Input changed:', query);
+            debugLog('[AUTOCOMPLETE] Input changed:', query);
             
             // Clear previous timeout
             if (autocompleteTimeout) {
@@ -7102,17 +7118,17 @@
         function initAutocomplete() {
             const tickerInput = document.getElementById('tickerInput');
             if (!tickerInput) {
-                console.log('[AUTOCOMPLETE] tickerInput not found');
+                debugLog('[AUTOCOMPLETE] tickerInput not found');
                 return;
             }
             
             // Check if already initialized by checking for data attribute
             if (tickerInput.dataset.autocompleteInitialized === 'true') {
-                console.log('[AUTOCOMPLETE] Already initialized');
+                debugLog('[AUTOCOMPLETE] Already initialized');
                 return;
             }
             
-            console.log('[AUTOCOMPLETE] Initializing...', tickerInput);
+            debugLog('[AUTOCOMPLETE] Initializing...', tickerInput);
             
             // Remove any existing listeners first (by cloning)
             const newInput = tickerInput.cloneNode(true);
@@ -7120,15 +7136,15 @@
             
             // Add event listeners to the new input
             newInput.addEventListener('input', function(e) {
-                console.log('[AUTOCOMPLETE] Input event triggered:', e.target.value);
+                debugLog('[AUTOCOMPLETE] Input event triggered:', e.target.value);
                 handleTickerInput(e);
             });
             newInput.addEventListener('focus', function() {
-                console.log('[AUTOCOMPLETE] Focus event triggered');
+                debugLog('[AUTOCOMPLETE] Focus event triggered');
                 const dropdown = document.getElementById('tickerAutocomplete');
-                console.log('[AUTOCOMPLETE] Focus - dropdown exists:', !!dropdown);
+                debugLog('[AUTOCOMPLETE] Focus - dropdown exists:', !!dropdown);
                 if (dropdown) {
-                    console.log('[AUTOCOMPLETE] Focus - dropdown display:', dropdown.style.display);
+                    debugLog('[AUTOCOMPLETE] Focus - dropdown display:', dropdown.style.display);
                 }
                 showAutocomplete();
             });
@@ -7173,14 +7189,14 @@
             // Mark as initialized
             tickerInput.dataset.autocompleteInitialized = 'true';
             autocompleteInitialized = true;
-            console.log('[AUTOCOMPLETE] Initialized successfully', tickerInput);
+            debugLog('[AUTOCOMPLETE] Initialized successfully', tickerInput);
             
             // Test: Try to show autocomplete immediately
             setTimeout(() => {
                 const dropdown = document.getElementById('tickerAutocomplete');
-                console.log('[AUTOCOMPLETE] Test - dropdown exists:', !!dropdown);
+                debugLog('[AUTOCOMPLETE] Test - dropdown exists:', !!dropdown);
                 if (dropdown) {
-                    console.log('[AUTOCOMPLETE] Test - dropdown computed styles:', {
+                    debugLog('[AUTOCOMPLETE] Test - dropdown computed styles:', {
                         display: window.getComputedStyle(dropdown).display,
                         position: window.getComputedStyle(dropdown).position,
                         zIndex: window.getComputedStyle(dropdown).zIndex,
@@ -7496,7 +7512,7 @@
 
         function displayEarningsQoq(earningsData) {
             const container = document.getElementById('earningsQoq');
-            console.log('[DEBUG] displayEarningsQoq called with data:', {
+            debugLog('[DEBUG] displayEarningsQoq called with data:', {
                 hasData: !!earningsData,
                 quarters: earningsData?.quarters,
                 eps: earningsData?.eps,
@@ -7526,7 +7542,7 @@
                 const epsQoqPct = earningsData.eps_qoq_change_pct ? earningsData.eps_qoq_change_pct[i] : null;
                 
                 if (i < 4) {  // Log first 4 quarters
-                    console.log(`[DEBUG] displayEarningsQoq ${quarter}: revenue=${revenue}, revenueQoq=${revenueQoq}, revenueQoqPct=${revenueQoqPct}, eps=${eps}, epsQoq=${epsQoq}, epsQoqPct=${epsQoqPct}`);
+                    debugLog(`[DEBUG] displayEarningsQoq ${quarter}: revenue=${revenue}, revenueQoq=${revenueQoq}, revenueQoqPct=${revenueQoqPct}, eps=${eps}, epsQoq=${epsQoq}, epsQoqPct=${epsQoqPct}`);
                 }
                 
                 const epsEst = earningsData.eps_estimate ? earningsData.eps_estimate[i] : null;
@@ -7767,18 +7783,18 @@
 
         // Switch between financials tabs
         function switchFinancialsTab(tabName) {
-            console.log('🔄 [DEBUG] switchFinancialsTab: Called with tabName:', tabName);
+            debugLog('🔄 [DEBUG] switchFinancialsTab: Called with tabName:', tabName);
             
             // Update tab buttons
             const buttons = document.querySelectorAll('.financials-tab-btn');
-            console.log('🔄 [DEBUG] switchFinancialsTab: Found buttons:', buttons.length);
+            debugLog('🔄 [DEBUG] switchFinancialsTab: Found buttons:', buttons.length);
             buttons.forEach(btn => {
                 btn.classList.remove('active');
                 if (btn.dataset.tab === tabName) {
                     btn.classList.add('active');
                     btn.style.color = 'var(--primary-500)';
                     btn.style.borderBottomColor = 'var(--primary-500)';
-                    console.log('✅ [DEBUG] switchFinancialsTab: Activated button for', tabName);
+                    debugLog('✅ [DEBUG] switchFinancialsTab: Activated button for', tabName);
                 } else {
                     btn.style.color = 'var(--text-secondary)';
                     btn.style.borderBottomColor = 'transparent';
@@ -7796,7 +7812,7 @@
                 if (overviewTab) {
                     overviewTab.classList.add('active');
                     overviewTab.style.display = 'block';
-                    console.log('✅ [DEBUG] switchFinancialsTab: Overview tab shown');
+                    debugLog('✅ [DEBUG] switchFinancialsTab: Overview tab shown');
                 } else {
                     console.error('❌ [DEBUG] switchFinancialsTab: Overview tab not found!');
                 }
@@ -7805,22 +7821,22 @@
                 if (detailedTab) {
                     detailedTab.classList.add('active');
                     detailedTab.style.display = 'block';
-                    console.log('✅ [DEBUG] switchFinancialsTab: Detailed tab shown');
+                    debugLog('✅ [DEBUG] switchFinancialsTab: Detailed tab shown');
                     
                     // Check if content exists and re-render if needed
                     const detailedContent = document.getElementById('detailedFinancialsContent');
                     if (detailedContent) {
-                        console.log('✅ [DEBUG] switchFinancialsTab: detailedFinancialsContent found, innerHTML length:', detailedContent.innerHTML.length);
+                        debugLog('✅ [DEBUG] switchFinancialsTab: detailedFinancialsContent found, innerHTML length:', detailedContent.innerHTML.length);
                         const contentText = detailedContent.innerHTML.trim();
                         const isEmpty = !contentText || contentText === '';
                         const isPlaceholder = contentText.includes('Click "Load Financials"') || contentText.includes('Loading overview data') || contentText.includes('⚠️');
                         
                         if (isEmpty || isPlaceholder) {
-                            console.warn('⚠️ [DEBUG] switchFinancialsTab: detailedFinancialsContent is empty or placeholder, trying to re-render...');
+                            debugWarn('⚠️ [DEBUG] switchFinancialsTab: detailedFinancialsContent is empty or placeholder, trying to re-render...');
                             
                             // Try to re-render if we have currentFinancialsData
                             if (typeof currentFinancialsData !== 'undefined' && currentFinancialsData) {
-                                console.log('🔄 [DEBUG] switchFinancialsTab: Re-rendering with currentFinancialsData');
+                                debugLog('🔄 [DEBUG] switchFinancialsTab: Re-rendering with currentFinancialsData');
                                 const ticker = document.getElementById('financialsTickerInput')?.value.trim().toUpperCase() || 'UNKNOWN';
                                 if (typeof renderDetailedFinancials === 'function') {
                                     renderDetailedFinancials(currentFinancialsData, ticker);
@@ -7828,7 +7844,7 @@
                                     console.error('❌ [DEBUG] switchFinancialsTab: renderDetailedFinancials function not found!');
                                 }
                             } else {
-                                console.warn('⚠️ [DEBUG] switchFinancialsTab: currentFinancialsData not available');
+                                debugWarn('⚠️ [DEBUG] switchFinancialsTab: currentFinancialsData not available');
                             }
                         }
                     } else {
@@ -7870,8 +7886,8 @@
 
         // Render detailed financials table
         function renderDetailedFinancials(data, ticker) {
-            console.log('📋📋📋 [DEBUG] renderDetailedFinancials: FUNCTION CALLED for ticker:', ticker || 'NO TICKER');
-            console.log('📋📋📋 [DEBUG] renderDetailedFinancials: Data check:', {
+            debugLog('📋📋📋 [DEBUG] renderDetailedFinancials: FUNCTION CALLED for ticker:', ticker || 'NO TICKER');
+            debugLog('📋📋📋 [DEBUG] renderDetailedFinancials: Data check:', {
                 hasData: !!data,
                 hasDetailedIncomeStatement: !!data?.detailed_income_statement,
                 hasQuarterly: !!(data?.detailed_income_statement?.quarterly),
@@ -7885,32 +7901,32 @@
                 console.error('❌❌❌ [DEBUG] renderDetailedFinancials: detailedFinancialsContent container not found!');
                 return;
             }
-            console.log('✅✅✅ [DEBUG] renderDetailedFinancials: Container found');
+            debugLog('✅✅✅ [DEBUG] renderDetailedFinancials: Container found');
             
             if (!data || !data.detailed_income_statement) {
-                console.warn('⚠️⚠️⚠️ [DEBUG] renderDetailedFinancials: No detailed_income_statement in data');
+                debugWarn('⚠️⚠️⚠️ [DEBUG] renderDetailedFinancials: No detailed_income_statement in data');
                 container.innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">⚠️ Detailed financial data not available. Backend may not have returned detailed_income_statement. Check server logs.</p>';
                 return;
             }
             
-            console.log('✅✅✅ [DEBUG] renderDetailedFinancials: detailed_income_statement found, processing...');
+            debugLog('✅✅✅ [DEBUG] renderDetailedFinancials: detailed_income_statement found, processing...');
             
             let quarterlyData = data.detailed_income_statement.quarterly || [];
             let annualData = data.detailed_income_statement.annual || [];
             
             // If no quarterly data, try to use annual data as fallback
             if (quarterlyData.length === 0 && annualData.length > 0) {
-                console.log('⚠️ [DEBUG] renderDetailedFinancials: No quarterly data, using annual data as fallback');
+                debugLog('⚠️ [DEBUG] renderDetailedFinancials: No quarterly data, using annual data as fallback');
                 quarterlyData = annualData;
             }
             
             if (quarterlyData.length === 0) {
-                console.warn('⚠️ [DEBUG] renderDetailedFinancials: No financial data available (neither quarterly nor annual)');
+                debugWarn('⚠️ [DEBUG] renderDetailedFinancials: No financial data available (neither quarterly nor annual)');
                 container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);"><p>⚠️ No quarterly or annual financial data available for this ticker.</p><p style="font-size: 0.9em; margin-top: 10px;">This may be because:</p><ul style="text-align: left; display: inline-block; margin-top: 10px;"><li>The ticker is too new or delisted</li><li>Yahoo Finance does not have financial data for this company</li><li>There was an error fetching the data</li></ul><p style="font-size: 0.9em; margin-top: 15px;">Check the browser console (F12) and server logs for more details.</p></div>';
                 return;
             }
             
-            console.log('✅ [DEBUG] renderDetailedFinancials: Processing', quarterlyData.length, 'metrics');
+            debugLog('✅ [DEBUG] renderDetailedFinancials: Processing', quarterlyData.length, 'metrics');
             
             // Define only the metrics we want to show (in order)
             // Use precise matching to avoid wrong metrics (e.g., "Cost of Revenue" matching "revenue")
@@ -8008,11 +8024,11 @@
                         metric: allowedMetric.label
                     });
                 } else {
-                    console.warn('⚠️ [DEBUG] renderDetailedFinancials: Metric not found:', allowedMetric.label, 'Available metrics:', quarterlyData.map(m => m.metric).slice(0, 10));
+                    debugWarn('⚠️ [DEBUG] renderDetailedFinancials: Metric not found:', allowedMetric.label, 'Available metrics:', quarterlyData.map(m => m.metric).slice(0, 10));
                 }
             }
             
-            console.log('✅ [DEBUG] renderDetailedFinancials: Filtered to', sortedMetrics.length, 'metrics from', quarterlyData.length, 'total');
+            debugLog('✅ [DEBUG] renderDetailedFinancials: Filtered to', sortedMetrics.length, 'metrics from', quarterlyData.length, 'total');
             
             // Get all unique quarter dates from all metrics
             const allDates = new Set();
@@ -8022,7 +8038,7 @@
                 }
             });
             
-            console.log('📅 [DEBUG] renderDetailedFinancials: Found', allDates.size, 'unique dates');
+            debugLog('📅 [DEBUG] renderDetailedFinancials: Found', allDates.size, 'unique dates');
             
             // Sort dates (most recent first) - same as Yahoo Finance
             const sortedDates = Array.from(allDates).sort((a, b) => {
@@ -8037,7 +8053,7 @@
             
             // Take first 4 quarters/years for display (most recent 4)
             const displayDates = sortedDates.slice(0, 4);
-            console.log('📅 [DEBUG] renderDetailedFinancials: Display dates:', displayDates);
+            debugLog('📅 [DEBUG] renderDetailedFinancials: Display dates:', displayDates);
             
             // Prepare data for charts (use all available dates, not just 4)
             const allSortedDates = sortedDates; // All available quarters for charts
@@ -8112,14 +8128,14 @@
             `;
             
             // Render each metric as a row (in sorted order)
-            console.log('🔄 [DEBUG] renderDetailedFinancials: Rendering', sortedMetrics.length, 'rows');
+            debugLog('🔄 [DEBUG] renderDetailedFinancials: Rendering', sortedMetrics.length, 'rows');
             sortedMetrics.forEach((metric, index) => {
                 const metricName = metric.metric || 'Unknown';
                 const ttm = metric.ttm;
                 const values = metric.values || {};
                 
                 if (index < 3) {
-                    console.log(`📊 [DEBUG] renderDetailedFinancials: Row ${index}: ${metricName}, TTM: ${ttm}, has ${Object.keys(values).length} values`);
+                    debugLog(`📊 [DEBUG] renderDetailedFinancials: Row ${index}: ${metricName}, TTM: ${ttm}, has ${Object.keys(values).length} values`);
                 }
                 
                 html += '<tr>';
@@ -8202,7 +8218,7 @@
             const canvasId = `detailedRevenueChart-${ticker}`;
             const ctx = document.getElementById(canvasId);
             if (!ctx) {
-                console.warn(`Canvas ${canvasId} not found`);
+                debugWarn(`Canvas ${canvasId} not found`);
                 return;
             }
             
@@ -8314,7 +8330,7 @@
             const canvasId = `detailedMultiMetricChart-${ticker}`;
             const ctx = document.getElementById(canvasId);
             if (!ctx) {
-                console.warn(`Canvas ${canvasId} not found`);
+                debugWarn(`Canvas ${canvasId} not found`);
                 return;
             }
             
@@ -8428,7 +8444,7 @@
             }
             
             if (datasets.length === 0) {
-                console.warn('No data available for multi-metric chart');
+                debugWarn('No data available for multi-metric chart');
                 return;
             }
             
@@ -8513,7 +8529,7 @@
             const canvasId = `detailedMarginsChart-${ticker}`;
             const ctx = document.getElementById(canvasId);
             if (!ctx) {
-                console.warn(`Canvas ${canvasId} not found`);
+                debugWarn(`Canvas ${canvasId} not found`);
                 return;
             }
             
@@ -8610,7 +8626,7 @@
             }
             
             if (datasets.length === 0) {
-                console.warn('No data available for margins chart');
+                debugWarn('No data available for margins chart');
                 return;
             }
             
@@ -9164,7 +9180,7 @@
                 return;
             }
             
-            console.log('Rendering', newsArray.length, 'news articles');
+            debugLog('Rendering', newsArray.length, 'news articles');
 
             // Sort by date (newest first)
             const sortedNews = [...newsArray].sort((a, b) => {
@@ -9909,7 +9925,7 @@
 
         // Toggle functions for chart features
         window.toggleVolumeOverlay = function() {
-            console.log('toggleVolumeOverlay called');
+            debugLog('toggleVolumeOverlay called');
             chartFeatures.volumeOverlay = !chartFeatures.volumeOverlay;
             const btn = document.getElementById('toggleVolume');
             if (!btn) {
@@ -9934,7 +9950,7 @@
 
 
         window.toggleSupportResistance = async function() {
-            console.log('toggleSupportResistance called');
+            debugLog('toggleSupportResistance called');
             chartFeatures.supportResistance = !chartFeatures.supportResistance;
             const btn = document.getElementById('toggleSupportResistance');
             
@@ -9965,7 +9981,7 @@
         };
 
         window.toggleAnnotationMode = function() {
-            console.log('toggleAnnotationMode called');
+            debugLog('toggleAnnotationMode called');
             chartFeatures.annotationMode = !chartFeatures.annotationMode;
             const btn = document.getElementById('toggleAnnotations');
             
@@ -9994,7 +10010,7 @@
             e.stopPropagation();
             
             const buttonId = target.id;
-            console.log('Toggle button clicked:', buttonId);
+            debugLog('Toggle button clicked:', buttonId);
             
             if (buttonId === 'toggleVolume') {
                 if (window.toggleVolumeOverlay) {
@@ -10630,7 +10646,7 @@
             const chartData = data.chart_data;
             if (!chartData.open || !chartData.high || !chartData.low || !chartData.close) {
                 // Fallback: use close price for all OHLC
-                console.warn('OHLC data not available, using close price');
+                debugWarn('OHLC data not available, using close price');
                 const closePrices = chartData.close || [];
                 chartData.open = closePrices;
                 chartData.high = closePrices;
@@ -10679,7 +10695,7 @@
                     return null;
                 }
                 if (high < low || high < open || high < close || low > open || low > close) {
-                    console.warn('Invalid OHLC data at index', index, {open, high, low, close});
+                    debugWarn('Invalid OHLC data at index', index, {open, high, low, close});
                     return null;
                 }
                 
@@ -10694,7 +10710,7 @@
             
             // Ensure container is visible and has dimensions
             if (candlestickContainer.clientWidth === 0 || candlestickContainer.clientHeight === 0) {
-                console.warn('Candlestick container has no dimensions, waiting...');
+                debugWarn('Candlestick container has no dimensions, waiting...');
                 setTimeout(() => createCandlestickChart(data), 100);
                 return;
             }
@@ -10722,8 +10738,8 @@
                 }
             };
             
-            console.log('Creating candlestick chart with', candlestickData.length, 'data points');
-            console.log('Container dimensions:', width, 'x', height);
+            debugLog('Creating candlestick chart with', candlestickData.length, 'data points');
+            debugLog('Container dimensions:', width, 'x', height);
             
             try {
                 // Check if LightweightCharts is available
@@ -10823,7 +10839,7 @@
                     }
                 }, 100);
                 
-                console.log('Candlestick chart created successfully');
+                debugLog('Candlestick chart created successfully');
                 
                 // Add volume overlay if enabled
                 if (chartFeatures.volumeOverlay && chartData.volume) {
@@ -11292,7 +11308,7 @@
             if (loadingEl) {
                 loadingEl.classList.remove('hidden');
             } else {
-                console.warn('Loading element not found');
+                debugWarn('Loading element not found');
             }
         }
 
@@ -11301,7 +11317,7 @@
             if (loadingEl) {
                 loadingEl.classList.add('hidden');
             } else {
-                console.warn('Loading element not found');
+                debugWarn('Loading element not found');
             }
         }
 
@@ -11341,7 +11357,7 @@
                             const baseDelay = Math.pow(2, attempt) * 1000;
                             const jitter = Math.random() * 1000;
                             const delay = baseDelay + jitter;
-                            console.log(`Retrying request (attempt ${attempt + 1}/${retries + 1}) after ${Math.round(delay)}ms...`);
+                            debugLog(`Retrying request (attempt ${attempt + 1}/${retries + 1}) after ${Math.round(delay)}ms...`);
                             await new Promise(resolve => setTimeout(resolve, delay));
                             continue;
                         }
@@ -11369,7 +11385,7 @@
                         const baseDelay = Math.pow(2, attempt) * 1000;
                         const jitter = Math.random() * 1000;
                         const delay = baseDelay + jitter;
-                        console.log(`Network error, retrying (attempt ${attempt + 1}/${retries + 1}) after ${Math.round(delay)}ms...`);
+                        debugLog(`Network error, retrying (attempt ${attempt + 1}/${retries + 1}) after ${Math.round(delay)}ms...`);
                         await new Promise(resolve => setTimeout(resolve, delay));
                         continue;
                     }
@@ -11717,11 +11733,11 @@
                 const financialsInput = document.getElementById('financialsTickerInput');
                 const financialsDropdown = document.getElementById('financialsAutocomplete');
                 if (financialsInput && financialsDropdown && financialsInput.dataset.autocompleteInitialized !== 'true') {
-                    console.log('[AUTOCOMPLETE] Initializing financialsTickerInput');
+                    debugLog('[AUTOCOMPLETE] Initializing financialsTickerInput');
                     let autocompleteTimeout = null;
                     financialsInput.addEventListener('input', async function(e) {
                         const query = e.target.value.trim();
-                        console.log('[AUTOCOMPLETE] Financials input changed:', query);
+                        debugLog('[AUTOCOMPLETE] Financials input changed:', query);
                         if (!query) {
                             financialsDropdown.style.display = 'none';
                             return;
@@ -11738,10 +11754,10 @@
                         
                         // Debounce API call
                         autocompleteTimeout = setTimeout(async () => {
-                            console.log('[AUTOCOMPLETE] Fetching results for:', query);
+                            debugLog('[AUTOCOMPLETE] Fetching results for:', query);
                             try {
                                 const data = await fetchAutocompleteResults(query);
-                                console.log('[AUTOCOMPLETE] Received data:', data);
+                                debugLog('[AUTOCOMPLETE] Received data:', data);
                                 let html = '';
                                 if (data.results && data.results.length > 0) {
                                     html += '<div class="autocomplete-section"><div class="autocomplete-section-title">🔍 Search Results</div>';
@@ -11760,7 +11776,7 @@
                                 }
                                 financialsDropdown.innerHTML = html;
                                 financialsDropdown.style.display = html !== '' ? 'block' : 'none';
-                                console.log('[AUTOCOMPLETE] Rendered dropdown:', { htmlLength: html.length, display: financialsDropdown.style.display });
+                                debugLog('[AUTOCOMPLETE] Rendered dropdown:', { htmlLength: html.length, display: financialsDropdown.style.display });
                             } catch (error) {
                                 console.error('[AUTOCOMPLETE] Error:', error);
                                 financialsDropdown.innerHTML = '<div class="autocomplete-empty">⚠️ Search error. Please try again.</div>';
@@ -11770,7 +11786,7 @@
                     });
                     financialsInput.dataset.autocompleteInitialized = 'true';
                 } else {
-                    console.log('[AUTOCOMPLETE] Financials input or dropdown not found, or already initialized');
+                    debugLog('[AUTOCOMPLETE] Financials input or dropdown not found, or already initialized');
                 }
             }, 200);
         }
@@ -12546,7 +12562,7 @@
             const container = document.getElementById('aiRecommendationsContent');
             
             // Debug: Log chart_data availability
-            console.log('[AI RECOMMENDATIONS] Data received:', {
+            debugLog('[AI RECOMMENDATIONS] Data received:', {
                 hasChartData: !!data.chart_data,
                 chartDataType: typeof data.chart_data,
                 chartDataKeys: data.chart_data ? Object.keys(data.chart_data) : null,
@@ -12917,7 +12933,7 @@
                                 <!-- Daily History Table -->
                                 ${(() => {
                                     const hasData = data.chart_data && data.chart_data.dates && Array.isArray(data.chart_data.dates) && data.chart_data.dates.length > 0;
-                                    console.log('[HISTORY TABLE] Condition check:', {
+                                    debugLog('[HISTORY TABLE] Condition check:', {
                                         hasChartData: !!data.chart_data,
                                         hasDates: !!(data.chart_data && data.chart_data.dates),
                                         isArray: data.chart_data && data.chart_data.dates ? Array.isArray(data.chart_data.dates) : false,
@@ -13941,7 +13957,7 @@
                 refreshFn();
             } else {
                 // Default: reload page
-                console.warn(`No refresh function found for container: ${containerId}`);
+                debugWarn(`No refresh function found for container: ${containerId}`);
             }
         }
 
@@ -14115,7 +14131,7 @@
                     console.log('Sample item:', items[0]);
                     const itemsWithSector = items.filter(i => i.sector).length;
                     const itemsWithIndustry = items.filter(i => i.industry).length;
-                    console.log(`Items with sector: ${itemsWithSector}/${items.length}, with industry: ${itemsWithIndustry}/${items.length}`);
+                    debugLog(`Items with sector: ${itemsWithSector}/${items.length}, with industry: ${itemsWithIndustry}/${items.length}`);
                 }
 
                 // Show failed tickers if any
@@ -14585,12 +14601,12 @@
             const industrySelect = document.getElementById('mapIndustryFilter');
             
             if (!sectorSelect || !industrySelect) {
-                console.warn('Sector or Industry select elements not found');
+                debugWarn('Sector or Industry select elements not found');
                 return;
             }
 
             if (!items || items.length === 0) {
-                console.warn('No items to populate filters');
+                debugWarn('No items to populate filters');
                 return;
             }
 
@@ -14606,8 +14622,8 @@
                 }
             });
 
-            console.log('Found sectors:', Array.from(sectors), 'count:', sectors.size);
-            console.log('Found industries:', Array.from(industries), 'count:', industries.size);
+            debugLog('Found sectors:', Array.from(sectors), 'count:', sectors.size);
+            debugLog('Found industries:', Array.from(industries), 'count:', industries.size);
 
             // Update sector dropdown
             const currentSectorValue = sectorSelect.value;
@@ -14620,9 +14636,9 @@
                     if (currentSectorValue === sector) option.selected = true;
                     sectorSelect.appendChild(option);
                 });
-                console.log('Sector dropdown populated with', sectors.size, 'options');
+                debugLog('Sector dropdown populated with', sectors.size, 'options');
             } else {
-                console.warn('No sectors found in data!');
+                debugWarn('No sectors found in data!');
             }
 
             // Update industry dropdown (filtered by selected sector)
@@ -14648,7 +14664,7 @@
                     if (currentIndustryValue === industry) option.selected = true;
                     industrySelect.appendChild(option);
                 });
-                console.log('Industry dropdown populated with', industriesForSelectedSector.size, 'options');
+                debugLog('Industry dropdown populated with', industriesForSelectedSector.size, 'options');
             } else {
                 console.warn('No industries found in data!');
             }
@@ -29883,7 +29899,7 @@
         if (typeof toggleWatchlistGroup !== 'undefined') window.toggleWatchlistGroup = toggleWatchlistGroup;
         if (typeof showWatchlistGroupManager !== 'undefined') window.showWatchlistGroupManager = showWatchlistGroupManager;
         
-        console.log('✅ Functions exported to window scope');
+        debugLog('✅ Functions exported to window scope');
     </script>
 </body>
 </html>
