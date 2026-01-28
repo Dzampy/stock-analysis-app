@@ -7026,7 +7026,7 @@
             debugLog('[AUTOCOMPLETE] Direct focus handler');
             
             if (!dropdown || !input) {
-                console.error('[AUTOCOMPLETE] Dropdown or input not found');
+                debugError('[AUTOCOMPLETE] Dropdown or input not found');
                 return;
             }
             
@@ -7326,8 +7326,8 @@
                         updateNewsAlertsButton(); // Update News Alerts button
                         debugLog('[STOCK ANALYSIS] displayStockData completed');
                     } catch (displayError) {
-                        console.error('[STOCK ANALYSIS] Error displaying stock data:', displayError);
-                        console.error('[STOCK ANALYSIS] Error stack:', displayError.stack);
+                        debugError('[STOCK ANALYSIS] Error displaying stock data:', displayError);
+                        debugError('[STOCK ANALYSIS] Error stack:', displayError.stack);
                         showError('Error displaying data: ' + displayError.message);
                     }
                 }, 100);
@@ -7473,7 +7473,7 @@
                     createCandlestickChart(data);
                 }
             } catch (chartError) {
-                console.error('[STOCK ANALYSIS] Error creating price chart:', chartError);
+                debugError('[STOCK ANALYSIS] Error creating price chart:', chartError);
                 const priceChartContainer = document.querySelector('.chart-container');
                 if (priceChartContainer) {
                     priceChartContainer.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-secondary);">Error loading chart: ' + chartError.message + '</div>';
@@ -7483,13 +7483,13 @@
             try {
                 createRSIChart(data);
             } catch (rsiError) {
-                console.error('[STOCK ANALYSIS] Error creating RSI chart:', rsiError);
+                debugError('[STOCK ANALYSIS] Error creating RSI chart:', rsiError);
             }
             
             try {
                 createMACDChart(data);
             } catch (macdError) {
-                console.error('[STOCK ANALYSIS] Error creating MACD chart:', macdError);
+                debugError('[STOCK ANALYSIS] Error creating MACD chart:', macdError);
             }
 
             // Update watchlist sidebar
