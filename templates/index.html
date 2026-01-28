@@ -7334,8 +7334,8 @@
                 
                 hideLoading();
             } catch (error) {
-                console.error('[STOCK ANALYSIS] Error in searchStock:', error);
-                console.error('[STOCK ANALYSIS] Error stack:', error.stack);
+                debugError('[STOCK ANALYSIS] Error in searchStock:', error);
+                debugError('[STOCK ANALYSIS] Error stack:', error.stack);
                 hideLoading();
                 showError(error.message || 'Failed to load stock data. Please try again.');
                 
@@ -15066,7 +15066,7 @@
                 
                 const input = document.getElementById('watchlistQuickAdd');
                 if (!input) {
-                    console.error('watchlistQuickAdd input not found');
+                    debugError('watchlistQuickAdd input not found');
                     showToast('Input field not found', 'error');
                     return;
                 }
@@ -15110,7 +15110,7 @@
                 // Show success indicator
                 showToast(`${ticker} added to watchlist`, 'success');
             } catch (error) {
-                console.error('Error in addToWatchlistQuick:', error);
+                debugError('Error in addToWatchlistQuick:', error);
                 showToast('Error adding to watchlist: ' + error.message, 'error');
             }
         }
@@ -15124,7 +15124,7 @@
                 }
                 return JSON.parse(stored);
             } catch (error) {
-                console.error('Error loading news alerts:', error);
+                debugError('Error loading news alerts:', error);
                 return [];
             }
         }
@@ -15133,7 +15133,7 @@
             try {
                 localStorage.setItem('newsAlerts', JSON.stringify(alerts));
             } catch (error) {
-                console.error('Error saving news alerts:', error);
+                debugError('Error saving news alerts:', error);
             }
         }
 
@@ -15322,7 +15322,7 @@
                 updateWatchlistSidebar(ticker);
                 showToast(`${ticker} added to watchlist`, 'success');
             } catch (error) {
-                console.error('Error in addCurrentToWatchlist:', error);
+                debugError('Error in addCurrentToWatchlist:', error);
                 showToast('Error adding to watchlist', 'error');
             }
         }
@@ -19146,9 +19146,9 @@
         let financialsPeriod = 'quarterly'; // 'quarterly' or 'annual'
 
         async function loadFinancials() {
-            console.log('[DEBUG] loadFinancials: Function called');
+            debugLog('[DEBUG] loadFinancials: Function called');
             const ticker = document.getElementById('financialsTickerInput').value.trim().toUpperCase();
-            console.log('[DEBUG] loadFinancials: Ticker extracted', {ticker});
+            debugLog('[DEBUG] loadFinancials: Ticker extracted', {ticker});
             if (!ticker) {
                 showError('Please enter a stock ticker');
                 return;
@@ -19175,7 +19175,7 @@
 
             try {
                 // Add to recent searches
-                console.log('[DEBUG] loadFinancials: Fetching financials data for', ticker);
+                debugLog('[DEBUG] loadFinancials: Fetching financials data for', ticker);
                 const result = await fetchJSON(`/api/financials/${ticker}`, {}, container);
                 
                 if (!result.success) {
@@ -19186,7 +19186,7 @@
                 trackDataTimestamp(`/api/financials/${ticker}`, result.timestamp || Date.now());
                 updateDataFreshnessIndicator(result.timestamp || new Date().toISOString(), 'financialsContent');
                 
-                console.log('[DEBUG] loadFinancials: Data received', {
+                debugLog('[DEBUG] loadFinancials: Data received', {
                     hasData: !!data,
                     hasForwardEstimates: !!data.forward_estimates,
                     dataKeys: Object.keys(data || {})
@@ -19199,16 +19199,16 @@
                 currentFinancialsData = data;
                 
                 // Debug: Check if detailed data exists
-                console.log('🔍 [DEBUG] loadFinancials: About to call displayFinancials');
-                console.log('🔍 [DEBUG] loadFinancials: Data keys:', Object.keys(data || {}));
-                console.log('🔍 [DEBUG] loadFinancials: Has detailed_income_statement?', !!data?.detailed_income_statement);
+                debugLog('🔍 [DEBUG] loadFinancials: About to call displayFinancials');
+                debugLog('🔍 [DEBUG] loadFinancials: Data keys:', Object.keys(data || {}));
+                debugLog('🔍 [DEBUG] loadFinancials: Has detailed_income_statement?', !!data?.detailed_income_statement);
                 if (data?.detailed_income_statement) {
-                    console.log('🔍 [DEBUG] loadFinancials: quarterly length:', data.detailed_income_statement.quarterly?.length || 0);
-                    console.log('🔍 [DEBUG] loadFinancials: annual length:', data.detailed_income_statement.annual?.length || 0);
+                    debugLog('🔍 [DEBUG] loadFinancials: quarterly length:', data.detailed_income_statement.quarterly?.length || 0);
+                    debugLog('🔍 [DEBUG] loadFinancials: annual length:', data.detailed_income_statement.annual?.length || 0);
                 }
                 
-                console.log('🎯🎯🎯 [DEBUG] loadFinancials: About to call displayFinancials with ticker:', ticker);
-                console.log('🎯🎯🎯 [DEBUG] loadFinancials: Data has keys:', Object.keys(data || {}).slice(0, 10));
+                debugLog('🎯🎯🎯 [DEBUG] loadFinancials: About to call displayFinancials with ticker:', ticker);
+                debugLog('🎯🎯🎯 [DEBUG] loadFinancials: Data has keys:', Object.keys(data || {}).slice(0, 10));
                 
                 // Call displayFinancials with basic data (fast)
                 displayFinancials(data, ticker);
@@ -19224,7 +19224,7 @@
                     // Double-check that overviewTab has content
                     const overviewTab = document.getElementById('financialsOverviewTab');
                     if (overviewTab && (!overviewTab.innerHTML || overviewTab.innerHTML.trim() === '' || overviewTab.innerHTML.includes('Loading overview data'))) {
-                        console.warn('⚠️⚠️⚠️ [DEBUG] loadFinancials: overviewTab is empty after displayFinancials, trying to re-render...');
+                        debugWarn('⚠️⚠️⚠️ [DEBUG] loadFinancials: overviewTab is empty after displayFinancials, trying to re-render...');
                         // Re-call displayFinancials if content is missing
                         displayFinancials(data, ticker);
                     }
@@ -19233,7 +19233,7 @@
                 // Load advanced analyses asynchronously in background (doesn't block UI)
                 loadAdvancedFinancialsAnalyses(ticker, data);
                 
-                console.log('🎯🎯🎯 [DEBUG] loadFinancials: displayFinancials call completed');
+                debugLog('🎯🎯🎯 [DEBUG] loadFinancials: displayFinancials call completed');
             } catch (error) {
                 container.innerHTML = `
                     <div class="error">
@@ -19252,7 +19252,7 @@
 
         // Load advanced financial analyses asynchronously (doesn't block initial render)
         async function loadAdvancedFinancialsAnalyses(ticker, basicData) {
-            console.log('📊 [DEBUG] loadAdvancedFinancialsAnalyses: Loading advanced analyses for', ticker);
+            debugLog('📊 [DEBUG] loadAdvancedFinancialsAnalyses: Loading advanced analyses for', ticker);
             
             try {
                 // Show loading indicators for advanced sections
@@ -19280,7 +19280,7 @@
                 }
                 
                 const advancedData = await response.json();
-                console.log('📊 [DEBUG] loadAdvancedFinancialsAnalyses: Advanced data received', Object.keys(advancedData));
+                debugLog('📊 [DEBUG] loadAdvancedFinancialsAnalyses: Advanced data received', Object.keys(advancedData));
                 
                 // Merge advanced data with basic data
                 const mergedData = { ...basicData, ...advancedData };
@@ -19359,7 +19359,7 @@
                 }
                 
             } catch (error) {
-                console.warn('⚠️ [DEBUG] loadAdvancedFinancialsAnalyses: Failed to load advanced analyses', error);
+                debugWarn('⚠️ [DEBUG] loadAdvancedFinancialsAnalyses: Failed to load advanced analyses', error);
                 // Remove loading placeholder on error
                 const placeholder = document.getElementById('advancedAnalysesPlaceholder');
                 if (placeholder) {
@@ -19417,13 +19417,13 @@
         }
 
         function displayFinancials(data, ticker) {
-            console.log('🚀 [DEBUG] displayFinancials: FUNCTION CALLED with ticker:', ticker);
+            debugLog('🚀 [DEBUG] displayFinancials: FUNCTION CALLED with ticker:', ticker);
                 
                 const container = document.getElementById('financialsContent');
-                console.log('🚀 [DEBUG] displayFinancials: Container found:', !!container);
+                debugLog('🚀 [DEBUG] displayFinancials: Container found:', !!container);
                 
                 if (!container) {
-                    console.error('❌ [DEBUG] displayFinancials: financialsContent container not found!');
+                    debugError('❌ [DEBUG] displayFinancials: financialsContent container not found!');
                     return;
                 }
                 
@@ -19431,15 +19431,15 @@
                 const placeholder = container.querySelector('div[style*="text-align: center"]');
                 if (placeholder) {
                     placeholder.style.display = 'none';
-                    console.log('✅ [DEBUG] displayFinancials: Placeholder hidden');
+                    debugLog('✅ [DEBUG] displayFinancials: Placeholder hidden');
                 }
                 
                 // FIRST: Ensure tabs container exists and is visible BEFORE generating HTML
                 let tabsContainer = document.getElementById('financialsTabsContainer');
-                console.log('🔍 [DEBUG] displayFinancials: Looking for tabs container...', !!tabsContainer);
+                debugLog('🔍 [DEBUG] displayFinancials: Looking for tabs container...', !!tabsContainer);
                 
                 if (!tabsContainer) {
-                console.log('🔧 [DEBUG] displayFinancials: Tabs container not found, creating it...');
+                debugLog('🔧 [DEBUG] displayFinancials: Tabs container not found, creating it...');
                 const financialsCard = container.closest('.card') || container.parentElement;
                 if (financialsCard) {
                     tabsContainer = document.createElement('div');
@@ -19461,13 +19461,13 @@
                     } else {
                         container.parentNode.appendChild(tabsContainer);
                     }
-                    console.log('✅ [DEBUG] displayFinancials: Tabs container created and inserted');
+                    debugLog('✅ [DEBUG] displayFinancials: Tabs container created and inserted');
                 } else {
-                    console.error('❌ [DEBUG] displayFinancials: Cannot find parent card to insert tabs container');
+                    debugError('❌ [DEBUG] displayFinancials: Cannot find parent card to insert tabs container');
                 }
             } else {
                 // Make sure existing tabs container is visible - FORCE it with multiple methods
-                console.log('✅ [DEBUG] displayFinancials: Tabs container found, making it visible...');
+                debugLog('✅ [DEBUG] displayFinancials: Tabs container found, making it visible...');
                 tabsContainer.removeAttribute('style');
                 tabsContainer.style.display = 'block';
                 tabsContainer.style.visibility = 'visible';
@@ -19476,11 +19476,11 @@
                 
                 // Double check it's visible
                 const computedStyle = window.getComputedStyle(tabsContainer);
-                console.log('✅ [DEBUG] displayFinancials: Tabs container computed display:', computedStyle.display);
-                console.log('✅ [DEBUG] displayFinancials: Tabs container computed visibility:', computedStyle.visibility);
+                debugLog('✅ [DEBUG] displayFinancials: Tabs container computed display:', computedStyle.display);
+                debugLog('✅ [DEBUG] displayFinancials: Tabs container computed visibility:', computedStyle.visibility);
                 
                 if (computedStyle.display === 'none') {
-                    console.warn('⚠️ [DEBUG] displayFinancials: Tabs container still has display:none, forcing with class...');
+                    debugWarn('⚠️ [DEBUG] displayFinancials: Tabs container still has display:none, forcing with class...');
                     tabsContainer.classList.remove('hidden');
                     tabsContainer.classList.add('visible');
                     tabsContainer.style.setProperty('display', 'block', 'important');
@@ -19495,12 +19495,12 @@
             
             // Validate data structure
             if (!data || typeof data !== 'object') {
-                console.error('❌ [DEBUG] displayFinancials: Invalid data structure');
+                debugError('❌ [DEBUG] displayFinancials: Invalid data structure');
                 container.innerHTML = '<p style="color: var(--text-secondary);">Invalid financial data received.</p>';
                 return;
             }
             
-            console.log('✅ [DEBUG] displayFinancials: Data validated, starting HTML generation...');
+            debugLog('✅ [DEBUG] displayFinancials: Data validated, starting HTML generation...');
             
             // Ensure income_statement, cash_flow, and margins are objects if they exist
             if (data.income_statement && typeof data.income_statement !== 'object') {
