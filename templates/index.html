@@ -10677,7 +10677,7 @@
                     }
                     timestamp = Math.floor(dateObj.getTime() / 1000);
                 } catch (e) {
-                    console.error('Error parsing date:', date, e);
+                    debugError('Error parsing date:', date, e);
                     // Fallback: use current time + index offset
                     timestamp = Math.floor(Date.now() / 1000) + index * 60; // 1 minute increments as fallback
                 }
