@@ -16139,7 +16139,7 @@
                 console.error('earningsCalendarContent container not found');
                 return;
             }
-            console.log('Loading earnings calendar...');
+            debugLog('Loading earnings calendar...');
             
             container.innerHTML = `
                 <div class="skeleton-card">
@@ -16164,14 +16164,14 @@
                 }
 
                 const data = await response.json();
-                console.log('Earnings calendar response:', data);
+                debugLog('Earnings calendar response:', data);
 
                 if (data.error) {
                     throw new Error(data.error);
                 }
 
                 allEarningsData = data.earnings || [];
-                console.log('Loaded earnings data:', allEarningsData.length, 'items', allEarningsData.slice(0, 3));
+                debugLog('Loaded earnings data:', allEarningsData.length, 'items', allEarningsData.slice(0, 3));
                 
                 if (allEarningsData.length === 0) {
                     container.innerHTML = `
@@ -16195,7 +16195,7 @@
 
                 displayEarningsCalendar();
             } catch (error) {
-                console.error('Earnings calendar error:', error);
+                debugError('Earnings calendar error:', error);
                 container.innerHTML = `
                     <div class="error">
                         Error loading earnings calendar: ${error.message}<br><br>
@@ -16245,7 +16245,7 @@
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             
-            console.log('Total earnings:', allEarningsData.length, 'Filter:', currentEarningsFilter);
+            debugLog('Total earnings:', allEarningsData.length, 'Filter:', currentEarningsFilter);
 
             if (currentEarningsFilter === 'this-week') {
                 const weekEnd = new Date(today);
@@ -16273,7 +16273,7 @@
                 });
             }
             
-            console.log('Filtered earnings:', filteredEarnings.length, 'out of', allEarningsData.length);
+            debugLog('Filtered earnings:', filteredEarnings.length, 'out of', allEarningsData.length);
 
             if (filteredEarnings.length === 0) {
                 container.innerHTML = `
@@ -16364,7 +16364,7 @@
                 console.error('economicCalendarContent container not found');
                 return;
             }
-            console.log('Loading economic calendar...');
+            debugLog('Loading economic calendar...');
             
             container.innerHTML = `
                 <div class="skeleton-card">
@@ -16388,14 +16388,14 @@
                 }
 
                 const data = result.data;
-                console.log('Economic calendar response:', data);
+                debugLog('Economic calendar response:', data);
 
                 if (data.error) {
                     throw new Error(data.error);
                 }
 
                 allEconomicData = data.events || [];
-                console.log('Loaded economic data:', allEconomicData.length, 'items');
+                debugLog('Loaded economic data:', allEconomicData.length, 'items');
                 
                 if (allEconomicData.length === 0) {
                     container.innerHTML = `
@@ -16419,7 +16419,7 @@
 
                 displayEconomicCalendar();
             } catch (error) {
-                console.error('Economic calendar error:', error);
+                debugError('Economic calendar error:', error);
                 container.innerHTML = `
                     <div class="error">
                         Error loading economic calendar: ${error.message}<br><br>
@@ -16599,13 +16599,13 @@
             // Add click handlers to all economic events after HTML is inserted
             setTimeout(() => {
                 const eventElements = document.querySelectorAll('.economic-event-item');
-                console.log('Found', eventElements.length, 'economic event elements');
+                debugLog('Found', eventElements.length, 'economic event elements');
                 eventElements.forEach((element, index) => {
                     element.addEventListener('click', function(e) {
                         e.stopPropagation();
                         e.preventDefault();
                         const eventName = this.getAttribute('data-event-name') || 'Unknown Event';
-                        console.log('Clicked event element:', index, 'Event name:', eventName);
+                        debugLog('Clicked event element:', index, 'Event name:', eventName);
                         showEconomicEventExplanation(eventName);
                     });
                 });
@@ -16613,20 +16613,20 @@
         }
 
         async function showEconomicEventExplanation(eventName) {
-            console.log('showEconomicEventExplanation called with:', eventName);
+            debugLog('showEconomicEventExplanation called with:', eventName);
             const modal = document.getElementById('economicEventModal');
             const modalContent = document.getElementById('economicEventModalContent');
             
             if (!modal) {
-                console.error('Modal not found');
+                debugError('Modal not found');
                 return;
             }
             if (!modalContent) {
-                console.error('Modal content not found');
+                debugError('Modal content not found');
                 return;
             }
             
-            console.log('Modal found, showing...');
+            debugLog('Modal found, showing...');
             
             // Show modal with loading state
             modal.style.display = 'block';
@@ -16681,7 +16681,7 @@
                 `;
                 
             } catch (error) {
-                console.error('Error loading economic event explanation:', error);
+                debugError('Error loading economic event explanation:', error);
                 modalContent.innerHTML = `
                     <div style="text-align: center; padding: 40px;">
                         <div style="font-size: 3em; margin-bottom: 20px;">❌</div>
@@ -16890,7 +16890,7 @@
                     });
                 }
             } catch (error) {
-                console.error('Error playing sound alert:', error);
+                debugError('Error playing sound alert:', error);
             }
         }
 
@@ -17128,7 +17128,7 @@
                         companyName = stockData.company_info?.name || ticker;
                     }
                 } catch (e) {
-                    console.warn('Could not fetch company name:', e);
+                    debugWarn('Could not fetch company name:', e);
                 }
 
                 // Store news data globally for AI summary
@@ -17157,7 +17157,7 @@
                 loadBtn.disabled = false;
                 loadBtn.textContent = '📰 Load News';
             } catch (error) {
-                console.error('Error loading news:', error);
+                debugError('Error loading news:', error);
                 container.innerHTML = `
                     <div class="error">
                         <div class="error-title">Error loading news</div>
@@ -17519,7 +17519,7 @@
                     showToast('AI summary generated successfully', 'success');
                     
                 } catch (error) {
-                    console.error('Error generating watchlist AI summary:', error);
+                    debugError('Error generating watchlist AI summary:', error);
                     const summaryContainer = document.getElementById('watchlistAISummaryContainer');
                     if (summaryContainer) {
                         summaryContainer.innerHTML = `
@@ -17675,7 +17675,7 @@
         function loadSettings() {
             const container = document.getElementById('settingsContent');
             if (!container) {
-                console.error('Settings container not found');
+                debugError('Settings container not found');
                 return;
             }
             
@@ -17694,7 +17694,7 @@
             const autoRefreshEnabled = localStorage.getItem('autoRefreshEnabled') === 'true';
             const autoRefreshInterval = parseInt(localStorage.getItem('autoRefreshInterval') || '60');
 
-            console.log('About to set container.innerHTML, container:', container);
+            debugLog('About to set container.innerHTML, container:', container);
             container.innerHTML = `
                 <!-- Appearance Section -->
                 <div style="margin-bottom: 30px; padding: 20px; background: var(--card-bg); border-radius: 15px; border: 1px solid var(--border-color);">
@@ -18068,8 +18068,8 @@
             updateStorageUsage();
             updateCacheInfo();            const computedAfter = window.getComputedStyle(container);
             
-            console.log('Settings content loaded, container.innerHTML length:', container.innerHTML.length);
-            console.log('Settings content preview:', container.innerHTML.substring(0, 200));
+            debugLog('Settings content loaded, container.innerHTML length:', container.innerHTML.length);
+            debugLog('Settings content preview:', container.innerHTML.substring(0, 200));
             
             // Force reflow after content is loaded
             const settingsSectionEl = document.getElementById('settingsSection');
@@ -18078,12 +18078,12 @@
                 const cardEl = settingsSectionEl.querySelector('.card');
                 const cardComputedAfter = cardEl ? window.getComputedStyle(cardEl) : null;
                 
-                console.log('After content load - settingsSection offsetHeight:', settingsSectionEl.offsetHeight, 'scrollHeight:', settingsSectionEl.scrollHeight, 'clientHeight:', settingsSectionEl.clientHeight);
+                debugLog('After content load - settingsSection offsetHeight:', settingsSectionEl.offsetHeight, 'scrollHeight:', settingsSectionEl.scrollHeight, 'clientHeight:', settingsSectionEl.clientHeight);
                 
                 // If still 0, force display again
                 if (settingsSectionEl.offsetHeight === 0) {                    const beforeForce = window.getComputedStyle(settingsSectionEl);
                     
-                    console.log('Still 0 height after content load, forcing again...');
+                    debugLog('Still 0 height after content load, forcing again...');
                     settingsSectionEl.style.setProperty('display', 'block', 'important');
                     settingsSectionEl.style.setProperty('min-height', '500px', 'important');
                     const card = settingsSectionEl.querySelector('.card');
@@ -18093,7 +18093,7 @@
                     }
                     settingsSectionEl.offsetHeight; // Force reflow again                    const afterForce = window.getComputedStyle(settingsSectionEl);
                     
-                    console.log('After second force - offsetHeight:', settingsSectionEl.offsetHeight);
+                    debugLog('After second force - offsetHeight:', settingsSectionEl.offsetHeight);
                 }
             }
         }
@@ -18266,7 +18266,7 @@
                     showToast(`Cleaned ${cleaned} old data entries`, 'success');
                 }
             } catch (e) {
-                console.error('Error cleaning old data:', e);
+                debugError('Error cleaning old data:', e);
             }
         }
 
@@ -18525,7 +18525,7 @@
 
                 showToast('Data exported successfully', 'success');
             } catch (error) {
-                console.error('Error exporting data:', error);
+                debugError('Error exporting data:', error);
                 showToast('Failed to export data', 'error');
             }
         }
@@ -18575,7 +18575,7 @@
                             initDarkMode();
                         }
                     } catch (error) {
-                        console.error('Error importing data:', error);
+                        debugError('Error importing data:', error);
                         showToast('Failed to import data. Invalid file format.', 'error');
                     }
                 };
@@ -18619,7 +18619,7 @@
                 // Reset dark mode to default
                 initDarkMode();
             } catch (error) {
-                console.error('Error clearing data:', error);
+                debugError('Error clearing data:', error);
                 showToast('Failed to clear data', 'error');
             }
         }
@@ -18640,7 +18640,7 @@
                 const history = localStorage.getItem('alertsHistory');
                 return history ? JSON.parse(history) : [];
             } catch (error) {
-                console.error('Error loading alerts history:', error);
+                debugError('Error loading alerts history:', error);
                 return [];
             }
         }
@@ -18676,7 +18676,7 @@
                     showAlertsHistory();
                 }
             } catch (error) {
-                console.error('Error saving alert to history:', error);
+                debugError('Error saving alert to history:', error);
             }
         }
 
@@ -18693,10 +18693,10 @@
 
         function deleteAlertFromHistory(alertId) {
             try {
-                console.log('Deleting alert with ID:', alertId, typeof alertId);
+                debugLog('Deleting alert with ID:', alertId, typeof alertId);
                 
                 const history = getAlertsHistory();
-                console.log('Current history length:', history.length);
+                debugLog('Current history length:', history.length);
                 
                 const initialLength = history.length;
                 const filteredHistory = history.filter(alert => {
@@ -18705,21 +18705,21 @@
                     const deleteIdStr = String(alertId);
                     const matches = alertIdStr === deleteIdStr || alert.id === alertId;
                     if (matches) {
-                        console.log('Found matching alert:', alert.id, alert.title);
+                        debugLog('Found matching alert:', alert.id, alert.title);
                     }
                     return !matches;
                 });
                 
-                console.log('Filtered history length:', filteredHistory.length);
+                debugLog('Filtered history length:', filteredHistory.length);
                 
                 if (filteredHistory.length === initialLength) {
-                    console.warn('Alert not found in history. ID:', alertId);
+                    debugWarn('Alert not found in history. ID:', alertId);
                     alert('Alert not found in history.');
                     return;
                 }
                 
                 localStorage.setItem('alertsHistory', JSON.stringify(filteredHistory));
-                console.log('Alert deleted successfully. New history length:', filteredHistory.length);
+                debugLog('Alert deleted successfully. New history length:', filteredHistory.length);
                 
                 // Refresh history view
                 if (showingAlertsHistory) {
@@ -18729,7 +18729,7 @@
                     loadAlertsDashboard();
                 }
             } catch (error) {
-                console.error('Error deleting alert from history:', error);
+                debugError('Error deleting alert from history:', error);
                 alert('Error deleting alert: ' + error.message);
             }
         }
@@ -18861,10 +18861,10 @@
         async function loadAlertsDashboard() {
             const container = document.getElementById('alertsDashboardContent');
             if (!container) {
-                console.error('alertsDashboardContent container not found');
+                debugError('alertsDashboardContent container not found');
                 return;
             }
-            console.log('Loading alerts dashboard...');
+            debugLog('Loading alerts dashboard...');
             
             container.innerHTML = `
                 <div class="skeleton-card">
@@ -18935,7 +18935,7 @@
                     historyBtn.textContent = '📜 Alert History';
                 }
             } catch (error) {
-                console.error('Alerts dashboard error:', error);
+                debugError('Alerts dashboard error:', error);
                 container.innerHTML = `
                     <div class="error">
                         Error loading alerts: ${error.message}<br><br>
@@ -20375,8 +20375,8 @@
 
             // Balance Sheet (in same section)
             const bs = data.balance_sheet || {};
-            console.log('[Financials] Balance Sheet data:', bs);
-            console.log('[Financials] Balance Sheet data type:', typeof bs, 'keys:', Object.keys(bs));
+            debugLog('[Financials] Balance Sheet data:', bs);
+            debugLog('[Financials] Balance Sheet data type:', typeof bs, 'keys:', Object.keys(bs));
             
             // Always show Balance Sheet section, even if data is missing
             // Show Balance Sheet section if we have at least one value (including 0)
@@ -20386,7 +20386,7 @@
                                        (bs.current_ratio !== null && bs.current_ratio !== undefined) ||
                                        (bs.net_debt !== null && bs.net_debt !== undefined);
             
-            console.log('[Financials] hasBalanceSheetData:', hasBalanceSheetData, {
+            debugLog('[Financials] hasBalanceSheetData:', hasBalanceSheetData, {
                 cash: bs.cash,
                 total_debt: bs.total_debt,
                 equity: bs.equity,
@@ -20395,9 +20395,9 @@
             });
             
             // Always show Balance Sheet section (even if no data)
-            console.log('[Financials] About to create Balance Sheet HTML, hasBalanceSheetData:', hasBalanceSheetData);
+            debugLog('[Financials] About to create Balance Sheet HTML, hasBalanceSheetData:', hasBalanceSheetData);
             if (true) {
-                console.log('[Financials] Creating Balance Sheet HTML section');
+                debugLog('[Financials] Creating Balance Sheet HTML section');
                 html += `
                         <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid var(--border-color);">
                             <h4 style="margin: 0 0 15px 0; font-size: 1.1em; color: var(--text-primary);">Balance Sheet – jen to důležité</h4>
@@ -20414,9 +20414,9 @@
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
                 `;
                 
-                console.log('[Financials] Checking cash:', bs.cash, 'is not null:', bs.cash !== null, 'is not undefined:', bs.cash !== undefined);
+                debugLog('[Financials] Checking cash:', bs.cash, 'is not null:', bs.cash !== null, 'is not undefined:', bs.cash !== undefined);
                 if (bs.cash !== null && bs.cash !== undefined) {
-                    console.log('[Financials] Adding Cash card to HTML');
+                    debugLog('[Financials] Adding Cash card to HTML');
                     html += `
                         <div style="padding: 15px; background: var(--metric-bg); border-radius: 10px;">
                             <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">Cash & Equivalents</div>
@@ -20425,7 +20425,7 @@
                         </div>
                     `;
                 } else {
-                    console.log('[Financials] Cash is null/undefined, skipping');
+                    debugLog('[Financials] Cash is null/undefined, skipping');
                 }
                 
                 if (bs.total_debt !== null && bs.total_debt !== undefined) {
@@ -20830,8 +20830,8 @@
                     
                     html += `</div>`;
                 }
-                console.log('[Financials] Balance Sheet HTML created, length after:', html.length);
-                console.log('[Financials] Balance Sheet HTML snippet:', html.substring(html.length - 500));
+                debugLog('[Financials] Balance Sheet HTML created, length after:', html.length);
+                debugLog('[Financials] Balance Sheet HTML snippet:', html.substring(html.length - 500));
             } else {
                 // Show placeholder if no balance sheet data
                 html += `
@@ -21648,9 +21648,9 @@
                 `;
             }
 
-            console.log('[Financials] Final HTML length before setting innerHTML:', html.length);
-            console.log('[Financials] HTML contains Balance Sheet:', html.includes('Balance Sheet'));
-            console.log('[Financials] HTML contains cash:', html.includes('Cash & Equivalents'));
+            debugLog('[Financials] Final HTML length before setting innerHTML:', html.length);
+            debugLog('[Financials] HTML contains Balance Sheet:', html.includes('Balance Sheet'));
+            debugLog('[Financials] HTML contains cash:', html.includes('Cash & Equivalents'));
             
             // CRITICAL: Set HTML to overviewTab, not container!
             const overviewTab = document.getElementById('financialsOverviewTab');
@@ -21658,19 +21658,19 @@
                 overviewTab.innerHTML = html;
                 overviewTab.style.display = 'block';
                 overviewTab.classList.add('active');
-                console.log('[Financials] innerHTML set to overviewTab, checking DOM...');
+                debugLog('[Financials] innerHTML set to overviewTab, checking DOM...');
             } else {
-                console.warn('[Financials] overviewTab not found, using container fallback');
+                debugWarn('[Financials] overviewTab not found, using container fallback');
                 container.innerHTML = html;
             }
             
             // Check if Balance Sheet section exists in DOM
             setTimeout(() => {
                 const bsSection = Array.from(document.querySelectorAll('h4')).find(h => h.textContent.includes('Balance Sheet'));
-                console.log('[Financials] Balance Sheet section in DOM:', bsSection);
+                debugLog('[Financials] Balance Sheet section in DOM:', bsSection);
                 if (bsSection) {
-                    console.log('[Financials] Balance Sheet section parent:', bsSection.parentElement);
-                    console.log('[Financials] Balance Sheet section computed style:', window.getComputedStyle(bsSection));
+                    debugLog('[Financials] Balance Sheet section parent:', bsSection.parentElement);
+                    debugLog('[Financials] Balance Sheet section computed style:', window.getComputedStyle(bsSection));
                 }
             }, 100);
 
@@ -21700,16 +21700,16 @@
                     try {
                         createRevenueChart(incomeData, ticker, forwardEstimates);
                     } catch (e) {
-                        console.error('❌ Error creating revenue chart:', e);
+                        debugError('❌ Error creating revenue chart:', e);
                     }
                     try {
                         createEPSChart(incomeData, ticker, forwardEstimates);
                     } catch (e) {
-                        console.error('❌ Error creating EPS chart:', e);
+                        debugError('❌ Error creating EPS chart:', e);
                     }
                     generateIncomeInsights(incomeData);
                 } else {
-                    console.warn('No incomeData available for charts');
+                    debugWarn('No incomeData available for charts');
                 }
                 
                 if (cfData && cfData.length > 0) {
@@ -21728,7 +21728,7 @@
                             createHistoricalPeerComparison(data, ticker);
                         }, 300);
                     } catch (e) {
-                        console.error('Error creating peer comparison:', e);
+                        debugError('Error creating peer comparison:', e);
                     }
                 }
                 
@@ -21739,14 +21739,14 @@
                             createSectorComparisonVisualizations(data, ticker);
                         }, 100);
                     } catch (e) {
-                        console.error('Error creating sector comparison visualizations:', e);
+                        debugError('Error creating sector comparison visualizations:', e);
                     }
                 }
                 
                 // Create advanced analysis charts
                 if (data.cash_flow_analysis) {
                     try {
-                        console.log('[Financials] Creating cash flow charts, data:', data.cash_flow_analysis);
+                        debugLog('[Financials] Creating cash flow charts, data:', data.cash_flow_analysis);
                         createCashFlowBreakdownChart(data.cash_flow_analysis, ticker);
                         if (data.cash_flow_analysis.fcf_trend && data.cash_flow_analysis.fcf_trend.length > 0) {
                             // Add small delay to ensure canvas is in DOM
@@ -21754,15 +21754,15 @@
                                 try {
                                     createFCFTrendChart(data.cash_flow_analysis, ticker);
                                 } catch (e) {
-                                    console.error('[FCF Chart] Error creating FCF trend chart:', e);
+                                    debugError('[FCF Chart] Error creating FCF trend chart:', e);
                                 }
                             }, 100);
                         } else {
-                            console.warn('[FCF Chart] No FCF trend data or empty array');
+                            debugWarn('[FCF Chart] No FCF trend data or empty array');
                         }
                     } catch (e) {
-                        console.error('Error creating cash flow charts:', e);
-                        console.error('Stack trace:', e.stack);
+                        debugError('Error creating cash flow charts:', e);
+                        debugError('Stack trace:', e.stack);
                     }
                 } else {
                     console.warn('[Financials] No cash_flow_analysis data available');
