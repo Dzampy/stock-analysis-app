@@ -7814,7 +7814,7 @@
                     overviewTab.style.display = 'block';
                     debugLog('✅ [DEBUG] switchFinancialsTab: Overview tab shown');
                 } else {
-                    console.error('❌ [DEBUG] switchFinancialsTab: Overview tab not found!');
+                    debugError('❌ [DEBUG] switchFinancialsTab: Overview tab not found!');
                 }
             } else if (tabName === 'detailed') {
                 const detailedTab = document.getElementById('financialsDetailedTab');
@@ -7841,17 +7841,17 @@
                                 if (typeof renderDetailedFinancials === 'function') {
                                     renderDetailedFinancials(currentFinancialsData, ticker);
                                 } else {
-                                    console.error('❌ [DEBUG] switchFinancialsTab: renderDetailedFinancials function not found!');
+                                    debugError('❌ [DEBUG] switchFinancialsTab: renderDetailedFinancials function not found!');
                                 }
                             } else {
                                 debugWarn('⚠️ [DEBUG] switchFinancialsTab: currentFinancialsData not available');
                             }
                         }
                     } else {
-                        console.error('❌ [DEBUG] switchFinancialsTab: detailedFinancialsContent container not found!');
+                        debugError('❌ [DEBUG] switchFinancialsTab: detailedFinancialsContent container not found!');
                     }
                 } else {
-                    console.error('❌ [DEBUG] switchFinancialsTab: Detailed tab not found!');
+                    debugError('❌ [DEBUG] switchFinancialsTab: Detailed tab not found!');
                 }
             }
         }
@@ -7898,7 +7898,7 @@
             
             const container = document.getElementById('detailedFinancialsContent');
             if (!container) {
-                console.error('❌❌❌ [DEBUG] renderDetailedFinancials: detailedFinancialsContent container not found!');
+                debugError('❌❌❌ [DEBUG] renderDetailedFinancials: detailedFinancialsContent container not found!');
                 return;
             }
             debugLog('✅✅✅ [DEBUG] renderDetailedFinancials: Container found');
@@ -9289,7 +9289,7 @@
                     container.innerHTML = '<p style="color: var(--text-secondary);">Error rendering news.</p>';
                 }
             } catch (error) {
-                console.error('Error in displayNews:', error);
+                debugError('Error in displayNews:', error);
                 const container = document.getElementById('newsContainer');
                 if (container) {
                     container.innerHTML = `<p style="color: var(--text-secondary);">Error displaying news: ${error.message}</p>`;
@@ -9401,7 +9401,7 @@
                 displayNewsImpactAnalysis(data, impactContainer);
                 
             } catch (error) {
-                console.error('Error analyzing news impact:', error);
+                debugError('Error analyzing news impact:', error);
                 impactContainer.innerHTML = `
                     <div style="padding: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border-left: 4px solid #ef4444;">
                         <div style="color: #ef4444; font-weight: 600; margin-bottom: 5px;">❌ Error</div>
@@ -9642,13 +9642,13 @@
         function createPriceChart(data) {
             const priceChartCanvas = document.getElementById('priceChart');
             if (!priceChartCanvas) {
-                console.error('Price chart canvas not found');
+                debugError('Price chart canvas not found');
                 return;
             }
             
             const ctx = priceChartCanvas.getContext('2d');
             if (!ctx) {
-                console.error('Could not get 2d context from price chart canvas');
+                debugError('Could not get 2d context from price chart canvas');
                 return;
             }
             
@@ -9929,7 +9929,7 @@
             chartFeatures.volumeOverlay = !chartFeatures.volumeOverlay;
             const btn = document.getElementById('toggleVolume');
             if (!btn) {
-                console.error('toggleVolume button not found');
+                debugError('toggleVolume button not found');
                 return;
             }
             if (chartFeatures.volumeOverlay) {
@@ -9955,7 +9955,7 @@
             const btn = document.getElementById('toggleSupportResistance');
             
             if (!btn) {
-                console.error('toggleSupportResistance button not found');
+                debugError('toggleSupportResistance button not found');
                 return;
             }
             
@@ -9986,7 +9986,7 @@
             const btn = document.getElementById('toggleAnnotations');
             
             if (!btn) {
-                console.error('toggleAnnotations button not found');
+                debugError('toggleAnnotations button not found');
                 return;
             }
             
@@ -10016,19 +10016,19 @@
                 if (window.toggleVolumeOverlay) {
                     window.toggleVolumeOverlay();
                 } else {
-                    console.error('toggleVolumeOverlay function not found');
+                    debugError('toggleVolumeOverlay function not found');
                 }
             } else if (buttonId === 'toggleSupportResistance') {
                 if (window.toggleSupportResistance) {
                     window.toggleSupportResistance();
                 } else {
-                    console.error('toggleSupportResistance function not found');
+                    debugError('toggleSupportResistance function not found');
                 }
             } else if (buttonId === 'toggleAnnotations') {
                 if (window.toggleAnnotationMode) {
                     window.toggleAnnotationMode();
                 } else {
-                    console.error('toggleAnnotationMode function not found');
+                    debugError('toggleAnnotationMode function not found');
                 }
             }
         });
@@ -10158,7 +10158,7 @@
                 displayComparison(ticker, compareTickerUpper, currentData, data);
                 showToast(`Comparison: ${ticker} vs ${compareTickerUpper}`, 'success');
             } catch (error) {
-                console.error('Error loading comparison stock:', error);
+                debugError('Error loading comparison stock:', error);
                 showToast(`Error loading ${compareTickerUpper}: ${error.message}`, 'error');
             }
         }
@@ -10435,7 +10435,7 @@
                     showToast('Chart exported as SVG', 'success');
                 }
             } catch (error) {
-                console.error('Export error:', error);
+                debugError('Export error:', error);
                 showToast('Export failed: ' + error.message, 'error');
             }
         }
@@ -11100,7 +11100,7 @@
                     }
                 }
                 } catch (error) {
-                    console.error('Error adding indicators to candlestick chart:', error);
+                    debugError('Error adding indicators to candlestick chart:', error);
                 }
                 
                 // Handle resize
@@ -11112,7 +11112,7 @@
                 });
                 resizeObserver.observe(candlestickContainer);
             } catch (error) {
-                console.error('Error creating candlestick chart:', error);
+                debugError('Error creating candlestick chart:', error);
                 candlestickContainer.innerHTML = `<div style="padding: 20px; color: var(--text-primary); text-align: center;">Error creating chart: ${error.message}<br><small>Check console for details</small></div>`;
             }
         }
@@ -11417,7 +11417,7 @@
                 
                 return { success: true, data, timestamp: Date.now() };
             } catch (error) {
-                console.error(`Error fetching ${url}:`, error);
+                debugError(`Error fetching ${url}:`, error);
                 
                 // Show user-friendly error if container is provided
                 if (containerElement) {
@@ -11778,7 +11778,7 @@
                                 financialsDropdown.style.display = html !== '' ? 'block' : 'none';
                                 debugLog('[AUTOCOMPLETE] Rendered dropdown:', { htmlLength: html.length, display: financialsDropdown.style.display });
                             } catch (error) {
-                                console.error('[AUTOCOMPLETE] Error:', error);
+                                debugError('[AUTOCOMPLETE] Error:', error);
                                 financialsDropdown.innerHTML = '<div class="autocomplete-empty">⚠️ Search error. Please try again.</div>';
                                 financialsDropdown.style.display = 'block';
                             }
@@ -11901,7 +11901,7 @@
                         }
                     }
                 } catch (e) {
-                    console.error('Error parsing watchlist:', e);
+                    debugError('Error parsing watchlist:', e);
                 }
             }
             
@@ -12244,7 +12244,7 @@
                 }
                 
                 if (!ticker || ticker === 'undefined') {
-                    console.error('[PREDICTION HISTORY] No ticker available');
+                    debugError('[PREDICTION HISTORY] No ticker available');
                     document.getElementById('predictionHistoryTable').innerHTML = '<p style="color: #ef4444; text-align: center; padding: 20px;">Error: No ticker specified.</p>';
                     document.getElementById('predictionHistoryContainer').style.display = 'block';
                     return;
@@ -12354,7 +12354,7 @@
                 document.getElementById('predictionHistoryTable').innerHTML = tableHtml;
                 document.getElementById('predictionHistoryContainer').style.display = 'block';
             } catch (error) {
-                console.error('[PREDICTION HISTORY] Error loading history:', error);
+                debugError('[PREDICTION HISTORY] Error loading history:', error);
                 document.getElementById('predictionHistoryTable').innerHTML = '<p style="color: #ef4444; text-align: center; padding: 20px;">Error loading prediction history.</p>';
                 document.getElementById('predictionHistoryContainer').style.display = 'block';
             }
@@ -12370,7 +12370,7 @@
                 }
                 
                 if (!ticker || ticker === 'undefined') {
-                    console.error('[SCORE HISTORY] No ticker available');
+                    debugError('[SCORE HISTORY] No ticker available');
                     document.getElementById('scoreHistoryTable').innerHTML = '<p style="color: #ef4444; text-align: center; padding: 20px;">Error: No ticker specified.</p>';
                     document.getElementById('scoreHistoryContainer').style.display = 'block';
                     return;
@@ -12440,7 +12440,7 @@
                 document.getElementById('scoreHistoryTable').innerHTML = tableHtml;
                 document.getElementById('scoreHistoryContainer').style.display = 'block';
             } catch (error) {
-                console.error('[SCORE HISTORY] Error loading score history:', error);
+                debugError('[SCORE HISTORY] Error loading score history:', error);
                 document.getElementById('scoreHistoryTable').innerHTML = '<p style="color: #ef4444; text-align: center; padding: 20px;">Error loading score history.</p>';
                 document.getElementById('scoreHistoryContainer').style.display = 'block';
             }
@@ -14128,7 +14128,7 @@
                 // Debug: check if items have sector/industry
                 debugLog('Map data loaded:', items.length, 'items');
                 if (items.length > 0) {
-                    console.log('Sample item:', items[0]);
+                    debugLog('Sample item:', items[0]);
                     const itemsWithSector = items.filter(i => i.sector).length;
                     const itemsWithIndustry = items.filter(i => i.industry).length;
                     debugLog(`Items with sector: ${itemsWithSector}/${items.length}, with industry: ${itemsWithIndustry}/${items.length}`);
@@ -14380,7 +14380,7 @@
             try {
                 window.mapChartInstance = new Chart(canvas, cfg);
             } catch (err) {
-                console.error('Treemap init error:', err);
+                debugError('Treemap init error:', err);
                 var ph = document.getElementById('mapChartPlaceholder');
                 if (ph) { ph.style.display = 'flex'; ph.textContent = 'Graf se nepodařilo vykreslit. (Treemap plugin?)'; }
             }
@@ -14576,7 +14576,7 @@
                 link.click();
                 if (typeof showToast === 'function') showToast('Mapa exportována.', 'success');
             } catch (e) {
-                console.error('Export error:', e);
+                debugError('Export error:', e);
                 if (typeof showToast === 'function') showToast('Chyba při exportu.', 'error');
             }
         }
@@ -14666,7 +14666,7 @@
                 });
                 debugLog('Industry dropdown populated with', industriesForSelectedSector.size, 'options');
             } else {
-                console.warn('No industries found in data!');
+                debugWarn('No industries found in data!');
             }
         }
 
