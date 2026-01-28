@@ -7272,7 +7272,7 @@
             document.getElementById('results').classList.add('hidden');
 
             try {
-                console.log(`[STOCK ANALYSIS] Fetching data for ${ticker} with period ${currentTimeframe}`);
+                debugLog(`[STOCK ANALYSIS] Fetching data for ${ticker} with period ${currentTimeframe}`);
                 const response = await fetch(`/api/stock/${ticker}?period=${currentTimeframe}`);
                 
                 if (!response.ok) {
@@ -7281,7 +7281,7 @@
                 }
                 
                 const data = await response.json();
-                console.log(`[STOCK ANALYSIS] Data received:`, { 
+                debugLog(`[STOCK ANALYSIS] Data received:`, { 
                     hasData: !!data, 
                     hasChartData: !!data.chart_data,
                     hasMetrics: !!data.metrics,
@@ -7313,18 +7313,18 @@
                 const resultsSection = document.getElementById('results');
                 if (resultsSection) {
                     resultsSection.classList.remove('hidden');
-                    console.log('[STOCK ANALYSIS] Results section made visible');
+                    debugLog('[STOCK ANALYSIS] Results section made visible');
                 } else {
-                    console.error('[STOCK ANALYSIS] Results section not found!');
+                    debugError('[STOCK ANALYSIS] Results section not found!');
                 }
                 
                 // Small delay to ensure DOM is ready
                 setTimeout(() => {
                     try {
-                        console.log('[STOCK ANALYSIS] Calling displayStockData...');
+                        debugLog('[STOCK ANALYSIS] Calling displayStockData...');
                         displayStockData(data);
                         updateNewsAlertsButton(); // Update News Alerts button
-                        console.log('[STOCK ANALYSIS] displayStockData completed');
+                        debugLog('[STOCK ANALYSIS] displayStockData completed');
                     } catch (displayError) {
                         console.error('[STOCK ANALYSIS] Error displaying stock data:', displayError);
                         console.error('[STOCK ANALYSIS] Error stack:', displayError.stack);
@@ -14126,7 +14126,7 @@
                 window.currentMapData = items;
 
                 // Debug: check if items have sector/industry
-                console.log('Map data loaded:', items.length, 'items');
+                debugLog('Map data loaded:', items.length, 'items');
                 if (items.length > 0) {
                     console.log('Sample item:', items[0]);
                     const itemsWithSector = items.filter(i => i.sector).length;
