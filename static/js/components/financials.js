@@ -39,7 +39,7 @@ function formatCurrency(value) {
     return isNegative ? `-${formatted}` : formatted;
 }
 
-// Format number for display (millions/billions with commas)
+// Format number for detailed financials display (millions/billions with commas)
 function formatDetailedNumber(value) {
     if (value === null || value === undefined || isNaN(value)) {
         return '-';
@@ -70,11 +70,10 @@ function formatDetailedNumber(value) {
  * Load financials data for a ticker
  */
 export async function loadFinancials() {
-    debugLog('[DEBUG] loadFinancials: Function called');
-    const ticker = document.getElementById('financialsTickerInput').value.trim().toUpperCase();
-    debugLog('[DEBUG] loadFinancials: Ticker extracted', {ticker});
+    debugLog('[FINANCIALS] loadFinancials: Function called');
+    const ticker = document.getElementById('financialsTickerInput')?.value.trim().toUpperCase();
+    debugLog('[FINANCIALS] loadFinancials: Ticker extracted', {ticker});
     if (!ticker) {
-        // Use global showError if available
         if (typeof window.showError === 'function') {
             window.showError('Please enter a stock ticker');
         } else {
@@ -84,6 +83,11 @@ export async function loadFinancials() {
     }
 
     const container = document.getElementById('financialsContent');
+    if (!container) {
+        debugError('[FINANCIALS] loadFinancials: financialsContent container not found');
+        return;
+    }
+
     container.innerHTML = `
         <div class="skeleton-card">
             <div class="skeleton skeleton-title"></div>
@@ -103,19 +107,24 @@ export async function loadFinancials() {
     `;
 
     try {
-        debugLog('[DEBUG] loadFinancials: Fetching financials data for', ticker);
+        debugLog('[FINANCIALS] loadFinancials: Fetching financials data for', ticker);
         const result = await apiClient.get(`/api/financials/${ticker}`);
         
-        if (!result.success) {
+        if (!result || !result.success) {
+            const errorMsg = result?.error || 'Failed to load financials data';
             if (typeof window.showError === 'function') {
-                window.showError(result.error || 'Failed to load financials');
+                window.showError(errorMsg);
             }
+            container.innerHTML = `
+                <div class="error">
+                    Error loading financials: ${errorMsg}<br><br>
+                    <button onclick="if(typeof window.loadFinancials === 'function') { window.loadFinancials(); }" style="margin-top: 10px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
+                </div>
+            `;
             return;
         }
         
         const data = result.data;
-        
-        // Track data timestamp if function exists
         if (typeof window.trackDataTimestamp === 'function') {
             window.trackDataTimestamp(`/api/financials/${ticker}`, result.timestamp || Date.now());
         }
@@ -123,13 +132,13 @@ export async function loadFinancials() {
             window.updateDataFreshnessIndicator(result.timestamp || new Date().toISOString(), 'financialsContent');
         }
         
-        debugLog('[DEBUG] loadFinancials: Data received', {
+        debugLog('[FINANCIALS] loadFinancials: Data received', {
             hasData: !!data,
             hasForwardEstimates: !!data.forward_estimates,
             dataKeys: Object.keys(data || {})
         });
 
-        // Add to recent searches if function exists
+        // Add to recent searches
         const companyName = data.company_name || ticker;
         if (typeof window.addToRecentSearches === 'function') {
             window.addToRecentSearches(ticker, companyName);
@@ -137,16 +146,13 @@ export async function loadFinancials() {
         
         currentFinancialsData = data;
         
-        debugLog('🔍 [DEBUG] loadFinancials: About to call displayFinancials');
-        debugLog('🔍 [DEBUG] loadFinancials: Data keys:', Object.keys(data || {}));
-        debugLog('🔍 [DEBUG] loadFinancials: Has detailed_income_statement?', !!data?.detailed_income_statement);
+        debugLog('[FINANCIALS] loadFinancials: About to call displayFinancials');
+        debugLog('[FINANCIALS] loadFinancials: Data keys:', Object.keys(data || {}));
+        debugLog('[FINANCIALS] loadFinancials: Has detailed_income_statement?', !!data?.detailed_income_statement);
         if (data?.detailed_income_statement) {
-            debugLog('🔍 [DEBUG] loadFinancials: quarterly length:', data.detailed_income_statement.quarterly?.length || 0);
-            debugLog('🔍 [DEBUG] loadFinancials: annual length:', data.detailed_income_statement.annual?.length || 0);
+            debugLog('[FINANCIALS] loadFinancials: quarterly length:', data.detailed_income_statement.quarterly?.length || 0);
+            debugLog('[FINANCIALS] loadFinancials: annual length:', data.detailed_income_statement.annual?.length || 0);
         }
-        
-        debugLog('🎯🎯🎯 [DEBUG] loadFinancials: About to call displayFinancials with ticker:', ticker);
-        debugLog('🎯🎯🎯 [DEBUG] loadFinancials: Data has keys:', Object.keys(data || {}).slice(0, 10));
         
         // Call displayFinancials with basic data (fast)
         displayFinancials(data, ticker);
@@ -162,7 +168,7 @@ export async function loadFinancials() {
             // Double-check that overviewTab has content
             const overviewTab = document.getElementById('financialsOverviewTab');
             if (overviewTab && (!overviewTab.innerHTML || overviewTab.innerHTML.trim() === '' || overviewTab.innerHTML.includes('Loading overview data'))) {
-                debugWarn('⚠️⚠️⚠️ [DEBUG] loadFinancials: overviewTab is empty after displayFinancials, trying to re-render...');
+                debugWarn('[FINANCIALS] loadFinancials: overviewTab is empty after displayFinancials, trying to re-render...');
                 // Re-call displayFinancials if content is missing
                 displayFinancials(data, ticker);
             }
@@ -171,9 +177,9 @@ export async function loadFinancials() {
         // Load advanced analyses asynchronously in background (doesn't block UI)
         loadAdvancedFinancialsAnalyses(ticker, data);
         
-        debugLog('🎯🎯🎯 [DEBUG] loadFinancials: displayFinancials call completed');
+        debugLog('[FINANCIALS] loadFinancials: displayFinancials call completed');
     } catch (error) {
-        debugError('Error loading financials:', error);
+        debugError('[FINANCIALS] loadFinancials: Error:', error);
         container.innerHTML = `
             <div class="error">
                 Error loading financials: ${error.message}<br><br>
@@ -190,10 +196,10 @@ export async function loadFinancials() {
 }
 
 /**
- * Load advanced financial analyses asynchronously
+ * Load advanced financial analyses asynchronously (doesn't block initial render)
  */
 export async function loadAdvancedFinancialsAnalyses(ticker, basicData) {
-    debugLog('📊 [DEBUG] loadAdvancedFinancialsAnalyses: Loading advanced analyses for', ticker);
+    debugLog('[FINANCIALS] loadAdvancedFinancialsAnalyses: Loading advanced analyses for', ticker);
     
     try {
         // Show loading indicators for advanced sections
@@ -215,9 +221,13 @@ export async function loadAdvancedFinancialsAnalyses(ticker, basicData) {
         }
         
         // Fetch advanced analyses
-        const advancedData = await apiClient.get(`/api/financials/${ticker}/advanced`);
+        const response = await fetch(`/api/financials/${ticker}/advanced`);
+        if (!response.ok) {
+            throw new Error(`Failed to load advanced analyses: ${response.statusText}`);
+        }
         
-        debugLog('📊 [DEBUG] loadAdvancedFinancialsAnalyses: Advanced data received', Object.keys(advancedData));
+        const advancedData = await response.json();
+        debugLog('[FINANCIALS] loadAdvancedFinancialsAnalyses: Advanced data received', Object.keys(advancedData));
         
         // Merge advanced data with basic data
         const mergedData = { ...basicData, ...advancedData };
@@ -229,15 +239,11 @@ export async function loadAdvancedFinancialsAnalyses(ticker, basicData) {
                 mergedData.forward_estimates = { revenue: {}, eps: {} };
             }
             // Merge Finviz estimates into forward_estimates
-            // CRITICAL: Ensure all Finviz estimates (especially future quarters) are merged
             if (finvizEst.estimates) {
                 if (finvizEst.estimates.revenue) {
-                    // Merge Finviz revenue estimates - Finviz data takes precedence for overlapping quarters
-                    // This ensures future quarters from Finviz are always included
                     Object.assign(mergedData.forward_estimates.revenue, finvizEst.estimates.revenue);
                 }
                 if (finvizEst.estimates.eps) {
-                    // Merge Finviz EPS estimates - Finviz data takes precedence for overlapping quarters
                     Object.assign(mergedData.forward_estimates.eps, finvizEst.estimates.eps);
                 }
             }
@@ -296,7 +302,7 @@ export async function loadAdvancedFinancialsAnalyses(ticker, basicData) {
         }
         
     } catch (error) {
-        debugWarn('⚠️ [DEBUG] loadAdvancedFinancialsAnalyses: Failed to load advanced analyses', error);
+        debugWarn('[FINANCIALS] loadAdvancedFinancialsAnalyses: Failed to load advanced analyses', error);
         // Remove loading placeholder on error
         const placeholder = document.getElementById('advancedAnalysesPlaceholder');
         if (placeholder) {
@@ -332,18 +338,18 @@ export function changeFinancialsPeriod(period) {
  * Switch between Overview and Detailed tabs
  */
 export function switchFinancialsTab(tabName) {
-    debugLog('🔄 [DEBUG] switchFinancialsTab: Called with tabName:', tabName);
+    debugLog('[FINANCIALS] switchFinancialsTab: Called with tabName:', tabName);
     
     // Update tab buttons
     const buttons = document.querySelectorAll('.financials-tab-btn');
-    debugLog('🔄 [DEBUG] switchFinancialsTab: Found buttons:', buttons.length);
+    debugLog('[FINANCIALS] switchFinancialsTab: Found buttons:', buttons.length);
     buttons.forEach(btn => {
         btn.classList.remove('active');
         if (btn.dataset.tab === tabName) {
             btn.classList.add('active');
             btn.style.color = 'var(--primary-500)';
             btn.style.borderBottomColor = 'var(--primary-500)';
-            debugLog('✅ [DEBUG] switchFinancialsTab: Activated button for', tabName);
+            debugLog('[FINANCIALS] switchFinancialsTab: Activated button for', tabName);
         } else {
             btn.style.color = 'var(--text-secondary)';
             btn.style.borderBottomColor = 'transparent';
@@ -361,84 +367,89 @@ export function switchFinancialsTab(tabName) {
         if (overviewTab) {
             overviewTab.classList.add('active');
             overviewTab.style.display = 'block';
-            debugLog('✅ [DEBUG] switchFinancialsTab: Overview tab shown');
+            debugLog('[FINANCIALS] switchFinancialsTab: Overview tab shown');
         } else {
-            debugError('❌ [DEBUG] switchFinancialsTab: Overview tab not found!');
+            debugError('[FINANCIALS] switchFinancialsTab: Overview tab not found!');
         }
     } else if (tabName === 'detailed') {
         const detailedTab = document.getElementById('financialsDetailedTab');
         if (detailedTab) {
             detailedTab.classList.add('active');
             detailedTab.style.display = 'block';
-            debugLog('✅ [DEBUG] switchFinancialsTab: Detailed tab shown');
+            debugLog('[FINANCIALS] switchFinancialsTab: Detailed tab shown');
             
             // Check if content exists and re-render if needed
             const detailedContent = document.getElementById('detailedFinancialsContent');
             if (detailedContent) {
-                debugLog('✅ [DEBUG] switchFinancialsTab: detailedFinancialsContent found, innerHTML length:', detailedContent.innerHTML.length);
+                debugLog('[FINANCIALS] switchFinancialsTab: detailedFinancialsContent found, innerHTML length:', detailedContent.innerHTML.length);
                 const contentText = detailedContent.innerHTML.trim();
                 const isEmpty = !contentText || contentText === '';
                 const isPlaceholder = contentText.includes('Click "Load Financials"') || contentText.includes('Loading overview data') || contentText.includes('⚠️');
                 
                 if (isEmpty || isPlaceholder) {
-                    debugWarn('⚠️ [DEBUG] switchFinancialsTab: detailedFinancialsContent is empty or placeholder, trying to re-render...');
+                    debugWarn('[FINANCIALS] switchFinancialsTab: detailedFinancialsContent is empty or placeholder, trying to re-render...');
                     
                     // Try to re-render if we have currentFinancialsData
-                    if (typeof currentFinancialsData !== 'undefined' && currentFinancialsData) {
-                        debugLog('🔄 [DEBUG] switchFinancialsTab: Re-rendering with currentFinancialsData');
+                    if (currentFinancialsData) {
+                        debugLog('[FINANCIALS] switchFinancialsTab: Re-rendering with currentFinancialsData');
                         const ticker = document.getElementById('financialsTickerInput')?.value.trim().toUpperCase() || 'UNKNOWN';
-                        if (typeof renderDetailedFinancials === 'function') {
-                            renderDetailedFinancials(currentFinancialsData, ticker);
-                        } else {
-                            debugError('❌ [DEBUG] switchFinancialsTab: renderDetailedFinancials function not found!');
-                        }
+                        renderDetailedFinancials(currentFinancialsData, ticker);
                     } else {
-                        debugWarn('⚠️ [DEBUG] switchFinancialsTab: currentFinancialsData not available');
+                        debugWarn('[FINANCIALS] switchFinancialsTab: currentFinancialsData not available');
                     }
                 }
             } else {
-                debugError('❌ [DEBUG] switchFinancialsTab: detailedFinancialsContent container not found!');
+                debugError('[FINANCIALS] switchFinancialsTab: detailedFinancialsContent container not found!');
             }
         } else {
-            debugError('❌ [DEBUG] switchFinancialsTab: Detailed tab not found!');
+            debugError('[FINANCIALS] switchFinancialsTab: Detailed tab not found!');
         }
     }
 }
 
-// Note: displayFinancials, renderDetailedFinancials, and chart creation functions
-// are very large and will be added in subsequent updates due to size constraints.
-// For now, we export placeholders that reference the global functions.
-
-/**
- * Display financials data (placeholder - full implementation in index.html for now)
- * This is a very large function (~2000+ lines) that will be fully extracted later
- */
+// Placeholder for displayFinancials - will be implemented in next step
 export function displayFinancials(data, ticker) {
-    // This function is too large to extract in one go
-    // It will remain in index.html for now and be gradually refactored
-    if (typeof window._displayFinancials === 'function') {
-        return window._displayFinancials(data, ticker);
-    }
-    debugWarn('displayFinancials: Full implementation not yet extracted to module');
+    debugLog('[FINANCIALS] displayFinancials: FUNCTION CALLED with ticker:', ticker);
+    debugError('[FINANCIALS] displayFinancials: NOT YET IMPLEMENTED - needs to be extracted from index.html');
+    // TODO: Extract displayFinancials function from templates/index.html
+    // This is a very large function (starts around line 19420)
 }
 
-/**
- * Render detailed financials (placeholder - full implementation in index.html for now)
- */
+// Placeholder for renderDetailedFinancials - will be implemented in next step
 export function renderDetailedFinancials(data, ticker) {
-    if (typeof window._renderDetailedFinancials === 'function') {
-        return window._renderDetailedFinancials(data, ticker);
-    }
-    debugWarn('renderDetailedFinancials: Full implementation not yet extracted to module');
+    debugLog('[FINANCIALS] renderDetailedFinancials: FUNCTION CALLED for ticker:', ticker || 'NO TICKER');
+    debugError('[FINANCIALS] renderDetailedFinancials: NOT YET IMPLEMENTED - needs to be extracted from index.html');
+    // TODO: Extract renderDetailedFinancials function from templates/index.html
+    // This function starts around line 7889
+}
+
+// Placeholder for chart creation functions - will be implemented in next step
+export function createDetailedRevenueChart(revenueMetric, sortedDates, ticker) {
+    debugWarn('[FINANCIALS] createDetailedRevenueChart: NOT YET IMPLEMENTED');
+    // TODO: Extract from templates/index.html (starts around line 8218)
+}
+
+export function createDetailedMultiMetricChart(metrics, sortedDates, ticker) {
+    debugWarn('[FINANCIALS] createDetailedMultiMetricChart: NOT YET IMPLEMENTED');
+    // TODO: Extract from templates/index.html (starts around line 8330)
+}
+
+export function createDetailedMarginsChart(metrics, sortedDates, ticker) {
+    debugWarn('[FINANCIALS] createDetailedMarginsChart: NOT YET IMPLEMENTED');
+    // TODO: Extract from templates/index.html (starts around line 8529)
 }
 
 // Global exports for backward compatibility during refactoring
 if (typeof window !== 'undefined') {
     window.loadFinancials = loadFinancials;
     window.loadAdvancedFinancialsAnalyses = loadAdvancedFinancialsAnalyses;
-    window.switchFinancialsTab = switchFinancialsTab;
     window.changeFinancialsPeriod = changeFinancialsPeriod;
+    window.switchFinancialsTab = switchFinancialsTab;
+    window.displayFinancials = displayFinancials;
+    window.renderDetailedFinancials = renderDetailedFinancials;
+    window.createDetailedRevenueChart = createDetailedRevenueChart;
+    window.createDetailedMultiMetricChart = createDetailedMultiMetricChart;
+    window.createDetailedMarginsChart = createDetailedMarginsChart;
     window.formatCurrency = formatCurrency;
     window.formatDetailedNumber = formatDetailedNumber;
-    window.safeToFixed = safeToFixed;
 }
