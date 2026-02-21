@@ -594,7 +594,22 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
         
         revenue_yoy = calculate_yoy_growth(revenue_row_q)
         net_income_yoy = calculate_yoy_growth(net_income_row_q)
-        
+
+        # Revenue growth 4Q average (average YoY over last 4 quarters) for trend
+        revenue_growth_4q = None
+        if revenue_row_q is not None and len(revenue_row_q) >= 8:
+            try:
+                growths = []
+                for i in range(4):
+                    current = float(revenue_row_q.iloc[i])
+                    previous = float(revenue_row_q.iloc[i + 4])
+                    if previous != 0 and not pd.isna(current) and not pd.isna(previous):
+                        growths.append(((current - previous) / abs(previous)) * 100)
+                if growths:
+                    revenue_growth_4q = round(sum(growths) / len(growths), 1)
+            except (IndexError, ValueError, TypeError):
+                pass
+
         # Get Gross Margin
         gross_profit_row_q = find_row(quarterly_income, ['gross profit', 'total gross profit'])
         gross_margin_q = None
@@ -652,6 +667,17 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
         if fcf_ttm is not None and revenue_ttm is not None and revenue_ttm != 0:
             fcf_margin = (fcf_ttm / revenue_ttm) * 100
         
+        # Rule of 40: Revenue growth % + FCF margin % (target >= 40). Growth/SaaS metric.
+        rule_of_40 = None
+        rule_of_40_label = 'N/A'
+        if revenue_yoy is not None and fcf_margin is not None:
+            try:
+                r40 = float(revenue_yoy) + float(fcf_margin)
+                rule_of_40 = round(r40, 1)
+                rule_of_40_label = 'Pass' if r40 >= 40 else 'Fail'
+            except (TypeError, ValueError):
+                pass
+
         # Build Executive Snapshot
         financials['executive_snapshot'] = {
             'revenue_ttm': revenue_ttm,
@@ -661,7 +687,10 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
             'fcf_ttm': fcf_ttm,
             'fcf_margin': fcf_margin,
             'gross_margin': gross_margin_q,
-            'debt_fcf_ratio': debt_fcf_ratio
+            'debt_fcf_ratio': debt_fcf_ratio,
+            'rule_of_40': rule_of_40,
+            'rule_of_40_label': rule_of_40_label,
+            'revenue_growth_4q': revenue_growth_4q
         }
         
         # Build Income Statement data for charts
@@ -838,15 +867,83 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
                         })
                 except (IndexError, ValueError, TypeError):
                     continue
+
+        # Beat/miss from income statement (actual vs estimate, last 4–6 quarters)
+        guidance_tracking = []
+        for q in financials.get('income_statement', {}).get('quarterly', [])[:6]:
+            rev = q.get('revenue')
+            rev_est = q.get('revenue_estimate')
+            eps = q.get('eps')
+            eps_est = q.get('eps_estimate')
+            rev_beat = None
+            if rev is not None and rev_est is not None:
+                try:
+                    rev_beat = float(rev) > float(rev_est)
+                except (TypeError, ValueError):
+                    pass
+            eps_beat = None
+            if eps is not None and eps_est is not None:
+                try:
+                    eps_beat = float(eps) > float(eps_est)
+                except (TypeError, ValueError):
+                    pass
+            if rev_beat is not None or eps_beat is not None or rev is not None or eps is not None:
+                try:
+                    guidance_tracking.append({
+                        'quarter': q.get('quarter'),
+                        'actual_revenue': float(rev) if rev is not None else None,
+                        'revenue_estimate': float(rev_est) if rev_est is not None else None,
+                        'revenue_beat': rev_beat,
+                        'actual_eps': float(eps) if eps is not None else None,
+                        'eps_estimate': float(eps_est) if eps_est is not None else None,
+                        'eps_beat': eps_beat
+                    })
+                except (TypeError, ValueError):
+                    pass
+        if guidance_tracking:
+            financials['guidance_tracking'] = guidance_tracking
+            revenue_beats = sum(1 for e in guidance_tracking if e.get('revenue_beat') is True)
+            eps_beats = sum(1 for e in guidance_tracking if e.get('eps_beat') is True)
+            financials['guidance_tracking_summary'] = {
+                'quarters': len(guidance_tracking),
+                'revenue_beats': revenue_beats,
+                'eps_beats': eps_beats
+            }
         
-        # Build Margins data
-        if gross_margin_q is not None or operating_margin_q is not None or net_margin_q is not None:
-            financials['margins']['quarterly'].append({
-                'gross_margin': gross_margin_q,
-                'operating_margin': operating_margin_q,
-                'net_margin': net_margin_q
-            })
-        
+        # Build Margins data (4–8 quarters for trend / sparkline)
+        if revenue_row_q is not None and quarterly_income is not None:
+            for i, col in enumerate(quarterly_income.columns[:8]):
+                try:
+                    quarter_date = pd.Timestamp(col)
+                    quarter_calc = (quarter_date.month - 1) // 3 + 1
+                    quarter_str = f"{quarter_date.year}-Q{quarter_calc}"
+                    rev = float(revenue_row_q.iloc[i]) if i < len(revenue_row_q) else None
+                    if rev is None or rev == 0 or pd.isna(rev):
+                        continue
+                    gm = om = nm = None
+                    if gross_profit_row_q is not None and i < len(gross_profit_row_q):
+                        gp = float(gross_profit_row_q.iloc[i])
+                        if gp is not None and not pd.isna(gp):
+                            gm = (gp / rev) * 100
+                    if operating_income_row_q is not None and i < len(operating_income_row_q):
+                        oi = float(operating_income_row_q.iloc[i])
+                        if oi is not None and not pd.isna(oi):
+                            om = (oi / rev) * 100
+                    if net_income_row_q is not None and i < len(net_income_row_q):
+                        ni = float(net_income_row_q.iloc[i])
+                        if ni is not None and not pd.isna(ni):
+                            nm = (ni / rev) * 100
+                    if gm is not None or om is not None or nm is not None:
+                        financials['margins']['quarterly'].append({
+                            'quarter': quarter_str,
+                            'date': quarter_date.strftime('%Y-%m-%d'),
+                            'gross_margin': gm,
+                            'operating_margin': om,
+                            'net_margin': nm
+                        })
+                except (IndexError, ValueError, TypeError):
+                    continue
+
         # Build Cash Flow data
         if ocf_row_q is not None and quarterly_cf is not None:
             for i, col in enumerate(quarterly_cf.columns[:8]):
@@ -1154,7 +1251,39 @@ def get_financials_data(ticker: str) -> Optional[Dict]:
         financials['executive_snapshot']['revenue_trend'] = 'improving' if revenue_yoy and revenue_yoy > 0 else 'deteriorating' if revenue_yoy and revenue_yoy < 0 else 'stable'
         financials['executive_snapshot']['earnings_trend'] = 'improving' if net_income_yoy and net_income_yoy > 0 else 'deteriorating' if net_income_yoy and net_income_yoy < 0 else 'stable'
         financials['executive_snapshot']['fcf_trend'] = 'improving' if fcf_ttm and fcf_ttm > 0 else 'deteriorating' if fcf_ttm and fcf_ttm < 0 else 'stable'
-        
+
+        # Next quarter forward estimates (earliest quarter in forward_estimates for UI snapshot)
+        fe = financials.get('forward_estimates') or {}
+        rev_est = fe.get('revenue') or {}
+        eps_est = fe.get('eps') or {}
+        def _quarter_sort_key(k):
+            try:
+                if '-' in k and '-Q' in k.upper():
+                    y, q = k.upper().split('-Q')
+                    return (int(y.strip()), int(q.strip() or 0))
+            except (ValueError, IndexError):
+                pass
+            return (9999, 9999)
+        all_q_keys = sorted(set(list(rev_est.keys()) + list(eps_est.keys())), key=_quarter_sort_key)
+        next_q_label = all_q_keys[0] if all_q_keys else None
+        financials['executive_snapshot']['next_q_label'] = next_q_label
+        financials['executive_snapshot']['next_q_revenue_estimate'] = rev_est.get(next_q_label) if next_q_label else None
+        financials['executive_snapshot']['next_q_eps_estimate'] = eps_est.get(next_q_label) if next_q_label else None
+
+        # Gross margin trend and by-quarter for sparkline
+        margins_q = financials.get('margins', {}).get('quarterly', [])
+        gross_margin_by_quarter = [q.get('gross_margin') for q in margins_q if q.get('gross_margin') is not None]
+        financials['executive_snapshot']['gross_margin_by_quarter'] = gross_margin_by_quarter if gross_margin_by_quarter else None
+        if len(margins_q) >= 5:
+            last_gm = margins_q[0].get('gross_margin')
+            four_q_ago = margins_q[4].get('gross_margin')
+            if last_gm is not None and four_q_ago is not None:
+                financials['executive_snapshot']['gross_margin_trend'] = 'improving' if last_gm > four_q_ago else ('deteriorating' if last_gm < four_q_ago else 'stable')
+            else:
+                financials['executive_snapshot']['gross_margin_trend'] = 'stable'
+        else:
+            financials['executive_snapshot']['gross_margin_trend'] = 'stable'
+
         # Calculate overall financials score (pass company_stage for growth adjustments)
         financials_score = calculate_financials_score(financials, info, company_stage)
         financials['financials_score'] = financials_score

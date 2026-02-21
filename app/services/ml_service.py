@@ -492,12 +492,7 @@ def _train_random_forest_model(ticker: str,
             if df is None or len(df) < 100:
                 logger.warning(
                     f"Insufficient historical data for {ticker} to train model")
-
-        return None, None
-        
-        # Prepare features
-        feature_names = sorted(
-            [k for k in features_dict.keys() if k != 'ticker'])
+                return None, None
 
         # Prepare features
         feature_names = sorted(
@@ -513,9 +508,9 @@ def _train_random_forest_model(ticker: str,
 
         # Build training dataset using walk-forward approach
         # For each day, extract features and predict next day's price
-            X_hist = []
-            y_hist = []
-            
+        X_hist = []
+        y_hist = []
+
         # Use at least 60 days lookback for feature calculation
         lookback_days = 60
 
@@ -1461,16 +1456,23 @@ def get_prediction_history(ticker: str, days: int = 30) -> List[Dict]:
                 'date', ''), reverse=True)
         
         if days > 0:
-            # Filter by date
+            # Filter by date (support both YYYY-MM-DD and YYYY-MM-DD HH:MM:SS)
             cutoff_date = datetime.now() - timedelta(days=days)
             filtered_history = []
             for entry in history:
                 try:
-                    entry_date = datetime.strptime(
-                        entry.get('date', ''), '%Y-%m-%d %H:%M:%S')
+                    date_str = entry.get('date', '')
+                    for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d'):
+                        try:
+                            entry_date = datetime.strptime(date_str, fmt)
+                            break
+                        except ValueError:
+                            continue
+                    else:
+                        continue
                     if entry_date >= cutoff_date:
                         filtered_history.append(entry)
-                except:
+                except Exception:
                     continue
             history = filtered_history
         

@@ -1,6 +1,7 @@
 """
 Stock Analysis Platform - Flask Application (package app used by gunicorn app:app)
 """
+from pathlib import Path
 from flask import Flask
 from flask_caching import Cache
 from flask_limiter import Limiter
@@ -11,6 +12,11 @@ import os
 # Load environment variables
 load_dotenv()
 
+# Project root = parent of app package (static/ and templates/ are in project root)
+_root = Path(__file__).resolve().parent.parent
+_template_dir = str(_root / 'templates')
+_static_dir = str(_root / 'static')
+
 # Module-level cache and limiter so "from app import cache" works in routes
 cache = Cache()
 limiter = Limiter(key_func=get_remote_address, default_limits=['100 per minute'],
@@ -19,7 +25,9 @@ limiter = Limiter(key_func=get_remote_address, default_limits=['100 per minute']
 
 def create_app():
     """Create and configure Flask application"""
-    app = Flask(__name__)
+    app = Flask(__name__,
+                template_folder=_template_dir,
+                static_folder=_static_dir)
     app.config['TEMPLATES_AUTO_RELOAD'] = True
     app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 

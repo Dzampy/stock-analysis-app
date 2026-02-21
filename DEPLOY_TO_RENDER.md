@@ -5,7 +5,7 @@
 - ✅ `render.yaml` - konfigurace pro Render
 - ✅ `requirements.txt` - všechny závislosti
 - ✅ `runtime.txt` - Python 3.11.0
-- ✅ `app.py` - správně nakonfigurovaný pro Render
+- ✅ `app/__init__.py` - Flask app s `template_folder` a `static_folder` v kořeni projektu (pro Render se používá `gunicorn app:app`)
 
 ## 📋 Krok 1: Commit a Push na GitHub
 

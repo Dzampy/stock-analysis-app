@@ -93,7 +93,8 @@ def calculate_financials_score(financials: Dict, info: Dict, company_stage: str 
         revenue_yoy = snapshot.get('revenue_yoy', 0) if snapshot.get('revenue_yoy') else 0
         is_growth_with_revenue = (company_stage == 'growth' or company_stage == 'early_stage') and revenue_yoy > 0
         
-        # 1. Revenue Growth (0-20 points)
+        # 1. Revenue Growth (0-20 points, max 25 for growth/early_stage)
+        revenue_growth_max = 25 if is_growth_with_revenue else 20
         revenue_growth_score = 0
         if revenue_yoy >= 20:
             revenue_growth_score = 20
@@ -107,7 +108,9 @@ def calculate_financials_score(financials: Dict, info: Dict, company_stage: str 
             revenue_growth_score = 2
         
         if is_growth_with_revenue and revenue_yoy >= 15:
-            revenue_growth_score = min(20, revenue_growth_score + 2)
+            revenue_growth_score = min(revenue_growth_max, revenue_growth_score + 5)  # growth bonus up to 25
+        elif is_growth_with_revenue and revenue_yoy >= 5:
+            revenue_growth_score = min(revenue_growth_max, revenue_growth_score + 2)
         
         score += revenue_growth_score
         breakdown['revenue_growth'] = revenue_growth_score
@@ -131,6 +134,10 @@ def calculate_financials_score(financials: Dict, info: Dict, company_stage: str 
                 profitability_score = 5
             elif is_growth_with_revenue and net_margin >= -0.15:
                 profitability_score = 3  # More lenient for growth companies
+                # Bonus for improving trend (losses narrowing)
+                net_income_yoy = snapshot.get('net_income_yoy')
+                if net_income_yoy is not None and net_income_yoy > 0:
+                    profitability_score = min(8, profitability_score + 3)
         else:
             # Try to infer from info
             profit_margin = info.get('profitMargins')
@@ -148,9 +155,31 @@ def calculate_financials_score(financials: Dict, info: Dict, company_stage: str 
         score += profitability_score
         breakdown['profitability'] = profitability_score
         
-        # 3. Cash Flow (0-20 points)
+        # 3. Cash Flow (0-20 points) from FCF margin / burn; growth with reasonable burn gets points
+        fcf_ttm = snapshot.get('fcf_ttm')
+        fcf_margin = snapshot.get('fcf_margin')
+        fcf_trend = snapshot.get('fcf_trend', 'stable')
         cash_flow_score = 0
-        # TODO: Add cash flow analysis when get_cash_flow_analysis is moved
+        if fcf_ttm is not None and fcf_margin is not None:
+            if fcf_ttm >= 0 and fcf_margin >= 0:
+                if fcf_margin >= 20:
+                    cash_flow_score = 20
+                elif fcf_margin >= 15:
+                    cash_flow_score = 17
+                elif fcf_margin >= 10:
+                    cash_flow_score = 14
+                elif fcf_margin >= 5:
+                    cash_flow_score = 10
+                else:
+                    cash_flow_score = 6
+            elif fcf_ttm < 0 and (company_stage == 'growth' or company_stage == 'early_stage'):
+                # Negative FCF for growth: score by trend (improving = some points)
+                if fcf_trend == 'improving':
+                    cash_flow_score = 5
+                elif fcf_trend == 'stable':
+                    cash_flow_score = 2
+                else:
+                    cash_flow_score = 0
         score += cash_flow_score
         breakdown['cash_flow'] = cash_flow_score
         
@@ -199,6 +228,9 @@ def calculate_financials_score(financials: Dict, info: Dict, company_stage: str 
         
         score += efficiency_score
         breakdown['efficiency'] = efficiency_score
+
+        # Cap at 100 (growth can push revenue_growth to 25)
+        score = min(score, 100.0)
         
         # Determine grade
         if score >= 80:

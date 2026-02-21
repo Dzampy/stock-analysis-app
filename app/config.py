@@ -23,12 +23,14 @@ else:
     logger.info("Cache configured to use in-memory (set CACHE_REDIS_URL for Redis)")
 
 # Cache timeouts for different data types (in seconds)
+# In development, use short financials cache so new backend fields show after restart
+_dev = os.getenv('FLASK_ENV') == 'development' or os.getenv('DEBUG', '').lower() in ('1', 'true')
 CACHE_TIMEOUTS = {
     'yfinance': 300,  # 5 minutes - prices change frequently
     'finviz': 900,  # 15 minutes - analyst ratings, insider trading
     'ml_predictions': 600,  # 10 minutes - computationally expensive
     'news': 1800,  # 30 minutes - less frequent changes
-    'financials': 3600,  # 1 hour - quarterly data changes rarely
+    'financials': 60 if _dev else 3600,  # 1 min in dev (see new fields after restart), 1 hour in prod
     'analyst': 900,  # 15 minutes
     'insider': 900,  # 15 minutes
     'institutional': 1800,  # 30 minutes

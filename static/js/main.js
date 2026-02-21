@@ -19,7 +19,7 @@ window.formatters = formatters;
 window.appState = {
     currentTicker: null,
     currentSection: 'welcomeSection',
-    darkMode: false
+    darkMode: true
 };
 
 /**
@@ -50,13 +50,18 @@ function init() {
 }
 
 /**
- * Load dark mode preference
+ * Load dark mode preference (default: dark for data-first / terminal feel)
  */
 function loadDarkMode() {
-    const darkMode = storageService.get('darkMode', false);
+    const darkMode = storageService.get('darkMode', true);
     if (darkMode) {
         document.documentElement.classList.add('dark-mode');
+        document.body.classList.add('dark-mode');
         window.appState.darkMode = true;
+    } else {
+        document.documentElement.classList.remove('dark-mode');
+        document.body.classList.remove('dark-mode');
+        window.appState.darkMode = false;
     }
 }
 
@@ -65,6 +70,7 @@ function loadDarkMode() {
  */
 function toggleDarkMode() {
     const isDark = document.documentElement.classList.toggle('dark-mode');
+    document.body.classList.toggle('dark-mode', isDark);
     storageService.set('darkMode', isDark);
     window.appState.darkMode = isDark;
     debugLog('Dark mode:', isDark ? 'enabled' : 'disabled');
